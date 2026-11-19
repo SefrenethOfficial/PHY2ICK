@@ -9,8 +9,8 @@ Play it at **https://sefrenethofficial.github.io/PHY2ICK/**
 Before the real map, everything new gets tried out in one small test area: a block of road around a park (a fountain, trees, benches, Café Noir), a row of buildings, and a test track to the east with a slalom, two jump ramps and a long straight.
 
 ### People
-- **Believable, not photoreal.** People have proper proportions (a shaped torso, separate upper and lower arms and legs, hands and shoes) and a face with eyes, brows and a mouth: no noses, no ears. Different skin tones, hairstyles (short, swept, buzz, bald, bob, long, bun), clothes, heights and builds.
-- **Animated from a skeleton.** Every person has a joint rig (hips, spine, chest, neck, head, shoulders, elbows, wrists, hips, knees, ankles) and a gait driven by speed: a walk blends into a run, arms swing against the legs, the body bobs and leans, knees bend on the swing. They breathe when standing, gesture when they talk, turn their heads to look at you, sit on benches, point when giving directions, and sit properly in cars with their hands on the wheel. (The rig is built so real skinned models can drop in later.)
+- **Believable, not photoreal.** Each body is one smooth, skinned mesh (torso, arms and legs in one piece, with clothes coloured on: collars, sleeves, a belt line), so elbows, knees, hips and shoulders bend like skin instead of showing seams. Hands with a thumb, shoes on soles, and a face with eyes, brows and a mouth: no noses, no ears. Different skin tones, hairstyles (short, swept, buzz, bald, bob, long, bun), clothes, heights and builds.
+- **Animated from a skeleton.** Every person has a joint rig (hips, spine, chest, neck, head, shoulders, elbows, wrists, hips, knees, ankles) and a gait driven by speed: a walk blends into a run, arms swing against the legs, the body bobs and leans, knees bend on the swing. They breathe when standing, gesture when they talk, turn their heads to look at you, sit on benches, point when giving directions, and sit properly in cars with their hands on the wheel. 
 - **Citizens** wander the park, stop, sit on benches, step round each other, and jump out of the way of cars coming at them. Each has a name, a **mood** and a **memory** of you: how often you've talked, given them money, complimented or insulted them, or run them over.
 
 ### The interaction wheel
@@ -61,7 +61,7 @@ Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows`).
 src/
   main.js       setup, input, the main loop, getting in and out of cars, cars hitting people
   world.js      the test area: roads, sidewalks, the park, buildings, the test track, sky and sun
-  character.js  people: the rig, the looks (no noses, no ears), the procedural animation
+  character.js  people: the skeleton, the skinned body, the looks (no noses, no ears), the procedural animation
   player.js     you: Rapier's character controller (steps, slopes), walking, running, jumping
   camera.js     over-the-shoulder camera, chase camera, the inside view
   car.js        the car: raycast-vehicle physics, the body and cabin, gauges, the mirror

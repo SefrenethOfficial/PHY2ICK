@@ -3,16 +3,55 @@
 import * as THREE from 'three';
 
 const std = (color, rough = 0.8, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, ...extra });
+const bone = (parent, x, y, z) => { const o = new THREE.Bone(); o.position.set(x, y, z); parent.add(o); return o; };
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-// a capsule hanging down from its joint (the top end sits on the joint)
-function limb(r, len, mat) {
-  const g = new THREE.CapsuleGeometry(r, len, 4, 12);
-  g.translate(0, -len / 2 - r * 0.35, 0);
-  const m = new THREE.Mesh(g, mat);
-  m.castShadow = true;
-  return m;
+// One smooth body, skinned to the bones: tubes of horizontal rings (every limb hangs straight down
+// in the bind pose), each ring with a colour and up to two bone weights, so knees, elbows, the waist
+// and the shoulders bend like skin instead of showing seams.
+class BodyBuilder {
+  constructor(seg = 14) { this.seg = seg; this.pos = []; this.col = []; this.si = []; this.sw = []; this.idx = []; }
+  vert(x, y, z, c, w) {
+    this.pos.push(x, y, z); this.col.push(c.r, c.g, c.b);
+    const ws = [...w, [0, 0], [0, 0], [0, 0]].slice(0, 4);
+    this.si.push(...ws.map(q => q[0])); this.sw.push(...ws.map(q => q[1]));
+    return this.pos.length / 3 - 1;
+  }
+  // rings: [{ y, rx, rz, c (THREE.Color), w: [[bone, weight], …], x?, z? }], top to bottom
+  tube(cx, cz, rings, capTop = true, capBottom = true) {
+    const n = this.seg, starts = [];
+    for (const r of rings) {
+      starts.push(this.pos.length / 3);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        this.vert(cx + (r.x || 0) + Math.sin(a) * r.rx, r.y, cz + (r.z || 0) + Math.cos(a) * r.rz, r.c, r.w);
+      }
+    }
+    for (let k = 0; k < rings.length - 1; k++) {
+      const a0 = starts[k], b0 = starts[k + 1];
+      for (let i = 0; i < n; i++) {
+        const i1 = (i + 1) % n;
+        this.idx.push(a0 + i, b0 + i, a0 + i1, a0 + i1, b0 + i, b0 + i1);
+      }
+    }
+    const cap = (k, up) => {
+      const r = rings[k], c = this.vert(cx + (r.x || 0), r.y + (up ? 0.012 : -0.012), cz + (r.z || 0), r.c, r.w), a0 = starts[k];
+      for (let i = 0; i < n; i++) { const i1 = (i + 1) % n; up ? this.idx.push(c, a0 + i, a0 + i1) : this.idx.push(c, a0 + i1, a0 + i); }
+    };
+    if (capTop) cap(0, true);
+    if (capBottom) cap(rings.length - 1, false);
+  }
+  geometry() {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
+    g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(this.si, 4));
+    g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(this.sw, 4));
+    g.setIndex(this.idx); g.computeVertexNormals();
+    return g;
+  }
 }
-const joint = (parent, x, y, z) => { const o = new THREE.Object3D(); o.position.set(x, y, z); parent.add(o); return o; };
 
 export const SKIN = [0xf1c9a5, 0xe0ac86, 0xc68c62, 0x9c6a45, 0x6e4a32, 0x4a3122];
 export const HAIR = [0x1c1612, 0x3b2a1e, 0x6b4a2b, 0xa7793f, 0xd8b56a, 0x8c8c8c, 0x7a2d1c];
@@ -37,30 +76,89 @@ export class Human {
   constructor(look = randomLook()) {
     this.look = look;
     const L = look, f = L.female;
-    const skin = std(L.skin, 0.65), shirt = std(L.shirt, 0.85), pants = std(L.pants, 0.9), shoes = std(L.shoes, 0.6), hair = std(L.hair, 0.9);
-    this.mats = { skin, shirt, pants, shoes, hair };
+    const skinM = std(L.skin, 0.65), shoes = std(L.shoes, 0.6), hair = std(L.hair, 0.9);
     const root = this.root = new THREE.Group();
-    const rig = this.rig = new THREE.Group(); // (scaled to the person's height)
+    const rig = this.rig = new THREE.Group(); // (scaled to the person's height, after binding)
     root.add(rig);
-    rig.scale.setScalar(L.height / 1.75);
     const B = this.b = {};
-    const w = L.build;
+    const w = L.build, lw = Math.sqrt(w); // (build: the torso widens fully, the limbs a little)
 
-    // hips → spine → chest → neck → head
-    B.hips = joint(rig, 0, 0.95, 0);
-    const pelvis = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), pants);
-    pelvis.scale.set((f ? 0.165 : 0.155) * w, 0.11, 0.105 * w); pelvis.castShadow = true; B.hips.add(pelvis);
-    B.spine = joint(B.hips, 0, 0.06, 0);
-    // the torso: a lathed body, flattened front to back
-    const prof = f
-      ? [[0.001, -0.06], [0.14, -0.05], [0.145, 0.04], [0.12, 0.17], [0.15, 0.3], [0.165, 0.37], [0.15, 0.44], [0.07, 0.49], [0.001, 0.49]]
-      : [[0.001, -0.06], [0.145, -0.05], [0.15, 0.05], [0.15, 0.17], [0.175, 0.3], [0.19, 0.39], [0.17, 0.45], [0.08, 0.5], [0.001, 0.5]];
-    const torsoG = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x * w, y)), 20);
-    const torso = new THREE.Mesh(torsoG, shirt); torso.scale.z = 0.66; torso.castShadow = true; B.spine.add(torso);
-    B.chest = joint(B.spine, 0, 0.25, 0);
-    B.neck = joint(B.chest, 0, 0.23, 0);
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.052, 0.12, 10), skin); neck.position.y = 0.04; neck.castShadow = true; B.neck.add(neck);
-    B.head = joint(B.neck, 0, 0.09, 0);
+    // the skeleton (bind pose: standing straight, arms down)
+    const holder = new THREE.Object3D();
+    B.hips = bone(holder, 0, 0.95, 0);
+    B.spine = bone(B.hips, 0, 0.06, 0);
+    B.chest = bone(B.spine, 0, 0.25, 0);
+    B.neck = bone(B.chest, 0, 0.23, 0);
+    B.head = bone(B.neck, 0, 0.065, 0);
+    const shX = (f ? 0.168 : 0.19) * w, hipX = (f ? 0.095 : 0.09) * w;
+    for (const s of [-1, 1]) {
+      const k = s < 0 ? 'R' : 'L'; // (the person faces +Z: their left is +X)
+      B['shoulder' + k] = bone(B.chest, s * shX, 0.17, 0);
+      B['elbow' + k] = bone(B['shoulder' + k], 0, -0.29, 0);
+      B['wrist' + k] = bone(B['elbow' + k], 0, -0.27, 0);
+      B['hip' + k] = bone(B.hips, s * hipX, -0.02, 0);
+      B['knee' + k] = bone(B['hip' + k], 0, -0.44, 0);
+      B['ankle' + k] = bone(B['knee' + k], 0, -0.43, 0);
+    }
+    const order = ['hips', 'spine', 'chest', 'neck', 'head', 'shoulderL', 'elbowL', 'wristL', 'shoulderR', 'elbowR', 'wristR', 'hipL', 'kneeL', 'ankleL', 'hipR', 'kneeR', 'ankleR'];
+    const I = Object.fromEntries(order.map((n, i) => [n, i]));
+    const C = (hex) => new THREE.Color(hex);
+    const cSkin = C(L.skin), cShirt = C(L.shirt), cPants = C(L.pants);
+    const bl = (a, b, t) => (t <= 0 ? [[I[a], 1]] : t >= 1 ? [[I[b], 1]] : [[I[a], 1 - t], [I[b], t]]);
+    const body = new BodyBuilder(16);
+
+    // torso: pelvis → waist → chest → shoulders → neck (one piece)
+    const tors = f
+      ? [[1.62, .05, .05], [1.55, .054, .053], [1.5, .066, .06], [1.47, .11, .075], [1.43, .16, .092], [1.36, .165, .1], [1.28, .158, .118], [1.2, .142, .1], [1.1, .125, .088], [1.02, .14, .095], [1.0, .14, .095], [0.95, .168, .108], [0.9, .163, .104], [0.87, .13, .088]]
+      : [[1.62, .056, .055], [1.55, .06, .058], [1.5, .074, .066], [1.47, .125, .08], [1.43, .182, .098], [1.36, .185, .108], [1.28, .175, .112], [1.2, .158, .104], [1.1, .148, .098], [1.02, .15, .098], [1.0, .15, .098], [0.95, .158, .104], [0.9, .154, .1], [0.87, .12, .082]];
+    const shirtTop = 1.495, belt = 1.01;
+    const tRings = [];
+    for (const [y, rx, rz] of tors) {
+      const wt = y >= 1.5 ? bl('chest', 'neck', smooth(1.49, 1.54, y)) : y >= 1.2 ? bl('spine', 'chest', smooth(1.2, 1.32, y)) : bl('hips', 'spine', smooth(0.97, 1.08, y));
+      const c = y > shirtTop ? cSkin : y >= belt ? cShirt : cPants;
+      const ring = { y, rx: rx * (y < 1.5 ? w : 1), rz: rz * (y < 1.5 ? Math.sqrt(w) : 1), c, w: wt, z: y > 1.46 ? -0.008 : 0 };
+      tRings.push(ring);
+      if (y === 1.5) tRings.push({ ...ring, y: 1.497, c: cShirt, rx: ring.rx + 0.004, rz: ring.rz + 0.004 }); // (the collar: a crisp line)
+      if (y === 1.02) tRings.push({ ...ring, y: 1.012, c: cShirt }); // (a crisp belt line: shirt down to here, trousers below)
+    }
+    body.tube(0, 0, tRings, true, true);
+
+    // legs: hip → knee → ankle, one tube each, bending at the knee
+    const legP = [[1.0, .088], [0.92, .09], [0.8, .082], [0.68, .07], [0.58, .06], [0.52, .055], [0.47, .056], [0.4, .061], [0.32, .057], [0.22, .046], [0.13, .039], [0.07, .038]];
+    for (const s of [-1, 1]) {
+      const k = s < 0 ? 'R' : 'L';
+      const rings = legP.map(([y, r]) => {
+        const wt = y > 0.86 ? bl('hips', 'hip' + k, smooth(1.0, 0.86, y) ) : y > 0.48 ? bl('hip' + k, 'knee' + k, smooth(0.58, 0.47, y)) : bl('knee' + k, 'ankle' + k, smooth(0.12, 0.06, y));
+        const xin = y > 0.85 ? -s * 0.012 * (y - 0.85) / 0.15 : 0; // (thighs meet the pelvis)
+        return { y, rx: r * lw * (f && y > 0.7 ? 1.06 : 1), rz: r * lw * 0.97, c: cPants, w: wt, x: s * hipX + xin };
+      });
+      body.tube(0, 0, rings, true, true);
+    }
+    // arms: shoulder → elbow → wrist, bending at the elbow
+    const armP = [[1.475, .045], [1.45, .057], [1.4, .058], [1.32, .052], [1.24, .046], [1.17, .042], [1.13, .041], [1.08, .043], [1.0, .039], [0.93, .033], [0.885, .029]];
+    const sleeveEnd = L.longSleeves ? 0.9 : 1.27;
+    for (const s of [-1, 1]) {
+      const k = s < 0 ? 'R' : 'L';
+      const rings = [];
+      for (const [y, r] of armP) {
+        const wt = y > 1.4 ? bl('chest', 'shoulder' + k, smooth(1.475, 1.41, y)) : y > 1.1 ? bl('shoulder' + k, 'elbow' + k, smooth(1.18, 1.11, y)) : bl('elbow' + k, 'wrist' + k, smooth(0.9, 0.87, y));
+        const ring = { y, rx: r * lw * 0.95, rz: r * lw, c: y > sleeveEnd ? cShirt : cSkin, w: wt, x: s * shX - s * (y > 1.43 ? (y - 1.43) * 0.6 : 0) };
+        rings.push(ring);
+        if (!L.longSleeves && y === 1.32) rings.push({ ...ring, y: 1.27, rx: ring.rx * 0.96 + 0.003, rz: ring.rz * 0.96 + 0.003, c: cShirt }, { ...ring, y: 1.268, rx: ring.rx * 0.93, rz: ring.rz * 0.93, c: cSkin });
+      }
+      body.tube(0, 0, rings, true, true);
+    }
+    const bodyM = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
+    const skinned = this.body = new THREE.SkinnedMesh(body.geometry(), bodyM);
+    skinned.castShadow = true; skinned.receiveShadow = true; skinned.frustumCulled = false;
+    skinned.add(B.hips);
+    skinned.updateMatrixWorld(true);
+    skinned.bind(new THREE.Skeleton(order.map(n => B[n])));
+    rig.add(skinned);
+    rig.scale.setScalar(L.height / 1.75);
+
+    // head (rigid, on the head bone)
+    const skin = skinM;
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 24, 18), skin);
     head.scale.set(0.95, 1.16, 1.04); head.position.y = 0.1; head.castShadow = true; B.head.add(head);
     this.headMeshes = [head];
@@ -75,30 +173,22 @@ export class Human {
     const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.005, 0.006), std(0x6a3a32, 0.6)); mouth.position.set(0, 0.053, 0.1045); B.head.add(mouth); this.mouth = mouth; this.headMeshes.push(mouth);
     this.addHair(L.hairStyle, hair);
 
-    // arms
+    // hands: a palm with fingers together, and a thumb
     for (const s of [-1, 1]) {
-      const k = s < 0 ? 'R' : 'L'; // (the person faces +Z: their left is +X)
-      const sh = B['shoulder' + k] = joint(B.chest, s * (f ? 0.165 : 0.19) * w, 0.17, 0);
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.052 * w, 12, 10), shirt); cap.position.x = -s * 0.012; cap.castShadow = true; sh.add(cap);
-      sh.add(limb(0.05 * w, 0.2, shirt));
-      const el = B['elbow' + k] = joint(sh, 0, -0.29, 0);
-      el.add(limb(0.042, 0.19, L.longSleeves ? shirt : skin));
-      const wr = B['wrist' + k] = joint(el, 0, -0.27, 0);
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), skin); hand.scale.set(0.7, 1.25, 0.5); hand.position.y = -0.055; hand.castShadow = true; wr.add(hand);
+      const wr = B['wrist' + (s < 0 ? 'R' : 'L')];
+      const palm = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.06, 4, 10), skin);
+      palm.scale.set(1.25, 1, 0.62); palm.position.set(0, -0.06, 0.004); palm.castShadow = true; wr.add(palm);
+      const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.011, 0.035, 3, 8), skin);
+      thumb.position.set(-s * 0.012, -0.045, 0.026); thumb.rotation.set(0.5, 0, -s * 0.35); wr.add(thumb);
     }
-    // legs
+    // shoes: a rounded upper on a sole
+    const sole = std(0x2a2522, 0.9);
     for (const s of [-1, 1]) {
-      const k = s < 0 ? 'R' : 'L';
-      const hip = B['hip' + k] = joint(B.hips, s * (f ? 0.095 : 0.09) * w, -0.02, 0);
-      hip.add(limb(0.083 * w, 0.32, pants));
-      const kn = B['knee' + k] = joint(hip, 0, -0.44, 0);
-      kn.add(limb(0.064, 0.33, pants));
-      const an = B['ankle' + k] = joint(kn, 0, -0.43, 0);
-      const shoe = new THREE.Mesh(new THREE.CapsuleGeometry(0.052, 0.17, 4, 10), shoes);
-      shoe.rotation.x = Math.PI / 2; shoe.scale.set(1.05, 1, 0.75); shoe.position.set(0, -0.045, 0.055); shoe.castShadow = true; an.add(shoe);
+      const an = B['ankle' + (s < 0 ? 'R' : 'L')];
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.15, 4, 12), shoes);
+      upper.rotation.x = Math.PI / 2; upper.scale.set(1.08, 1, 0.82); upper.position.set(0, -0.022, 0.05); upper.castShadow = true; an.add(upper);
+      const so = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.022, 0.27), sole); so.position.set(0, -0.058, 0.05); an.add(so);
     }
-    B.shoulderL.rotation.z = 0.07; B.shoulderR.rotation.z = -0.07;
-
     // the animation state
     this.phase = Math.random() * 6;
     this.t = Math.random() * 10;
