@@ -1,7 +1,7 @@
 // A car: Rapier's raycast vehicle (suspension, tyre grip and slip), a modelled body with a real cabin
 // (seats, dashboard, working gauges, a steering wheel that turns, a rear-view mirror that works).
 import * as THREE from 'three';
-import { G_WORLD, G_CAR, G_PED, groups } from './world.js';
+import { G_WORLD, G_CAR, G_PED, G_RAG, G_PROP, groups } from './world.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const GY = -0.71; // where the ground is in the car's own frame, at rest
@@ -35,7 +35,7 @@ export class Car {
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
     this.body = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(pos.x, pos.y - GY + 0.05, pos.z).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w })
       .setLinearDamping(0.02).setAngularDamping(0.35).setCanSleep(false));
-    const solver = groups(G_CAR, G_WORLD | G_CAR); // (cars don't shove people physically; hits are handled by hand)
+    const solver = groups(G_CAR, G_WORLD | G_CAR | G_RAG | G_PROP); // (cars pass through standing people — hits are handled by hand — but shove bodies and loose things)
     this.col = world.createCollider(R.ColliderDesc.cuboid(0.88, 0.27, 2.25).setTranslation(0, 0.04, 0)
       .setMassProperties(1350, { x: 0, y: -0.32, z: 0.05 }, { x: 2700, y: 3000, z: 760 }, { x: 0, y: 0, z: 0, w: 1 })
       .setFriction(0.5).setRestitution(0.1).setSolverGroups(solver), this.body);
@@ -248,7 +248,7 @@ export class Car {
     // a little downforce, so it sits flat at speed
     this.body.resetForces(false); // (forces persist between steps: set it fresh each time)
     this.body.addForce(V(0, -1, 0).applyQuaternion(this.group.quaternion).multiplyScalar(spd * spd * 2.4), true);
-    vc.updateVehicle(h);
+    vc.updateVehicle(h, undefined, groups(G_CAR, G_WORLD | G_CAR)); // (the wheels ride on the road, not on people or loose things)
   }
 
   frame(dt) {

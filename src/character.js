@@ -100,6 +100,7 @@ export class Human {
       B['knee' + k] = bone(B['hip' + k], 0, -0.44, 0);
       B['ankle' + k] = bone(B['knee' + k], 0, -0.43, 0);
     }
+    this.bindPos = Object.fromEntries(Object.entries(B).map(([k, b]) => [k, b.position.clone()]));
     const order = ['hips', 'spine', 'chest', 'neck', 'head', 'shoulderL', 'elbowL', 'wristL', 'shoulderR', 'elbowR', 'wristR', 'hipL', 'kneeL', 'ankleL', 'hipR', 'kneeR', 'ankleR'];
     const I = Object.fromEntries(order.map((n, i) => [n, i]));
     const C = (hex) => new THREE.Color(hex);
@@ -218,9 +219,16 @@ export class Human {
 
   setHeadVisible(v) { for (const m of this.headMeshes) m.visible = v; }
 
+  // back from a ragdoll: the bones go back to their own lengths, the animation takes over again
+  resetPose() {
+    for (const k in this.b) { const b = this.b[k]; b.position.copy(this.bindPos[k]); b.quaternion.identity(); b.scale.set(1, 1, 1); }
+    this.cur = {};
+  }
+
   // s: { speed (m/s), grounded, vy, pose: 'stand' | 'drive' | 'passenger' | 'down', steer, talking, wave }
   update(dt, s) {
     this.t += dt;
+    if (this.ragdoll) { this.ragdoll.frame(dt); return; }
     const B = this.b, T = {}; // T: target rotations, [x, y, z] per joint
     const set = (k, x = 0, y = 0, z = 0) => { T[k] = [x, y, z]; };
     const spd = s.speed || 0;
@@ -280,6 +288,13 @@ export class Human {
         const g1 = Math.sin(this.t * 3.1) * 0.5 + 0.5, g2 = Math.sin(this.t * 2.3 + 1) * 0.5 + 0.5;
         set('shoulderR', -0.35 - g1 * 0.25, 0, -0.15); set('elbowR', -0.9 - g2 * 0.4, 0.3);
         set('shoulderL', -0.1 - g2 * 0.15, 0, 0.12); set('elbowL', -0.5 - g1 * 0.3);
+      }
+      if (s.carry) { set('shoulderL', -1.0, 0, -0.25); set('elbowL', -0.7); set('shoulderR', -1.0, 0, 0.25); set('elbowR', -0.7); }
+      else if (s.weapon && s.attack == null) { set('elbowR', -0.55 - run * 0.9, 0, 0); set('wristR', 0.2); }
+      if (s.attack != null) { // a swing: wind up over the shoulder, then chop down and across
+        const a = s.attack, up = a < 0.4 ? a / 0.4 : 1 - Math.min(1, (a - 0.4) / 0.25);
+        set('shoulderR', -0.7 - up * 1.9, 0, -0.25 - up * 0.3); set('elbowR', -0.25 - up * 1.0, 0, 0); set('wristR', 0.6 - up * 0.9);
+        set('spine', 0.08 + (1 - up) * 0.18, -0.25 + (1 - up) * 0.45, 0);
       }
       if (s.wave) { set('shoulderR', -0.3, 0, -2.5); set('elbowR', -0.3 + Math.sin(this.t * 9) * 0.4, 0, 0); }
       if (s.point) { set('shoulderR', -1.45, 0, -0.05); set('elbowR', -0.05); }

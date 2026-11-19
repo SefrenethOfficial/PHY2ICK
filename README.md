@@ -6,7 +6,28 @@ Play it at **https://sefrenethofficial.github.io/PHY2ICK/**
 
 ## Right now: the test area
 
-Before the real map, everything new gets tried out in one small test area: a block of road around a park (a fountain, trees, benches, Café Noir), a row of buildings, and a test track to the east with a slalom, two jump ramps and a long straight.
+Before the real map, everything new gets tried out in one small test area: a block of road around a park (a fountain, trees, benches, Café Noir), streets of buildings, and a test track to the east with a slalom, two jump ramps and a long straight.
+
+### Home: No. 14
+You start in your apartment, a loft on the first floor of No. 14, the brick building on the north side of the park. Real windows look out over the street. There's a living room (sofa, TV showing Channel 6, a rug, a lamp), a kitchen with a dining table, a bed, moving boxes still stacked by the stair, and a stair down to the lobby and out the front door.
+
+- **Pick things up.** Mugs, a bottle, books, cans, apples, a cereal box, a pan, cushions, chairs, the moving boxes, a basketball, and a traffic cone (don't ask). `Click` to pick something up and carry it, `Click` again to put it down, `Right-click` to throw it.
+- **The weapon rack** ("FOR EMERGENCIES") by the top of the stair: a **Hatchet**, a **Butter Knife** and a **Plastic Kiddie Knife**. Press `E` at the rack to take one (or put it back), `Click` to swing, `X` to put it away. The hatchet drops people; the butter knife makes them bleed and run; the plastic knife bends, and people laugh at you.
+
+### Ragdolls and blood
+- When someone's hit by a car, or by a hatchet, they go **limp**: a real ragdoll (eleven physics bodies jointed at the skeleton; knees and elbows only bend the right way) that tumbles, rolls and lands however it lands. Cars shove bodies around. If they're only hurt, they get back up where they ended up, and then come after you or run.
+- **Blood**: droplets that fly and fall and splat where they land, a spray on every hit, and a pool that spreads under a body. Bodies stay for a minute and a half; then someone new turns up in the park.
+- People who see violence **panic** and run.
+- You can be knocked flat too (by a car, or a shove). Lose all your health and you **black out**, then wake up at home, $100 poorer for the ambulance.
+
+### The look
+- **A physical sky**, and the same sky lights the whole scene (reflections and ambient light), with a warm sun and sharp, long-range shadows.
+- **Ambient occlusion**: soft contact shadows in corners, under cars, round furniture and where walls meet the ground. (`P` switches it off on slower computers; or add `?lowgfx` to the address.)
+- **Textures**: asphalt with aggregate, repairs, cracks, oil stains and worn paint; concrete pavement slabs with joints and stains; grass with patches of colour across the park; brick, stucco and concrete walls with relief.
+- Indoors, the sky's light is mostly kept out, so rooms are lit by their own lamps.
+
+### Buildings
+Four styles of building: **brick** (framed windows with mullions, stone sills and lintels, floor bands), **stucco** (balconies with railings), **concrete** (wide window bands) and **glass towers**. All have cornices and parapets, roofs with air-con units, water tanks and stair housings; most have **shopfronts** at street level: big shop windows, a door, a striped awning and a sign (Corner Deli, Noodle Bar, Pawn & Gold, Laundromat…). Some windows are lit.
 
 ### People
 - **Believable, not photoreal.** Each body is one smooth, skinned mesh (torso, arms and legs in one piece, with clothes coloured on: collars, sleeves, a belt line), so elbows, knees, hips and shoulders bend like skin instead of showing seams. Hands with a thumb, shoes on soles, and a face with eyes, brows and a mouth: no noses, no ears. Different skin tones, hairstyles (short, swept, buzz, bald, bob, long, bun), clothes, heights and builds.
@@ -38,11 +59,15 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 | `WASD` | move (in a car: drive, brake/reverse, steer) |
 | `Shift` | run |
 | `Space` | jump (in a car: handbrake) |
-| Hold `E` | talk to someone (the interaction wheel) |
+| Hold `E` | talk to someone (the interaction wheel); at the rack: take / put back a weapon |
+| `Click` | pick up / drop; with a weapon: swing |
+| `Right-click` | throw what you're carrying |
+| `X` | put the weapon away (or drop what you're carrying) |
 | `F` | get in / out of a car |
 | `C` | inside view / chase camera |
 | `R` | flip the car back over |
 | `H` | hide the controls |
+| `P` | graphics: high (ambient occlusion) / fast |
 | Mouse | look |
 
 ## Running it
@@ -59,8 +84,14 @@ Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows`).
 
 ```
 src/
-  main.js       setup, input, the main loop, getting in and out of cars, cars hitting people
-  world.js      the test area: roads, sidewalks, the park, buildings, the test track, sky and sun
+  main.js       setup, input, the main loop, post-processing, getting in and out of cars, cars hitting people
+  world.js      the test area: sky and sun, roads, sidewalks, the park, the test track; places the buildings
+  buildings.js  building facades: windows, shopfronts, awnings, signs, balconies, cornices, rooftops
+  apartment.js  No. 14: the lobby, the stair, your apartment, its furniture and loose things
+  props.js      loose things: picking up, carrying, dropping, throwing
+  weapons.js    the hatchet, the butter knife, the plastic kiddie knife, the rack, swinging
+  ragdoll.js    ragdolls: physics bodies and joints that pose the skeleton
+  blood.js      droplets, splats and pools
   character.js  people: the skeleton, the skinned body, the looks (no noses, no ears), the procedural animation
   player.js     you: Rapier's character controller (steps, slopes), walking, running, jumping
   camera.js     over-the-shoulder camera, chase camera, the inside view

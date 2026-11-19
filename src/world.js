@@ -1,7 +1,9 @@
 // The test area: a block of road around a park, a strip of buildings, and a test track to the east.
 import * as THREE from 'three';
+import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { CityBuilder } from './buildings.js';
 
-export const G_WORLD = 1, G_CAR = 2, G_PED = 4;
+export const G_WORLD = 1, G_CAR = 2, G_PED = 4, G_RAG = 8, G_PROP = 16, G_HELD = 32;
 export const groups = (member, filter) => (member << 16) | filter;
 
 export function canvasTex(w, h, draw, repeat = [1, 1]) {
@@ -35,39 +37,77 @@ export function buildWorld(g) {
     return m;
   };
 
-  // --- sky, light
-  const skyG = new THREE.SphereGeometry(900, 32, 16);
-  const skyM = new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new THREE.Color(0x3d78c9) }, mid: { value: new THREE.Color(0x9cc4e8) }, bot: { value: new THREE.Color(0xdfe6ea) } },
-    vertexShader: 'varying vec3 vp; void main(){ vp = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
-    fragmentShader: 'uniform vec3 top, mid, bot; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0. ? mix(mid, top, pow(h, .6)) : bot; c = mix(c, bot, smoothstep(.12, -.02, h)); gl_FragColor = vec4(c,1.); }',
-  });
-  const sky = new THREE.Mesh(skyG, skyM); scene.add(sky); g.sky = sky;
-  scene.fog = new THREE.Fog(0xc9d8e2, 120, 620);
-  scene.add(new THREE.HemisphereLight(0xcfe2ff, 0x5a5040, 1.1));
-  const sun = new THREE.DirectionalLight(0xfff1dc, 2.6);
-  sun.position.set(60, 90, 40); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 260 });
-  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+  // --- sky, light: a physical sky; the same sky lights everything (reflections and ambient)
+  const SUN = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 36), THREE.MathUtils.degToRad(215));
+  g.sunDir = SUN;
+  const sky = new Sky(); sky.scale.setScalar(4500);
+  const su = sky.material.uniforms;
+  su.turbidity.value = 3.2; su.rayleigh.value = 1.15; su.mieCoefficient.value = 0.004; su.mieDirectionalG.value = 0.82;
+  su.sunPosition.value.copy(SUN);
+  {
+    const pm = new THREE.PMREMGenerator(g.renderer), envScene = new THREE.Scene();
+    envScene.add(sky);
+    const hemiFill = new THREE.Mesh(new THREE.SphereGeometry(10, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x5b5448, side: THREE.BackSide }));
+    envScene.add(hemiFill); // (the ground half of the world: warm grey, not black)
+    scene.environment = pm.fromScene(envScene, 0.02, 0.1, 6000).texture;
+    scene.environmentIntensity = 0.75;
+    envScene.remove(sky);
+  }
+  scene.add(sky); g.sky = sky;
+  scene.fog = new THREE.Fog(0xb7c6d2, 160, 900);
+  scene.add(new THREE.HemisphereLight(0xc4d8f0, 0x6a5a46, 0.35));
+  const sun = new THREE.DirectionalLight(0xffeedd, 3.4);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(4096, 4096);
+  Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 1, far: 400 });
+  sun.shadow.bias = -0.00025; sun.shadow.normalBias = 0.035; sun.shadow.radius = 2;
   scene.add(sun, sun.target); g.sun = sun;
 
-  // --- ground
-  const grassT = canvasTex(256, 256, (c, w, h) => { noise(c, w, h, '#5d7d3a', 0.22, 9000, 2); for (let i = 0; i < 1500; i++) { c.fillStyle = `rgba(${90 + Math.random() * 40},${120 + Math.random() * 40},50,.5)`; c.fillRect(Math.random() * w, Math.random() * h, 1, 3); } }, [120, 120]);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.MeshStandardMaterial({ map: grassT, roughness: 1 }));
+  // --- ground: grass with big soft patches of colour variation (vertex colours) under a detailed texture
+  const grassT = canvasTex(512, 512, (c, w, h) => {
+    noise(c, w, h, '#58773a', 0.2, 30000, 2);
+    for (let i = 0; i < 9000; i++) { const gr = 95 + Math.random() * 60; c.fillStyle = `rgba(${gr * 0.7},${gr},${40 + Math.random() * 20},.55)`; c.fillRect(Math.random() * w, Math.random() * h, 1, 2 + Math.random() * 4); }
+    for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(${120 + Math.random() * 40},${110 + Math.random() * 30},60,.12)`; c.beginPath(); c.arc(Math.random() * w, Math.random() * h, 6 + Math.random() * 16, 0, 7); c.fill(); }
+  }, [160, 160]);
+  const groundG = new THREE.PlaneGeometry(1200, 1200, 150, 150);
+  {
+    const p = groundG.attributes.position, col = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i);
+      const n = Math.sin(x * 0.021) * Math.cos(y * 0.017) * 0.5 + Math.sin(x * 0.007 + y * 0.011) * 0.5;
+      const k = 0.86 + n * 0.12;
+      col[i * 3] = k * (1 + n * 0.05); col[i * 3 + 1] = k; col[i * 3 + 2] = k * (0.95 - n * 0.05);
+    }
+    groundG.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  }
+  const ground = new THREE.Mesh(groundG, new THREE.MeshStandardMaterial({ map: grassT, vertexColors: true, roughness: 1 }));
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
   fixed(R.ColliderDesc.cuboid(600, 0.5, 600), 0, -0.5, 0);
 
   // --- roads: a loop around the park (centre line ±70 x ±50, 10 m wide), and a road east to the test track
-  const asphalt = (len, lines) => canvasTex(256, 256, (c, w, h) => {
-    noise(c, w, h, '#3b3d40', 0.18, 12000, 2);
-    if (lines) {
-      c.fillStyle = '#e8e6df'; c.fillRect(0, 10, w, 5); c.fillRect(0, h - 15, w, 5);
-      c.fillStyle = '#e9c24a'; c.fillRect(0, h / 2 - 3, w * 0.5, 6);
+  // asphalt: aggregate, patched repairs, cracks, oil, tyre polish down the lanes, worn paint
+  const drawAsphalt = (c, w, h, lines, bump) => {
+    c.fillStyle = bump ? '#808080' : '#3a3c3f'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 26000; i++) { const v = Math.random(); c.fillStyle = bump ? `rgba(${v > 0.5 ? 255 : 0},${v > 0.5 ? 255 : 0},${v > 0.5 ? 255 : 0},.35)` : `rgba(${v > 0.5 ? 200 : 15},${v > 0.5 ? 200 : 15},${v > 0.5 ? 205 : 18},${Math.random() * 0.25})`; c.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+    if (!bump) {
+      for (let i = 0; i < 3; i++) { c.fillStyle = `rgba(${Math.random() < 0.5 ? 20 : 70},${Math.random() < 0.5 ? 22 : 70},${Math.random() < 0.5 ? 24 : 72},.35)`; c.fillRect(Math.random() * w, Math.random() * h, 30 + Math.random() * 90, 20 + Math.random() * 60); }
+      for (const ly of [h * 0.27, h * 0.73]) { const gr = c.createLinearGradient(0, ly - 30, 0, ly + 30); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, 'rgba(0,0,0,.18)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(0, ly - 30, w, 60); }
+      for (let i = 0; i < 4; i++) { c.fillStyle = 'rgba(10,8,6,.25)'; c.beginPath(); c.ellipse(Math.random() * w, h * (Math.random() < 0.5 ? 0.27 : 0.73), 8 + Math.random() * 14, 5 + Math.random() * 8, 0, 0, 7); c.fill(); }
     }
-  }, [len / 10, 1]);
-  const roadMat = (len, lines = true) => new THREE.MeshStandardMaterial({ map: asphalt(len, lines), roughness: 0.92 });
+    c.strokeStyle = bump ? '#202020' : 'rgba(10,10,10,.6)'; c.lineWidth = 1.5;
+    for (let i = 0; i < 5; i++) { c.beginPath(); let x = Math.random() * w, y = Math.random() * h; c.moveTo(x, y); for (let k = 0; k < 8; k++) { x += (Math.random() - 0.5) * 30; y += (Math.random() - 0.3) * 22; c.lineTo(x, y); } c.stroke(); }
+    if (lines && !bump) {
+      const worn = (x, y, ww, hh, col) => { c.fillStyle = col; c.fillRect(x, y, ww, hh); c.fillStyle = 'rgba(58,60,63,.5)'; for (let i = 0; i < ww * hh / 30; i++) c.fillRect(x + Math.random() * ww, y + Math.random() * hh, 2, 2); };
+      worn(0, 14, w, 7, '#dcd9cf'); worn(0, h - 21, w, 7, '#dcd9cf');
+      worn(0, h / 2 - 4, w * 0.5, 8, '#d9b443');
+    }
+  };
+  const asphalt = (len, lines) => {
+    const map = canvasTex(512, 512, (c, w, h) => drawAsphalt(c, w, h, lines, false), [len / 10, 1]);
+    const bumpMap = canvasTex(512, 512, (c, w, h) => drawAsphalt(c, w, h, lines, true), [len / 10, 1]); bumpMap.colorSpace = THREE.NoColorSpace;
+    return { map, bumpMap };
+  };
+  const roadMat = (len, lines = true) => new THREE.MeshStandardMaterial({ ...asphalt(len, lines), bumpScale: 1.1, roughness: 0.88 });
   const strip = (x, z, len, wid, alongX, mat, y = 0.02) => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(len, wid), mat);
     m.rotation.x = -Math.PI / 2; if (!alongX) m.rotation.z = Math.PI / 2;
@@ -93,8 +133,15 @@ export function buildWorld(g) {
   }
 
   // --- sidewalks (raised kerbs), inside and outside the loop
-  const paveT = canvasTex(128, 128, (c, w, h) => { noise(c, w, h, '#a9a49b', 0.12, 3000, 2); c.strokeStyle = 'rgba(60,55,50,.35)'; c.lineWidth = 2; c.strokeRect(1, 1, w - 2, h - 2); });
-  const pave = (len, along) => { const t = paveT.clone(); t.needsUpdate = true; t.repeat.set(along ? len / 2 : 1.75, along ? 1.75 : len / 2); return new THREE.MeshStandardMaterial({ map: t, roughness: 0.95 }); };
+  // pavement: concrete slabs with joints, a few stains and gum spots
+  const drawPave = (c, w, h, bump) => {
+    c.fillStyle = bump ? '#a0a0a0' : '#aaa59c'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 9000; i++) { const v = Math.random() < 0.5; c.fillStyle = `rgba(${v ? 255 : 0},${v ? 255 : 0},${v ? 255 : 0},${Math.random() * (bump ? 0.3 : 0.08)})`; c.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+    if (!bump) { for (let i = 0; i < 3; i++) { c.fillStyle = 'rgba(70,60,50,.1)'; c.beginPath(); c.arc(Math.random() * w, Math.random() * h, 10 + Math.random() * 25, 0, 7); c.fill(); } for (let i = 0; i < 5; i++) { c.fillStyle = 'rgba(40,40,40,.35)'; c.beginPath(); c.arc(Math.random() * w, Math.random() * h, 2 + Math.random() * 2, 0, 7); c.fill(); } }
+    c.fillStyle = bump ? '#303030' : 'rgba(55,50,45,.55)'; c.fillRect(0, 0, w, 3); c.fillRect(0, 0, 3, h);
+  };
+  const paveMap = canvasTex(256, 256, (c, w, h) => drawPave(c, w, h, false)), paveBump = canvasTex(256, 256, (c, w, h) => drawPave(c, w, h, true)); paveBump.colorSpace = THREE.NoColorSpace;
+  const pave = (len, along) => { const t = paveMap.clone(), b = paveBump.clone(); t.needsUpdate = b.needsUpdate = true; for (const x of [t, b]) x.repeat.set(along ? len / 1.6 : 3.5 / 1.6, along ? 3.5 / 1.6 : len / 1.6); return new THREE.MeshStandardMaterial({ map: t, bumpMap: b, bumpScale: 1.2, roughness: 0.93 }); };
   const SW = 3.5, kerb = 0.14;
   const walkRing = (half, inner) => { // a ring of four slabs; half = [x, z] half-extents of the ring's centre line
     const [hx, hz] = half;
@@ -187,40 +234,31 @@ export function buildWorld(g) {
   for (let x = -lx + 6; x < lx; x += 22) { lamp(x, -lz); lamp(x, lz); }
   for (let z = -lz + 14; z < lz; z += 22) { lamp(-lx, z); lamp(lx, z); }
 
-  // --- buildings around the outside of the loop
-  const facade = (wallC, glassC, lit) => canvasTex(128, 128, (c, w, h) => {
-    noise(c, w, h, wallC, 0.1, 2500, 2);
-    c.fillStyle = glassC; c.fillRect(22, 26, 84, 74);
-    c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(22, 26, 84, 8);
-    if (lit) { c.fillStyle = 'rgba(255,220,150,.35)'; c.fillRect(22, 26, 84, 74); }
-    c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(0, 118, w, 10); c.fillRect(62, 26, 4, 74);
-  });
-  const palettes = [['#b9a48a', '#30404f'], ['#8f9aa1', '#26323c'], ['#c7b9a4', '#3a4652'], ['#a35a43', '#2d3a44'], ['#d7d2c8', '#2f4a5e'], ['#6f7478', '#1f2a33'], ['#c4a46a', '#33424d']];
-  const roofM = new THREE.MeshStandardMaterial({ color: 0x55575a, roughness: 1 });
-  const building = (x, z, w, d, h, ry) => {
-    const [wc, gc] = palettes[Math.floor(rand() * palettes.length)];
-    const tex = facade(wc, gc, rand() < 0.3); tex.repeat.set(Math.max(1, Math.round(w / 3.2)), Math.max(1, Math.round(h / 3.4)));
-    const tex2 = tex.clone(); tex2.needsUpdate = true; tex2.repeat.set(Math.max(1, Math.round(d / 3.2)), Math.max(1, Math.round(h / 3.4)));
-    const mA = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }), mB = new THREE.MeshStandardMaterial({ map: tex2, roughness: 0.85 });
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [mB, mB, roofM, roofM, mA, mA]);
-    m.position.set(x, h / 2, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m);
-    fixed(R.ColliderDesc.cuboid(w / 2, h / 2, d / 2), x, h / 2, z, ry);
-    const par = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.6, d + 0.3), roofM); par.position.set(x, h + 0.3, z); par.rotation.y = ry; scene.add(par);
-  };
+  // --- buildings around the outside of the loop (proper facades: see buildings.js)
+  const city = g.city = new CityBuilder(g);
+  city.rand = rand;
+  const styles = ['brick', 'brick', 'stucco', 'stucco', 'concrete', 'glass'];
   const outer = A + W / 2 + SW, outerZ = Bz + W / 2 + SW;
-  for (const side of [-1, 1]) { // north and south rows
+  const place = (cx, cz, w, d, face) => {
+    let style = styles[Math.floor(rand() * styles.length)];
+    let floors = style === 'glass' ? 9 + Math.floor(rand() * 6) : 3 + Math.floor(rand() * 5);
+    if (style === 'glass' && rand() < 0.5) { style = 'concrete'; floors = 5 + Math.floor(rand() * 4); }
+    city.building({ x: cx, z: cz, w, d, floors, style, shopFaces: rand() < 0.75 ? [face] : [] });
+  };
+  for (const side of [-1, 1]) { // north and south rows (the north row leaves a gap for your apartment building)
     for (let x = -outer + 2; x < outer - 6;) {
-      const w = 12 + rand() * 12, d = 14 + rand() * 8, h = 8 + rand() * 26;
+      const w = 12 + rand() * 10, d = 14 + rand() * 8;
       if (x + w > outer) break;
-      building(x + w / 2, side * (outerZ + 1.5 + d / 2), w, d, h, 0);
-      x += w + 2 + rand() * 4;
+      if (side < 0 && x + w > -13 && x < 13) { x = 13.5; continue; }
+      place(x + w / 2, side * (outerZ + 1.5 + d / 2), w, d, side < 0 ? '+z' : '-z');
+      x += w + 2.5 + rand() * 3;
     }
   }
   for (let z = -outerZ + 2; z < outerZ - 6;) { // the west row
-    const w = 12 + rand() * 10, d = 14 + rand() * 8, h = 8 + rand() * 26;
+    const w = 12 + rand() * 10, d = 14 + rand() * 8;
     if (z + w > outerZ) break;
-    building(-(outer + 1.5 + d / 2), z + w / 2, d, w, h, 0);
-    z += w + 2 + rand() * 4;
+    place(-(outer + 1.5 + d / 2), z + w / 2, d, w, '+x');
+    z += w + 2.5 + rand() * 3;
   }
 
   // --- the test track: cones, a jump ramp, a long straight

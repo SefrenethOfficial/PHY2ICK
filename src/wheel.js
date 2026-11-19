@@ -11,11 +11,11 @@ export class Wheel {
   // the person you'd talk to: close, and roughly in front of you
   candidate() {
     const g = this.g, pl = g.player;
-    if (pl.car || pl.downT > 0) return null;
+    if (pl.car || pl.ragdoll) return null;
     const p = pl.pos, f = g.cam.forward;
     let best = null, bestS = Infinity;
     for (const n of g.citizens.list) {
-      if (['seated', 'down', 'flee', 'angry'].includes(n.state)) continue;
+      if (['seated', 'down', 'flee', 'angry', 'dead'].includes(n.state) || n.human.ragdoll) continue;
       const q = g.citizens.pos(n), d = Math.hypot(q.x - p.x, q.z - p.z);
       if (d > 3.2) continue;
       const dot = ((q.x - p.x) * f.x + (q.z - p.z) * f.z) / Math.max(d, 0.01);

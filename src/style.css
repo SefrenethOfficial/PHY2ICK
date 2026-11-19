@@ -47,3 +47,9 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px; border: 1px soli
 .logo .two i { position: absolute; left: 0; top: 100%; font-style: normal; transform: scaleY(-1); opacity: .45; -webkit-mask-image: linear-gradient(transparent 30%, #000); mask-image: linear-gradient(transparent 30%, #000); margin-top: 14px; }
 .sub { margin-top: 26px; letter-spacing: 8px; font-size: 14px; opacity: .7; }
 .go { margin-top: 18px; padding: 10px 26px; border: 1px solid rgba(255,255,255,.4); border-radius: 30px; font-size: 15px; }
+
+#crosshair { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: rgba(255,255,255,.85); box-shadow: 0 0 2px #000; display: none; }
+#blackout { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: radial-gradient(ellipse at center, rgba(60,0,0,.35), rgba(0,0,0,.92)); opacity: 0; transition: opacity 1.5s; pointer-events: none; }
+#blackout.on { opacity: 1; }
+#blackout b { font: 700 64px/1 'Arial Narrow', Arial; letter-spacing: 6px; color: #d8312b; text-shadow: 0 3px 0 #000; }
+#blackout span { opacity: .75; }

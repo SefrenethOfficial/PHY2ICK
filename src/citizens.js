@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { Human, randomLook } from './character.js';
 import { G_WORLD, G_PED, groups } from './world.js';
+import { Ragdoll } from './ragdoll.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const HALF = 0.5, RAD = 0.28, CENTRE = HALF + RAD;
@@ -51,7 +52,7 @@ export class Citizens {
     g.scene.add(human.root);
     const npc = {
       name, human, body, col,
-      mood: Math.floor(Math.random() * 35), // −100 … 100
+      hp: 100, mood: Math.floor(Math.random() * 35), // −100 … 100
       brave: Math.random(),
       walkSpeed: 1.15 + Math.random() * 0.45,
       state: 'wander', target: this.randomPoint(), stateT: 0,
@@ -82,6 +83,8 @@ export class Citizens {
     const g = this.g, pl = g.player, pp = pl.car ? pl.car.pos.clone() : pl.pos;
     for (const n of this.list) {
       if (n.state === 'seated') continue;
+      if (n.state === 'dead') { n.deadT += h; if (n.deadT > 90) { this.remove(n); continue; } /* (the body stays a while; then someone new turns up) */ if (!n.pooled && n.deadT > 1.2 && n.human.ragdoll.speed < 0.3) { n.pooled = true; g.blood.pool(n.human.ragdoll.pelvis, 1.3 + Math.random() * 0.6); } continue; }
+      if (n.human.ragdoll) { n.stateT -= h; if (n.stateT <= 0 && n.human.ragdoll.speed < 0.6) this.getUp(n); continue; }
       const p = this.pos(n);
       n.stateT -= h;
       let goal = null, spd = 0;
@@ -130,17 +133,12 @@ export class Citizens {
           }
           if (n.stateT <= 0 || pl.car) this.wander(n);
           break;
-        case 'down':
-          if (n.stateT <= 0) {
-            if (n.brave > 0.6) { n.state = 'angry'; n.stateT = 8; this.say(n, 'You hit me with your CAR?!', 3); }
-            else { n.state = 'flee'; n.stateT = 6; this.say(n, pick(['Somebody call the police!', 'Are you insane?!']), 3); }
-          }
-          break;
+        case 'down': this.wander(n); break;
       }
-      if (n.state === 'sit' || n.state === 'down') { n.speed = 0; n.vel.set(0, 0, 0); this.move(n, p, V(), h); continue; }
+      if (n.state === 'sit') { n.speed = 0; n.vel.set(0, 0, 0); this.move(n, p, V(), h); continue; }
       // dodge a car coming at you
       for (const car of g.cars) {
-        if (Math.abs(car.speed) < 6 || n.state === 'down') continue;
+        if (Math.abs(car.speed) < 6) continue;
         const loc = car.group.worldToLocal(p.clone().add(V(0, 0.9, 0)));
         const ahead = car.speed > 0 ? loc.z : -loc.z;
         if (ahead > 2 && ahead < 14 && Math.abs(loc.x) < 1.6) {
@@ -200,6 +198,7 @@ export class Citizens {
       n.bubbleT = Math.max(0, n.bubbleT - dt);
       const H = n.human;
       if (n.state === 'seated') { H.update(dt, { pose: 'passenger' }); continue; }
+      if (H.ragdoll) { H.update(dt, {}); continue; }
       const p = this.pos(n);
       H.root.position.copy(p);
       let face = null;
@@ -216,7 +215,7 @@ export class Citizens {
       H.lookYaw += (ly - H.lookYaw) * Math.min(1, dt * 5);
       H.update(dt, {
         speed: n.speed, grounded: true, vy: 0,
-        pose: n.state === 'down' ? 'down' : n.state === 'sit' ? 'passenger' : 'stand',
+        pose: n.state === 'sit' ? 'passenger' : 'stand',
         talking: n.bubbleT > 0 && n.speed < 0.3, point: n.pointT > 0, wave: n.waveT > 0,
       });
       n.pointT = Math.max(0, (n.pointT || 0) - dt); n.waveT = Math.max(0, (n.waveT || 0) - dt);
@@ -293,13 +292,78 @@ export class Citizens {
     n.mood = THREE.MathUtils.clamp(n.mood, -100, 100);
   }
 
-  hitByCar(n, dir, force) {
-    if (n.state === 'down' || n.state === 'seated') return;
+  // ---- getting hurt
+  knock(n, vel, spin = 4) {
     if (n.bench) { n.bench.taken = null; n.bench = null; }
-    n.state = 'down'; n.stateT = 2.5 + Math.random(); n.following = false;
+    if (n.human.ragdoll) { n.human.ragdoll.push(vel); return; }
+    n.col.setEnabled(false);
+    n.human.ragdoll = new Ragdoll(this.g, n.human, vel, spin);
+    n.state = 'down'; n.stateT = 2.4 + Math.random(); n.following = false;
+  }
+
+  hitByCar(n, dir, force) {
+    if (n.state === 'seated' || n.state === 'dead') return;
     n.mem.hitBy++; n.mood -= 60;
-    const p = this.pos(n), to = p.clone().addScaledVector(dir.setY(0).normalize(), Math.min(force * 0.35, 5));
-    const at = { x: to.x, y: this.groundAt(to.x, to.z) + CENTRE, z: to.z };
-    n.body.setTranslation(at, true); n.body.setNextKinematicTranslation(at);
+    const v = dir.clone().setY(0).normalize().multiplyScalar(Math.min(force, 18) * 0.85); v.y = Math.min(6, 1.2 + force * 0.3);
+    this.knock(n, v, 3 + force * 0.4);
+    n.hp -= force * 6.5;
+    if (force > 6) this.g.blood.spray(n.human.ragdoll.pelvis.add(new THREE.Vector3(0, 0.35, 0)), v.clone().normalize(), Math.min(60, force * 3), 3.5);
+    if (n.hp <= 0) this.die(n);
+    else this.after(n, force > 10);
+  }
+
+  // hit with a weapon
+  struck(n, W, dir) {
+    const g = this.g;
+    const chest = n.human.ragdoll ? n.human.ragdoll.pelvis.add(new THREE.Vector3(0, 0.35, 0)) : this.pos(n).add(new THREE.Vector3(0, 1.3, 0));
+    if (W.dmg === 0) { // the plastic kiddie knife
+      g.hud.toast('The plastic knife bends. Nothing happens.');
+      if (!n.human.ragdoll) { n.mood -= 8; n.state = 'talk'; n.stateT = 3; this.say(n, pick(['…Was that a plastic knife?', 'Did you just… poke me?', "Ha! Is that from a kids' meal?", 'Okay. Weird. Bye.']), 3); }
+      return;
+    }
+    n.hp -= W.dmg; n.mood -= 80; n.mem.hitBy++;
+    g.blood.spray(chest, dir.clone().setY(0.3).normalize(), W.bleed, 2.5);
+    this.panic(this.pos(n), n);
+    if (n.hp <= 0) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1), 3); this.die(n); return; }
+    if (W.dmg >= 40) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1.5), 3); this.after(n, true); }
+    else if (!n.human.ragdoll) { // a stab that doesn't drop them
+      n.state = n.brave > 0.75 ? 'angry' : 'flee'; n.stateT = n.state === 'angry' ? 7 : 9; n.following = false;
+      this.say(n, n.state === 'angry' ? pick(['You STABBED me?!', 'Oh, you are going to regret that.']) : pick(['Aaah! Help!', 'He stabbed me! Somebody help!', 'Get away from me!']), 3);
+    }
+  }
+
+  after(n, bad) { n.afterBad = bad; }
+
+  // everyone near something violent runs
+  panic(at, except) {
+    for (const o of this.list) {
+      if (o === except || ['dead', 'seated'].includes(o.state) || o.human.ragdoll) continue;
+      const d = this.pos(o).distanceTo(at);
+      if (d < 28) { o.state = 'flee'; o.stateT = 8 + Math.random() * 6; o.following = false; if (o.bench) { o.bench.taken = null; o.bench = null; } if (d < 12 && Math.random() < 0.5) this.say(o, pick(['Oh my god!', 'Run!', 'Somebody call the police!', 'No no no no']), 2.5); }
+    }
+  }
+
+  die(n) {
+    n.state = 'dead'; n.deadT = 0; n.pooled = false; n.following = false; n.bubbleT = 0;
+    this.panic(n.human.ragdoll ? n.human.ragdoll.pelvis : this.pos(n), n);
+  }
+
+  getUp(n) {
+    const p = n.human.ragdoll.pelvis, gy = this.groundAt(p.x, p.z, p.y + 0.5);
+    n.human.ragdoll.dispose(); n.human.ragdoll = null; n.human.resetPose();
+    const at = { x: p.x, y: gy + CENTRE + 0.05, z: p.z };
+    n.body.setTranslation(at, true); n.body.setNextKinematicTranslation(at); n.col.setEnabled(true);
+    n.vel.set(0, 0, 0);
+    if (n.brave > 0.6 && !n.afterBad) { n.state = 'angry'; n.stateT = 8; this.say(n, n.mem.hitBy ? 'You hit me with your CAR?!' : 'Right. That does it.', 3); }
+    else { n.state = 'flee'; n.stateT = 8; this.say(n, pick(['Somebody call the police!', 'Are you insane?!', 'Ow… my leg…']), 3); }
+  }
+
+  remove(n) {
+    const g = this.g;
+    if (n.human.ragdoll) { n.human.ragdoll.dispose(); n.human.ragdoll = null; }
+    n.human.root.removeFromParent();
+    g.world.removeRigidBody(n.body);
+    this.list.splice(this.list.indexOf(n), 1);
+    this.spawn(NAMES[Math.floor(Math.random() * NAMES.length)]);
   }
 }

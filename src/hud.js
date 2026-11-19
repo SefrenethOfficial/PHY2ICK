@@ -27,6 +27,11 @@ export class Hud {
     n.bubbleT = dur;
   }
 
+  blackout(on) {
+    const el = document.getElementById('blackout');
+    el.classList.toggle('on', on);
+  }
+
   prompt(text) {
     if (this.lastPrompt === text) return;
     this.lastPrompt = text;
