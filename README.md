@@ -110,7 +110,7 @@ src/
   weapons.js    the hatchet, the butter knife, the plastic kiddie knife, the rack, swinging
   ragdoll.js    ragdolls: physics bodies and joints that pose the skeleton
   blood.js      droplets, splats and pools
-  character.js  people: the skeleton, the skinned body, the looks (no noses, no ears), the procedural animation
+  character.js  people: the skeleton, the block body, hair, eyes and brows with expressions, the procedural animation
   player.js     you: Rapier's character controller (steps, slopes), walking, running, jumping
   camera.js     over-the-shoulder camera, chase camera, the inside view
   car.js        the car: raycast-vehicle physics, the body and cabin, gauges, the mirror
