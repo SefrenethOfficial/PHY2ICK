@@ -661,8 +661,12 @@ export function buildCity(g) {
   g.places = places;
   // a point on a sidewalk (for people to walk to), optionally near somewhere
   const sidewalkPoint = (near = null, radius = 60) => {
-    for (let i = 0; i < 40; i++) {
-      const s = segs[Math.floor(Math.random() * segs.length)];
+    // (only roads that actually pass within reach: otherwise most tries miss and people pile up on the hub itself)
+    const segD = (s) => { const dx = near.x - s.a[0], dz = near.z - s.a[1], t = Math.max(0, Math.min(s.L, dx * s.u[0] + dz * s.u[1])); return Math.hypot(dx - s.u[0] * t, dz - s.u[1] * t); };
+    const pool = near ? segs.filter(s => segD(s) < radius) : segs;
+    if (!pool.length) return near.clone();
+    for (let i = 0; i < 60; i++) {
+      const s = pool[Math.floor(Math.random() * pool.length)];
       const t = Math.random() * s.L, sd = Math.random() < 0.5 ? -1 : 1, off = RW / 2 + SW * (0.3 + Math.random() * 0.4);
       const x = s.a[0] + s.u[0] * t + s.n[0] * sd * off, z = s.a[1] + s.u[1] * t + s.n[1] * sd * off;
       if (near && Math.hypot(x - near.x, z - near.z) > radius) continue;

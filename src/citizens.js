@@ -31,8 +31,8 @@ export class Citizens {
     this.list = [];
     // one character controller moves everyone: they bump into walls, step up kerbs, keep to the ground
     this.cc = g.world.createCharacterController(0.03);
-    this.cc.enableAutostep(0.45, 0.25, true); this.cc.enableSnapToGround(0.5);
-    this.cc.setMaxSlopeClimbAngle(50 * Math.PI / 180); this.cc.setApplyImpulsesToDynamicBodies(true);
+    this.cc.enableAutostep(0.45, 0.25, false); // (no snap-to-ground or pushing things about: gravity does the one, and the other costs a lot for forty people)
+    this.cc.setMaxSlopeClimbAngle(50 * Math.PI / 180); this.cc.setApplyImpulsesToDynamicBodies(false);
     for (let i = 0; i < n; i++) this.spawn(NAMES[i % NAMES.length]);
   }
 
@@ -89,10 +89,18 @@ export class Citizens {
     return !!hit;
   }
 
-  physics(h) {
+  physics(h0) {
     const g = this.g, pl = g.player, pp = pl.car ? pl.car.pos.clone() : pl.pos;
-    for (const n of this.list) {
+    this.stepN = (this.stepN || 0) + 1;
+    for (let i = 0; i < this.list.length; i++) {
+      const n = this.list[i];
       if (n.state === 'seated') continue;
+      // far from you, people think (and move) a quarter as often: the same walk, a quarter of the work
+      let h = h0;
+      { const t = n.body.translation(), far = Math.hypot(pp.x - t.x, pp.z - t.z) > 55 && n.state !== 'follow';
+        n.acc = (n.acc || 0) + h0;
+        if (far && ((this.stepN + i) & 3) !== 0) continue;
+        h = n.acc; n.acc = 0; }
       if (n.state === 'dead') { n.deadT += h; if (n.deadT > 90) { this.remove(n); continue; } /* (the body stays a while; then someone new turns up) */ if (!n.pooled && n.deadT > 1.2 && n.human.ragdoll.speed < 0.3) { n.pooled = true; g.blood.pool(n.human.ragdoll.pelvis, 1.3 + Math.random() * 0.6); } continue; }
       if (n.human.ragdoll) { n.stateT -= h; if (n.stateT <= 0 && n.human.ragdoll.speed < 0.6) this.getUp(n); continue; }
       const p = this.pos(n);
@@ -171,12 +179,15 @@ export class Citizens {
         const q = this.pos(o), dx = p.x - q.x, dz = p.z - q.z, dd = Math.hypot(dx, dz);
         if (dd < 0.9 && dd > 0.001) { want.x += (dx / dd) * 1.2; want.z += (dz / dd) * 1.2; }
       }
-      if (want.lengthSq() > 0.01 && this.blocked(n, p, want.clone().normalize())) {
+      n.blkT = (n.blkT || 0) - h;
+      if (want.lengthSq() > 0.01 && n.blkT <= 0) { n.blk = this.blocked(n, p, want.clone().normalize()); n.blkT = n.blk ? 0 : 0.2; }
+      if (want.lengthSq() > 0.01 && n.blk) {
         n.blockedT += h;
         want.applyAxisAngle(V(0, 1, 0), 1.1); // (step round it)
         if (n.blockedT > 1.5 && n.state === 'wander') { n.target = this.randomPoint(p); n.blockedT = 0; }
       } else n.blockedT = Math.max(0, n.blockedT - h);
       n.vel.lerp(want, Math.min(1, h * 8));
+      if (n.vy === 0 && want.lengthSq() < 0.0001 && n.vel.lengthSq() < 0.0004) { n.vel.set(0, 0, 0); n.speed = 0; continue; } // (standing still on the ground: nothing to compute)
       this.move(n, p, n.vel, h);
     }
   }
@@ -209,11 +220,26 @@ export class Citizens {
     n.state = 'follow';
   }
 
-  frame(dt) {
-    const g = this.g, pl = g.player;
-    for (const n of this.list) {
-      n.bubbleT = Math.max(0, n.bubbleT - dt);
+  frame(dt0) {
+    const g = this.g, pl = g.player, cam = g.camera;
+    cam.updateMatrixWorld(); this._pv = this._pv || new THREE.Matrix4(); this._fr = this._fr || new THREE.Frustum(); this._sp = this._sp || new THREE.Sphere(V(), 2.2);
+    this._fr.setFromProjectionMatrix(this._pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    this.frameN = (this.frameN || 0) + 1;
+    for (let i = 0; i < this.list.length; i++) {
+      const n = this.list[i];
+      n.bubbleT = Math.max(0, n.bubbleT - dt0);
       const H = n.human;
+      // only draw (and pose) people who are on screen and not too far off; far ones are posed every other frame
+      if (n.state !== 'seated') {
+        const t = H.ragdoll ? H.ragdoll.pelvis : n.body.translation(); this._sp.center.set(t.x, t.y, t.z);
+        const dc = cam.position.distanceTo(this._sp.center), vis = dc < 170 && this._fr.intersectsSphere(this._sp);
+        H.root.visible = vis; n.animAcc = (n.animAcc || 0) + dt0;
+        if (!vis) continue;
+        if (dc > 45 && ((this.frameN + i) & 1)) continue;
+        if (!n.meshes) { n.meshes = []; H.root.traverse(o => o.isMesh && o.castShadow && n.meshes.push(o)); }
+        const cs = dc < 60; if (n.castNow !== cs) { n.castNow = cs; for (const m of n.meshes) m.castShadow = cs; }
+      } else n.animAcc = (n.animAcc || 0) + dt0;
+      const dt = n.animAcc; n.animAcc = 0;
       if (n.state === 'seated') { H.update(dt, { pose: 'passenger' }); continue; }
       if (H.ragdoll) { H.update(dt, {}); continue; }
       const p = this.pos(n);

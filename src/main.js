@@ -1,10 +1,6 @@
 // PHY2ICK: the test area.
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { buildWorld } from './world.js';
 import { buildApartment } from './apartment.js';
 import { Player } from './player.js';
@@ -27,7 +23,7 @@ class Game {
     await RAPIER.init();
     this.R = RAPIER;
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-    r.setPixelRatio(Math.min(devicePixelRatio, 1.5)); r.setSize(innerWidth, innerHeight);
+    this.res = 1; r.setPixelRatio(Math.min(devicePixelRatio, 1)); r.setSize(innerWidth, innerHeight); // (one setting: fast. The resolution drops a little by itself if frames run slow)
     r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
     r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.62;
     document.getElementById('app').appendChild(r.domElement);
@@ -75,21 +71,8 @@ class Game {
     this.wpBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 60, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
     this.wpBeam.visible = false; this.scene.add(this.wpBeam);
 
-    // post-processing: ambient occlusion (contact shadows in every corner)
-    const rt = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 4 });
-    const comp = this.composer = new EffectComposer(r, rt);
-    comp.setPixelRatio(r.getPixelRatio());
-    comp.addPass(new RenderPass(this.scene, this.camera));
-    this.ao = new GTAOPass(this.scene, this.camera, innerWidth, innerHeight);
-    this.ao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.5, thickness: 1.2, scale: 1, samples: 12 });
-    this.ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
-    this.ao.blendIntensity = 0.85;
-    comp.addPass(this.ao);
-    comp.addPass(new OutputPass());
-    this.post = /[?&]hq/.test(location.search); // (fast by default; P, or ?hq, for ambient occlusion)
-
     this.bindInput();
-    addEventListener('resize', () => { this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); r.setSize(innerWidth, innerHeight); comp.setSize(innerWidth, innerHeight); });
+    addEventListener('resize', () => { this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); r.setSize(innerWidth, innerHeight); });
     this.clock = new THREE.Clock();
     this.started = false;
     r.setAnimationLoop(() => this.tick());
@@ -143,7 +126,6 @@ class Game {
       if (e.code === 'KeyC' && pl.car) this.cam.mode = this.cam.mode === 'chase' ? 'cockpit' : 'chase';
       if (e.code === 'KeyR' && pl.car) this.resetCar(pl.car);
       if (e.code === 'KeyH') this.hud.helpEl.classList.toggle('hide');
-      if (e.code === 'KeyP') { this.post = !this.post; this.hud.toast(this.post ? 'Graphics: high (ambient occlusion)' : 'Graphics: fast'); }
     });
     addEventListener('keyup', (e) => {
       this.keys.delete(e.code);
@@ -222,9 +204,9 @@ class Game {
     const rdt = Math.min(this.clock.getDelta(), 0.1);
     const dt = rdt * this.timeScale;
     const steps = Math.max(1, Math.ceil(dt / (1 / 60) - 0.01)), h = dt / steps;
+    if (dt > 0) this.citizens.physics(dt); // (people think once a frame, not every physics step)
     if (dt > 0) for (let i = 0; i < steps; i++) {
       this.player.physics(h);
-      this.citizens.physics(h);
       this.props.physics(h);
       for (const c of this.cars) c.physics(h);
       this.world.timestep = h;
@@ -268,7 +250,11 @@ class Game {
     if (this.fountainWater) this.fountainWater.position.y = 0.45 + Math.sin(performance.now() / 600) * 0.01;
     this.hud.frame(rdt);
     if (pl.car && this.cam.mode === 'cockpit') pl.car.renderMirror(this.renderer, this.scene);
-    if (this.post) this.composer.render(rdt); else this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene, this.camera);
+    // keep it smooth: if frames run long, draw at a slightly lower resolution (and back up when there's room)
+    this.ft = (this.ft ?? 16) * 0.95 + rdt * 1000 * 0.05; this.resT = (this.resT || 0) + rdt;
+    if (this.resT > 1.5) { const nr = this.ft > 24 ? Math.max(0.6, this.res - 0.1) : this.ft < 15 ? Math.min(1, this.res + 0.1) : this.res; this.resT = 0;
+      if (nr !== this.res) { this.res = nr; this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1) * nr); this.renderer.setSize(innerWidth, innerHeight); } }
   }
 }
 

@@ -68,8 +68,8 @@ export function buildWorld(g) {
   scene.add(new THREE.HemisphereLight(0xc4d8f0, 0x6a5a46, 0.35));
   const sun = new THREE.DirectionalLight(0xffeedd, 3.4);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(4096, 4096);
-  Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, near: 1, far: 450 });
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 400 });
   sun.shadow.bias = -0.00025; sun.shadow.normalBias = 0.035; sun.shadow.radius = 2;
   scene.add(sun, sun.target); g.sun = sun;
 

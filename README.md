@@ -74,8 +74,11 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 | `C` | inside view / chase camera |
 | `R` | flip the car back over |
 | `H` | hide the controls |
-| `P` | graphics: fast (the default) / high (ambient occlusion); add `?hq` to the address to start on high |
 | Mouse | look |
+
+## Performance
+
+One graphics setting, tuned for speed: no post-processing, a 2048 shadow map that follows you, and the resolution eases down by itself if frames run slow (and back up when there's room). People off screen or far away aren't drawn or animated; far-off people think and move a quarter as often; parked cars are drawn in neighbourhood batches of three meshes each, so whole streets of them are skipped when out of view.
 
 ## Running it
 

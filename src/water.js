@@ -27,18 +27,18 @@ export function makeWater(g, level) {
       vec3 nW = normalize(vec3(-(na.x * 0.6 + nb.x) * 0.32 - sx * 5.0, 1.0, -(na.y * 0.6 + nb.y) * 0.32 - sz * 5.0));
       normal = normalize((viewMatrix * vec4(nW, 0.0)).xyz);`);
   };
-  const geo = new THREE.PlaneGeometry(2400, 2400, 240, 240); geo.rotateX(-Math.PI / 2);
+  const geo = new THREE.PlaneGeometry(1200, 1200, 100, 100); geo.rotateX(-Math.PI / 2);
   const water = new THREE.Mesh(geo, mat);
   water.position.y = level; water.receiveShadow = true; water.userData.dynamic = true; water.frustumCulled = false;
   g.scene.add(water);
   // beyond it, out to the horizon: flat
-  const far = new THREE.Mesh(new THREE.RingGeometry(1150, 6000, 64, 1), new THREE.MeshStandardMaterial({ color: 0x1a6680, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.92 }));
+  const far = new THREE.Mesh(new THREE.RingGeometry(590, 6000, 48, 1), new THREE.MeshStandardMaterial({ color: 0x1a6680, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.92 }));
   far.rotation.x = -Math.PI / 2; far.position.y = level - 0.02; far.userData.dynamic = true; g.scene.add(far);
   return {
     mesh: water,
     update(dt, cam) {
       time.value += dt;
-      water.position.x = Math.round(cam.position.x / 10) * 10; water.position.z = Math.round(cam.position.z / 10) * 10;
+      water.position.x = Math.round(cam.position.x / 12) * 12; water.position.z = Math.round(cam.position.z / 12) * 12; // (snapped to the grid, so the waves stay put)
       far.position.x = water.position.x; far.position.z = water.position.z;
     },
   };
