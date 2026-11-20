@@ -17,6 +17,7 @@ import { Props } from './props.js';
 import { Weapons } from './weapons.js';
 import { Blood } from './blood.js';
 import { bakeStatic } from './bake.js';
+import { ParkedCars } from './parked.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -42,25 +43,32 @@ class Game {
     this.props = new Props(this);
     this.weapons = new Weapons(this);
     this.blood = new Blood(this);
+    const T0 = performance.now();
     this.map = buildWorld(this);
+    this.loadTimes = { world: performance.now() - T0 };
     this.apt = buildApartment(this);
     this.city.finish();
     for (const o of [this.water, this.fountainWater, this.sky]) if (o) o.userData.dynamic = true;
     for (const c of this.cones || []) c.m.userData.dynamic = true;
     for (const s of this.weapons.slots) s.model.userData.dynamic = true;
+    this.loadTimes.beforeBake = performance.now() - T0;
     this.baked = bakeStatic(this.scene);
+    this.loadTimes.bake = performance.now() - T0;
     this.cam = new CameraRig(this);
     this.wheel = new Wheel(this);
     this.player = new Player(this, this.apt.spawn);
     this.player.yaw = this.apt.spawnYaw; this.cam.yaw = this.apt.spawnYaw + Math.PI; this.cam.pitch = 0.18;
     // cars: the police station's, and some in the car parks
     const paints = [0x9b1c1c, 0x1f4f8a, 0x2b2d30, 0xd8d6d0, 0x3f6b3f, 0x8a6a2a, 0x5a5f66, 0x6a2a5a];
-    const spots = this.map.parked.filter(p => p[4] === 'police').concat(this.map.parked.filter(p => p[4] !== 'police').sort(() => Math.random() - 0.5).slice(0, 13));
+    const spots = this.map.parked.filter(p => p[4] === 'police'); // (only these are real cars from the start; the rest are parked copies until you take one)
     this.cars = spots.map((p, i) => new Car(this, V(p[0], 0.03, p[1]), p[2], p[3] ?? paints[i % paints.length]));
     { // one right outside your front door
       const d = this.apt.door; this.cars.push(new Car(this, V(d.x + 8, 0.03, d.z + 6.2), Math.PI / 2, 0x9b1c1c));
     }
-    this.citizens = new Citizens(this, this.map, 26);
+    const lotCars = this.map.parked.filter(p => p[4] !== 'police').sort(() => Math.random() - 0.5).slice(0, 30);
+    this.parkedCars = new ParkedCars(this, lotCars.concat(this.map.kerbside.sort(() => Math.random() - 0.5).slice(0, 70)));
+    this.citizens = new Citizens(this, this.map, 40);
+    this.loadTimes.all = performance.now() - T0;
     this.wpBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 60, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
     this.wpBeam.visible = false; this.scene.add(this.wpBeam);
 
@@ -82,13 +90,14 @@ class Game {
     this.clock = new THREE.Clock();
     this.started = false;
     r.setAnimationLoop(() => this.tick());
+    document.getElementById('splash').classList.add('ready');
     window.game = this;
   }
 
   bindInput() {
     const canvas = this.renderer.domElement, splash = document.getElementById('splash');
     const lock = () => { canvas.requestPointerLock?.(); };
-    splash.addEventListener('click', () => { lock(); this.started = true; splash.classList.add('playing'); });
+    splash.addEventListener('click', () => { if (!splash.classList.contains('ready')) return; lock(); this.started = true; splash.classList.add('playing'); });
     canvas.addEventListener('click', () => { if (!document.pointerLockElement) lock(); });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
@@ -157,7 +166,8 @@ class Game {
       this.cam.yaw = car.yaw + Math.PI * 0.75; this.cam.pitch = 0.22; this.cam.smoothTarget = null; // (the camera swings out to your side, clear of the car)
       return;
     }
-    const c = this.nearestCar();
+    let c = this.nearestCar();
+    if (!c) { const pc = this.parkedCars.nearest(pl.pos); if (pc) c = this.parkedCars.take(pc); }
     if (c) { if (this.props.held) this.props.drop(false); pl.enterCar(c); }
   }
 
@@ -220,7 +230,7 @@ class Game {
     if (this.wheel.open) prompt = 'Move the mouse to pick · release <kbd>E</kbd> (or click, or <kbd>1</kbd>–<kbd>6</kbd>) · <kbd>Q</kbd> cancel';
     else if (pl.car) prompt = `<kbd>F</kbd> get out · <kbd>C</kbd> ${this.cam.mode === 'chase' ? 'inside view' : 'chase camera'} · <kbd>Space</kbd> handbrake`;
     else if (!pl.ragdoll) {
-      const slot = this.weapons.candidate(), n = !slot && this.wheel.candidate(), c = this.nearestCar();
+      const slot = this.weapons.candidate(), n = !slot && this.wheel.candidate(), c = this.nearestCar() || this.parkedCars.nearest(pl.pos);
       if (this.props.held) prompt = `Carrying ${this.props.held.name} · <kbd>Click</kbd> drop · <kbd>Right-click</kbd> throw`;
       else if (slot) prompt = slot.taken ? `<kbd>E</kbd> put the ${this.weapons.held.name} back` : `<kbd>E</kbd> take the ${{ hatchet: 'Hatchet', butter: 'Butter Knife', kiddie: 'Plastic Kiddie Knife' }[slot.id]}`;
       else if (n) prompt = `Hold <kbd>E</kbd> interact with ${n.mem.met ? n.name : 'this person'}`;

@@ -6,14 +6,15 @@ Play it at **https://sefrenethofficial.github.io/PHY2ICK/**
 
 ## The island
 
-The map is the island from `PHY2ICK_Map.svg`, built to scale (1 px of the drawing = 1.3 m): the same coastline, every road (with sidewalks, kerbs, lane markings and zebra crossings), and every building and place, each with its own look and sign. A **minimap** (top right) turns with the camera.
+The map is the island from `PHY2ICK_Map.svg` (1 px of the drawing = 1 m): the same coastline, every road (with sidewalks, kerbs, lane markings and zebra crossings), and every building and place, each with its own look and sign. A **minimap** (top right) turns with the camera.
+
+It's a **dense** city, not an open one: every gap between the places on the map is packed with buildings (around 150 of them, shops at street level, alleys between), the empty north of the map is a **grid of streets lined with blocks**, and cars are parked along the kerbs and in the car parks. Any parked car is yours: walk up and press `F`.
 
 - **The sea all round**, a sea wall where land meets water, and **the inlet** cutting in from the south-west, with a **bridge** where the road crosses it. **Palm Tree Beach** slopes into the water along the south, with palms, umbrellas, towels and a lifeguard tower. **The Pier**: a timber boardwalk all the way up the east coast, with lamps and benches.
 - **The west block** (the triangle by the inlet): Game Shop, Home Improvements (×2), Cheap House, **Putin's Ritz** (a hotel with a red carpet), City Wok, **Shitty Wok** and **Triangle and Co.** (triangular buildings), and a fenced vegetable plot. **The sewer entrance** is a big culvert in the inlet's bank, half under water: you have to swim to it.
 - **North of the avenue**: the **Hospital** (red crosses, an ambulance bay, a helipad; you wake up here if you black out), the **Skatepark**, the park with the **Playground** (swings, a slide, a climbing frame), the fountain, the **Nightclub** (neon sign, queue rope), **Paul Badfella's law firm** (behind a fence you have to jump), the **Bourke Office High Rise**, the **Coffee Store** with **PRIVATE INVESTIGATOR** on the window upstairs, **Grace's Flowers**, the little park, and the **Police Station** (in its own road loop, police cars outside).
 - **Downtown**: A Rival Mini Mart, the Indoor Pool, a row of shops, Mini Mart, Visitor Info, **Town Square** (a stone plaza with a statue, trees, benches and lamps), the Pawn Shop and the Grocery (with an alley between them), the **Diner** (long, red, chrome, a neon sign) and its car park.
 - **The south**: the Spa, **Fairview Heights** (where you live), the Convenience Store, the **construction site** (a half-built multi-storey car park you can drive or climb up, a crane, scaffolding, site hoarding), the **abandoned car park** (broken, graffitied, a burnt-out car), **Albuquerque Boiled Turkey** (with a drive-thru window and menu board on the loop road round it), its car park, the hedge, and the beach's washrooms, reception and car park.
-- **The test track** (ramps, a slalom, a long straight) is now in the empty land to the north.
 
 ### Home: Fairview Heights
 You start in your apartment: a loft on the first floor of your building at **Fairview Heights**, on the south avenue. Real windows look out over the street. There's a living room (sofa, TV showing Channel 6, a rug, a lamp), a kitchen with a dining table, a bed, moving boxes still stacked by the stair, and a stair down to the lobby and out the front door. Your car's parked outside.
@@ -85,6 +86,7 @@ src/
   map.js        the map, as drawn: the coastline, every road, every place
   city.js       builds the island from the map: land, sea, beach, pier, roads, sidewalks, bridges, every place
   bake.js       merges everything that doesn't move into a few big meshes (fewer draw calls)
+  parked.js     the parked cars: drawn in bulk, turned into real cars when you get in
   buildings.js  building facades: windows, shopfronts, awnings, signs, balconies, cornices, rooftops
   apartment.js  your building at Fairview Heights: the lobby, the stair, your apartment, its things
   props.js      loose things: picking up, carrying, dropping, throwing

@@ -1,6 +1,6 @@
-// The island, as drawn in PHY2ICK_Map.svg. Everything here is in the drawing's own pixels
+// The island, as drawn in PHY2ICK_Map.svg (plus a street grid over the empty north). Everything here is in the drawing's own pixels
 // (960 × 720); city.js turns pixels into metres: X = (px − 430) × S, Z = (py − 440) × S.
-export const S = 1.3;
+export const S = 1.0; // (tight: a dense city, not an open one)
 export const toX = (px) => (px - 430) * S;
 export const toZ = (py) => (py - 440) * S;
 
@@ -45,6 +45,11 @@ export const ROADS = [
   [[56.8, 478.0], [136.6, 478.0]],
   [[55.0, 506.6], [107.1, 506.6]],
 ];
+
+// the north was empty on the map: a grid of streets goes over it (clipped to the land)
+export const NORTH_X = [130, 210, 290, 370, 450, 560.3, 640, 720, 800, 880];
+export const NORTH_Y = [280, 215, 150, 85, 30];
+export const NORTH_LINKS = [[130, 280, 396.3], [720, 280, 396.3]]; // (down to the north avenue)
 
 // buildings and places: [label, kind, x0, y0, x1, y1, extra]
 export const PLACES = [

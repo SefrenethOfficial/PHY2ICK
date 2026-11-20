@@ -4,6 +4,15 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
+// materials that look the same count as the same (lots of them are made separately)
+const keyOf = new WeakMap();
+function matKey(m) {
+  if (keyOf.has(m)) return keyOf.get(m);
+  const c = (x) => (x && x.isColor ? x.getHexString() : '');
+  const k = [m.type, c(m.color), c(m.emissive), m.emissiveIntensity, m.roughness, m.metalness, m.map?.uuid, m.bumpMap?.uuid, m.normalMap?.uuid, m.emissiveMap?.uuid, m.transparent, m.opacity, m.side, m.vertexColors, m.flatShading, m.polygonOffset, m.clearcoat, m.depthWrite].join(',');
+  keyOf.set(m, k); return k;
+}
+
 export function bakeStatic(root, skip = new Set()) {
   root.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
@@ -13,7 +22,7 @@ export function bakeStatic(root, skip = new Set()) {
     for (let p = o; p && p !== root.parent; p = p.parent) if (p.userData.dynamic || skip.has(p)) return;
     if (o.material.transparent && o.material.depthWrite === false) return; // (glass and decals: order matters; leave them)
     const g = o.geometry;
-    const sig = [o.material.uuid, o.castShadow, o.receiveShadow, !!g.index, Object.keys(g.attributes).filter(k => ['position', 'normal', 'uv', 'color'].includes(k)).sort().join(',')].join('|');
+    const sig = [matKey(o.material), o.castShadow, o.receiveShadow, !!g.index, Object.keys(g.attributes).filter(k => ['position', 'normal', 'uv', 'color'].includes(k)).sort().join(',')].join('|');
     if (!buckets.has(sig)) buckets.set(sig, []);
     buckets.get(sig).push(o);
   });

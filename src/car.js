@@ -193,7 +193,7 @@ export class Car {
     };
     dial(58, kmh, 240, 'km/h'); dial(198, rpm, 8000, 'x1000 rpm', true);
     c.fillStyle = '#e9eef3'; c.font = 'bold 20px sans-serif'; c.textAlign = 'center'; c.fillText(String(Math.round(kmh)), 128, 50);
-    c.fillStyle = '#7be08a'; c.font = 'bold 14px sans-serif'; c.fillText(this.speed < -0.5 ? 'R' : String(this.gear), 128, 72);
+    c.fillStyle = '#7be08a'; c.font = 'bold 14px sans-serif'; c.fillText((this.vc ? this.speed : 0) < -0.5 ? 'R' : String(this.gear ?? 1), 128, 72);
     this.gaugeT.needsUpdate = true;
   }
 

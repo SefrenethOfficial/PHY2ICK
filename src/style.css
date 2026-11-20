@@ -55,3 +55,6 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px; border: 1px soli
 #blackout span { opacity: .75; }
 
 #minimap { position: absolute; right: 20px; top: 92px; width: 200px; height: 200px; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+
+#splash .go .cp { display: none; } #splash.ready .go .cp { display: inline; } #splash.ready .go .ld { display: none; }
+#splash:not(.ready) { cursor: progress; }

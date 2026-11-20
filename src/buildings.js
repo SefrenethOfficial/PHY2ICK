@@ -78,12 +78,65 @@ function worldUV(geo, scale) {
   uv.needsUpdate = true;
 }
 
+// all the small shop signs share one big texture (one material, one draw call between them)
+class SignAtlas {
+  constructor(cols = 8, rows = 48) {
+    this.cw = 256; this.ch = 48; this.cols = cols; this.rows = rows; this.n = 0;
+    const c = this.canvas = document.createElement('canvas'); c.width = this.cw * cols; c.height = this.ch * rows;
+    this.ctx = c.getContext('2d');
+    this.tex = new THREE.CanvasTexture(c); this.tex.colorSpace = THREE.SRGBColorSpace; this.tex.anisotropy = 8;
+  }
+  add(text, bg, fg) {
+    const i = this.n++ % (this.cols * this.rows), cx = (i % this.cols) * this.cw, cy = Math.floor(i / this.cols) * this.ch, x = this.ctx;
+    x.fillStyle = bg; x.fillRect(cx, cy, this.cw, this.ch);
+    x.fillStyle = fg; x.font = 'bold 30px "Arial Narrow", Arial'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    const fw = x.measureText(text).width; if (fw > this.cw - 14) x.font = `bold ${Math.floor(30 * (this.cw - 14) / fw)}px "Arial Narrow", Arial`;
+    x.fillText(text, cx + this.cw / 2, cy + this.ch / 2 + 1);
+    const W = this.canvas.width, H = this.canvas.height;
+    return [cx / W, 1 - (cy + this.ch) / H, (cx + this.cw) / W, 1 - cy / H];
+  }
+}
+
+// cheap facades for the infill: the windows are painted on (one texture per look), no geometry
+function cheapWalls() {
+  const pal = [['#b9a48a', '#2c3b47'], ['#8f9aa1', '#26323c'], ['#c7b9a4', '#3a4652'], ['#a35a43', '#2d3a44'], ['#d7d2c8', '#2f4a5e'], ['#6f7478', '#1f2a33'], ['#c4a46a', '#33424d'], ['#9a4a3a', '#2a3440'], ['#d9cbb4', '#3a4a58'], ['#7a8a8a', '#253038']];
+  return pal.map(([wall, glass], k) => {
+    const draw = (c, w, h, bump) => {
+      c.fillStyle = bump ? '#888' : wall; c.fillRect(0, 0, w, h);
+      for (let i = 0; i < 1600; i++) { const v = Math.random() < 0.5 ? 0 : 255; c.fillStyle = `rgba(${v},${v},${v},${Math.random() * (bump ? 0.3 : 0.08)})`; c.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+      if (k % 3 === 0 && !bump) for (let r = 0; r < h; r += 8) { c.fillStyle = 'rgba(0,0,0,.06)'; c.fillRect(0, r, w, 1); } // (brick courses)
+      // two windows a bay, with frames and sills
+      for (const wx of [14, 70]) {
+        c.fillStyle = bump ? '#333' : '#e8e2d6'; c.fillRect(wx - 3, 30, 50, 66);
+        c.fillStyle = bump ? '#222' : glass; c.fillRect(wx, 33, 44, 60);
+        if (!bump) { c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(wx, 33, 44, 8); if (Math.random() < 0.3) { c.fillStyle = 'rgba(255,214,150,.35)'; c.fillRect(wx, 33, 44, 60); } }
+        c.fillStyle = bump ? '#eee' : '#d8d2c6'; c.fillRect(wx - 5, 93, 54, 6);
+      }
+      c.fillStyle = bump ? '#555' : 'rgba(0,0,0,.18)'; c.fillRect(0, h - 4, w, 4);
+    };
+    const mk = (bump) => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; draw(cv.getContext('2d'), 128, 128, bump); const t = new THREE.CanvasTexture(cv); if (!bump) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; };
+    return new THREE.MeshStandardMaterial({ map: mk(false), bumpMap: mk(true), bumpScale: 0.8, roughness: 0.88 });
+  });
+}
+// UVs for a painted facade: one texture across one bay (3.2 m) and one floor (3.3 m)
+function facadeUV(geo) {
+  const p = geo.attributes.position, n = geo.attributes.normal, uv = geo.attributes.uv;
+  for (let i = 0; i < p.count; i++) {
+    const nx = Math.abs(n.getX(i)), ny = Math.abs(n.getY(i));
+    if (ny > 0.5) uv.setXY(i, p.getX(i) / 10, p.getZ(i) / 10);
+    else uv.setXY(i, (nx > 0.5 ? p.getZ(i) : p.getX(i)) / 3.2, (p.getY(i) - 0.9) / 3.3);
+  }
+  uv.needsUpdate = true;
+}
+
 export class CityBuilder {
   constructor(g) {
     this.g = g;
     this.walls = wallMaterials();
     this.trim = []; this.glass = []; this.roof = [];
     this.signs = [];
+    this.atlas = new SignAtlas(); this.atlasQuads = [];
+    this.cheap = cheapWalls();
     this.rand = Math.random;
   }
 
@@ -222,7 +275,53 @@ export class CityBuilder {
     return H;
   }
 
+  // a quick building for filling in the city: painted windows, a cornice, a roof, maybe a shop
+  infill({ x, z, w, d, floors, face = null, shop = null }) {
+    const g = this.g, R = g.R, r = this.rand;
+    const H = 4.2 + (floors - 1) * 3.3;
+    const geo = new THREE.BoxGeometry(w, H, d); geo.translate(x, H / 2, z); facadeUV(geo);
+    const mat = this.cheap[Math.floor(r() * this.cheap.length)];
+    const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; g.scene.add(m);
+    g.world.createCollider(R.ColliderDesc.cuboid(w / 2, H / 2, d / 2).setTranslation(x, H / 2, z));
+    const T = this.trim, G = this.glass;
+    const tc = [0xd8d2c6, 0x8a8580, 0x5a5d60, 0xcfc8ba][Math.floor(r() * 4)];
+    this.box(T, w + 0.5, 0.45, d + 0.5, x, H + 0.05, z, tc);       // cornice
+    this.box(this.roof, w - 0.2, 0.05, d - 0.2, x, H + 0.3, z, 0x4a4b4d);
+    if (r() < 0.6) this.box(this.roof, 1.4, 0.9, 1.0, x + (r() - 0.5) * (w - 3), H + 0.75, z + (r() - 0.5) * (d - 3), 0xb8bcbf);
+    if (r() < 0.25 && floors > 3) { const tx = x + (r() - 0.5) * (w - 4), tz = z + (r() - 0.5) * (d - 4); this.cyl(this.roof, 1.1, 2, tx, H + 2.3, tz, 0x6b5440, 12); for (const [dx, dz] of [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]]) this.box(this.roof, 0.1, 1.6, 0.1, tx + dx, H + 1.1, tz + dz, 0x3a3027); }
+    if (face) {
+      const F = { '+z': { cx: x, cz: z + d / 2, nx: 0, nz: 1, ux: 1, uz: 0, len: w }, '-z': { cx: x, cz: z - d / 2, nx: 0, nz: -1, ux: -1, uz: 0, len: w }, '+x': { cx: x + w / 2, cz: z, nx: 1, nz: 0, ux: 0, uz: -1, len: d }, '-x': { cx: x - w / 2, cz: z, nx: -1, nz: 0, ux: 0, uz: 1, len: d } }[face];
+      if (shop) {
+        const sw = F.len - 1.4;
+        this.faceBox(G, F, 0, 1.6, 0.03, sw, 2.6, 0.04, 0x5a6a74);
+        this.faceBox(T, F, 0, 3.0, 0.06, sw + 0.2, 0.14, 0.12, 0x2b2b2b);
+        this.faceBox(T, F, -sw * 0.32, 1.15, 0.08, 1.0, 2.2, 0.06, 0x3a2a20);
+        const awnC = [0x7a2a24, 0x24506e, 0x2d5a3a, 0x6e5a24, 0x3a3a3a, 0x5a2a5a][Math.floor(r() * 6)];
+        this.faceBox(T, F, 0, 3.4, 0.7, sw, 0.07, 1.4, awnC, 0.32);
+        // the sign, from the atlas
+        const bgs = ['#1d2a38', '#2b1d1d', '#f1ebe0', '#1f3324', '#3a2f1d', '#2a2a30'], bg = bgs[Math.floor(r() * bgs.length)];
+        const uv = this.atlas.add(shop, bg, bg === '#f1ebe0' ? '#7a2a24' : '#f1dfa8');
+        const sw2 = Math.min(sw * 0.75, 7), sh = sw2 * 48 / 256;
+        const cx = F.cx + F.nx * 0.09, cz = F.cz + F.nz * 0.09, y = 3.85;
+        const ux = F.ux, uz = F.uz;
+        const pts = [[cx - ux * sw2 / 2, y - sh / 2, cz - uz * sw2 / 2], [cx + ux * sw2 / 2, y - sh / 2, cz + uz * sw2 / 2], [cx + ux * sw2 / 2, y + sh / 2, cz + uz * sw2 / 2], [cx - ux * sw2 / 2, y + sh / 2, cz - uz * sw2 / 2]];
+        this.atlasQuads.push({ pts, uv });
+      }
+    }
+    return H;
+  }
+
   finish() {
+    if (this.atlasQuads.length) { // every atlas sign in one mesh
+      const pos = [], uvs = [], nor = [];
+      for (const { pts, uv: [u0, v0, u1, v1] } of this.atlasQuads) {
+        const [a, b, c, d] = pts, nrm = new THREE.Vector3().crossVectors(new THREE.Vector3(...b).sub(new THREE.Vector3(...a)), new THREE.Vector3(...d).sub(new THREE.Vector3(...a))).normalize();
+        for (const [p, t] of [[a, [u0, v0]], [b, [u1, v0]], [c, [u1, v1]], [a, [u0, v0]], [c, [u1, v1]], [d, [u0, v1]]]) { pos.push(...p); uvs.push(...t); nor.push(nrm.x, nrm.y, nrm.z); }
+      }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+      this.atlas.tex.needsUpdate = true;
+      this.g.scene.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: this.atlas.tex, roughness: 0.6, emissive: 0xffffff, emissiveMap: this.atlas.tex, emissiveIntensity: 0.12 })));
+    }
     const g = this.g;
     const mk = (bucket, mat, shadow = true) => {
       if (!bucket.length) return;

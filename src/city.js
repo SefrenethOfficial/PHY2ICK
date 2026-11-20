@@ -1,7 +1,7 @@
 // The island: land, sea, beach, pier, roads, sidewalks, bridges, and every place on the map.
 import * as THREE from 'three';
 import polygonClipping from 'polygon-clipping';
-import { S, toX, toZ, LAND, LAND_BULGE, SAND, PIER, ROADS, PLACES } from './map.js';
+import { S, toX, toZ, LAND, LAND_BULGE, SAND, PIER, ROADS, PLACES, NORTH_X, NORTH_Y, NORTH_LINKS } from './map.js';
 import { canvasTex, noise, rng, texPair, drawAsphalt, drawPave } from './world.js';
 import { CityBuilder, worldUV } from './buildings.js';
 
@@ -104,7 +104,18 @@ export function buildCity(g) {
 
   // ================= roads, markings, crossings, sidewalks, paving, bridges =================
   const segs = ROADS.map(([a, b]) => ({ a: P(a), b: P(b) }));
-  segs.push({ a: P([560.3, 281.9]), b: P([560.3, 248]) }); // (a short road up to the test track in the north)
+  // the north grid: long lines, kept only where they're on land (a little in from the coast)
+  {
+    const onLand = (x, z) => inLand(x, z) && inLand(x + 9, z) && inLand(x - 9, z) && inLand(x, z + 9) && inLand(x, z - 9);
+    const addLine = (a, b) => { // split a line into the pieces that are on land
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]), ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L;
+      let st = null;
+      for (let t = 0; t <= L; t += 2) { const x = a[0] + ux * t, z = a[1] + uz * t, ok = onLand(x, z); if (ok && st === null) st = t; if ((!ok || t + 2 > L) && st !== null) { const e = ok ? t : t - 2; if (e - st > 25) segs.push({ a: [a[0] + ux * st, a[1] + uz * st], b: [a[0] + ux * e, a[1] + uz * e] }); st = null; } }
+    };
+    for (const py of NORTH_Y) addLine(P([0, py]), P([960, py]));
+    for (const px of NORTH_X) addLine(P([px, 0]), P([px, 280]));
+    for (const [px, y0, y1] of NORTH_LINKS) addLine(P([px, y0]), P([px, y1]));
+  }
   for (const s of segs) { s.L = Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]); s.u = [(s.b[0] - s.a[0]) / s.L, (s.b[1] - s.a[1]) / s.L]; s.n = [-s.u[1], s.u[0]]; s.axis = Math.abs(s.u[0]) > 0.99 ? 'x' : Math.abs(s.u[1]) > 0.99 ? 'z' : null; }
   const roadMP = polygonClipping.union(...segs.map(s => [rect(s.a, s.b, RW / 2, RW / 2)]));
   const walkMP = polygonClipping.intersection(polygonClipping.difference(polygonClipping.union(...segs.map(s => [rect(s.a, s.b, RW / 2 + SW, RW / 2 + SW)])), roadMP), landMP);
@@ -327,7 +338,7 @@ export function buildCity(g) {
         for (let i = 0; i < 5; i++) for (let j = 0; j < Math.floor((w - 3) / 0.8); j++) { const pl = new THREE.Mesh(new THREE.IcosahedronGeometry(0.25, 0), std(0x4a7a2c, 0.9, { flatShading: true })); pl.position.set(x0 + 1.5 + j * 0.8, 0.4, z0 + 1.5 + i * ((d - 3) / 4)); scene.add(pl); }
         const pick = std(0xe8e2d4, 0.8);
         for (const [a, b, c2, e] of [[x0, z0, x1, z0], [x0, z1, x1, z1], [x0, z0, x0, z1], [x1, z0, x1, z1]]) { const len = Math.hypot(c2 - a, e - b); const f = new THREE.Mesh(new THREE.BoxGeometry(a === c2 ? 0.06 : len, 0.8, a === c2 ? len : 0.06), pick); f.position.set((a + c2) / 2, 0.4, (b + e) / 2); add(f); col(a === c2 ? 0.03 : len / 2, 0.4, a === c2 ? len / 2 : 0.03, (a + c2) / 2, 0.4, (b + e) / 2); }
-        blockRect(x0, z0, x1, z1); placeAt('the vegetable plot', front(r, face)); break;
+        blockRect(x0 - 2, z0 - 2, x1 + 2, z1 + 2); placeAt('the vegetable plot', front(r, face)); break;
       }
       case 'hospital': {
         bld({ floors: 4, style: 'stucco', wallIndex: 5, entrance: face, entranceSign: 'HOSPITAL' });
@@ -352,10 +363,10 @@ export function buildCity(g) {
         wedge(cx - w * 0.3, cz, 6, 8, 1.8, Math.PI / 2); wedge(cx + w * 0.3, cz, 6, 8, 1.8, -Math.PI / 2);
         box(6, 0.8, 4, cx, 0.5, cz, conc); wedge(cx, cz - 4.5, 4, 4, 0.8, 0); wedge(cx, cz + 4.5, 4, 4, 0.8, Math.PI);
         box(0.08, 0.06, 7, cx + 8, 0.55, cz + 6, iron); for (const dz of [-3, 3]) box(0.06, 0.5, 0.06, cx + 8, 0.3, cz + 6 + dz, iron, { collide: false });
-        blockRect(x0 + 4, z0 + 4, x1 - 4, z1 - 4); placeAt('the Skatepark', V(cx, 0, z1 + 2)); break;
+        blockRect(x0, z0, x1, z1); placeAt('the Skatepark', V(cx, 0, z1 + 2)); break;
       }
       case 'park':
-        grass(x0, z0, x1, z1);
+        grass(x0, z0, x1, z1); blockRect(x0, z0, x1, z1);
         for (let i = 0; i < Math.max(1, Math.floor(w * d / 260)); i++) { const x = x0 + 3 + rand() * (w - 6), z = z0 + 3 + rand() * (d - 6); if (kind === 'park' && name === 'the park' && x > toX(284.1) - 2) continue; tree(x, z, 0.8 + rand() * 0.4); }
         if (w > 20) { bench(cx - w / 4, z1 - 2, Math.PI); bench(x0 + 6, cz, Math.PI / 2); }
         placeAt(name, V(cx, 0, cz)); break;
@@ -377,7 +388,7 @@ export function buildCity(g) {
         for (let i = 0; i <= 3; i++) for (let j = 0; j <= 3; j++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.4, 6), red); b.position.set(fx - 1.5 + i, 1.2, cz - 1.5 + j); add(b); }
         for (let k = 0; k < 3; k++) for (let i = 0; i <= 3; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 3, 6), yel); b.rotation.z = Math.PI / 2; b.position.set(fx, 0.8 + k * 0.8, cz - 1.5 + i); add(b); }
         world.createCollider(R.ColliderDesc.cuboid(1.55, 1.2, 1.55).setTranslation(fx, 1.2, cz));
-        placeAt('the Playground', V(cx, 0, cz)); break;
+        blockRect(x0, z0, x1, z1); placeAt('the Playground', V(cx, 0, cz)); break;
       }
       case 'fountain': {
         const rr = Math.min(w, d) / 2;
@@ -386,7 +397,7 @@ export function buildCity(g) {
         const wtr = new THREE.Mesh(new THREE.CircleGeometry(rr - 0.1, 40), std(0x3f7fa0, 0.12, { transparent: true, opacity: 0.85 })); wtr.rotation.x = -Math.PI / 2; wtr.position.set(cx, 0.45, cz); scene.add(wtr); g.fountainWater = wtr;
         const colm = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 2, 16), stone); colm.position.set(cx, 1, cz); add(colm);
         world.createCollider(R.ColliderDesc.cylinder(0.31, rr + 0.2).setTranslation(cx, 0.31, cz));
-        footprints.push(close([[cx - rr, cz - rr], [cx + rr, cz - rr], [cx + rr, cz + rr], [cx - rr, cz + rr]]));
+        footprints.push(close([[cx - rr - 3, cz - rr - 3], [cx + rr + 3, cz - rr - 3], [cx + rr + 3, cz + rr + 3], [cx - rr - 3, cz + rr + 3]]));
         placeAt('the fountain', V(cx, 0, cz + rr + 2)); break;
       }
       case 'nightclub': {
@@ -448,7 +459,7 @@ export function buildCity(g) {
         box(8.8, 0.3, 6.8, cx, 3.55, cz, std(0x2e6a5a, 0.6), { collide: false });
         const p = onFace([cx - 4, cz - 3, cx + 4, cz + 3], face, 0, 2.5, 0.05); signBoard('i  VISITOR INFO', p.x, p.y, p.z, faceYaw[face], 5, { bg: '#2e6a5a', fg: '#ffffff' });
         const mp = onFace([cx - 4, cz - 3, cx + 4, cz + 3], face, 0, 1.4, 3.5); const board = signBoard('HALYARD  ·  YOU ARE HERE', mp.x, mp.y, mp.z, faceYaw[face], 2.6, { bg: '#f2f0ea', fg: '#2e6a5a' });
-        blockRect(cx - 4, cz - 3, cx + 4, cz + 3); placeAt('Visitor Info', front(r, face)); break;
+        blockRect(x0, z0, x1, z1); placeAt('Visitor Info', front(r, face)); break;
       }
       case 'square': { // Town Square: a paved plaza with trees, benches, lamps and a statue
         const stoneT = texPair(256, (c, w2, h2, bump) => { c.fillStyle = bump ? '#888' : '#c9c2b4'; c.fillRect(0, 0, w2, h2); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const v = Math.random() * 20; c.fillStyle = bump ? `rgb(${180 + v},${180 + v},${180 + v})` : `rgb(${190 + v},${183 + v},${170 + v})`; c.fillRect(i * 64 + 2, j * 64 + 2, 60, 60); } }, [w / 4, d / 4]);
@@ -465,12 +476,12 @@ export function buildCity(g) {
         for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4, rr = Math.min(w, d) * 0.36; const tx = cx + Math.cos(a) * rr, tz = cz + Math.sin(a) * rr; box(3, 0.6, 3, tx, KERB + 0.3, tz, stone); tree(tx, tz, 1, KERB + 0.6); }
         for (const [bx, bz, ry] of [[cx - 8, cz, Math.PI / 2], [cx + 8, cz, -Math.PI / 2], [cx, cz - 8, 0], [cx, cz + 8, Math.PI], [cx - 18, cz - 12, Math.PI / 4], [cx + 18, cz + 12, -Math.PI * 0.75]]) bench(bx, bz, ry, KERB);
         for (const [lx, lz] of [[x0 + 2, z0 + 2], [x1 - 2, z0 + 2], [x0 + 2, z1 - 2], [x1 - 2, z1 - 2], [cx, z0 + 2], [cx, z1 - 2]]) lamp(lx, lz);
-        placeAt('Town Square', V(cx, 0, z1 + 1)); g.townSquare = V(cx, KERB, cz); g.squareRect = [x0, z0, x1, z1]; break;
+        blockRect(x0, z0, x1, z1); placeAt('Town Square', V(cx, 0, z1 + 1)); g.townSquare = V(cx, KERB, cz); g.squareRect = [x0, z0, x1, z1]; break;
       }
       case 'lot':
-        lotPaint(x0, z0, x1, z1, d > w ? 'z' : 'x'); placeAt(name === 'ABT Parking Lot' ? 'the ABT Parking Lot' : 'the parking lot', V(cx, 0, cz)); break;
+        lotPaint(x0, z0, x1, z1, d > w ? 'z' : 'x'); blockRect(x0, z0, x1, z1); placeAt(name === 'ABT Parking Lot' ? 'the ABT Parking Lot' : 'the parking lot', V(cx, 0, cz)); break;
       case 'diner': { // a long red diner with chrome, big windows, a neon sign; the rest of its lot is its car park
-        lotPaint(x0, z0, x1, z1, 'z');
+        lotPaint(x0, z0, x1, z1, 'z'); blockRect(x0, z0, x1, z1);
         const dw = Math.min(w - 4, 17), dl = Math.min(d * 0.45, 46), dz = z0 + d * 0.3;
         const red = std(0xc4161c, 0.4, { metalness: 0.2 }), chrome = std(0xd8dade, 0.12, { metalness: 1 });
         box(dw, 4.2, dl, cx, 2.1, dz, red);
@@ -491,8 +502,8 @@ export function buildCity(g) {
         blockRect(x0, z0, x1, z1);
         placeAt('Fairview Heights', V(g.homeAt.x, 0, z1 + 3)); break;
       }
-      case 'construction': construction(r); placeAt('the construction site', front(r, face)); break;
-      case 'abandoned': abandoned(r); placeAt('the abandoned car park', front(r, face)); break;
+      case 'construction': construction(r); blockRect(x0, z0, x1, z1); placeAt('the construction site', front(r, face)); break;
+      case 'abandoned': abandoned(r); blockRect(x0, z0, x1, z1); placeAt('the abandoned car park', front(r, face)); break;
       case 'turkey': {
         const fw = Math.min(w - 8, 24), fd = Math.min(d - 6, 14);
         city.building({ x: cx, z: cz, w: fw, d: fd, floors: 1, style: 'stucco', wallIndex: 7, shopFaces: [face], sign: 'ALBUQUERQUE BOILED TURKEY', signColors: ['#f2e2b0', '#9a2a1a'] });
@@ -503,7 +514,7 @@ export function buildCity(g) {
         signBoard('DRIVE THRU ▸', cx - fw / 2 - 0.03, 2.6, cz, -Math.PI / 2, 2.2, { bg: '#9a2a1a', fg: '#ffffff' });
         const mb = signBoard('TURKEY · TURKEY BURGER · GRAVY FRIES', cx - fw / 2 - 3, 1.6, cz + fd / 2 + 2, -Math.PI / 2, 2.4, { bg: '#1a1a1a', fg: '#f2c23a' });
         box(0.15, 1.2, 0.15, cx - fw / 2 - 3, 0.6, cz + fd / 2 + 2, iron);
-        blockRect(cx - fw / 2, cz - fd / 2, cx + fw / 2, cz + fd / 2);
+        blockRect(x0, z0, x1, z1);
         placeAt('Albuquerque Boiled Turkey', front([cx - fw / 2, cz - fd / 2, cx + fw / 2, cz + fd / 2], face)); break;
       }
       case 'hedge': {
@@ -519,7 +530,7 @@ export function buildCity(g) {
         const at = V(cx, WATER - 0.75, cz), ry = Math.atan2(-410.9, 435.6) + Math.PI; // (facing out across the inlet; mostly under water)
         const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.35, 12, 32), pipeM); ring.position.copy(at); ring.rotation.y = ry + Math.PI / 2; add(ring);
         const hole = new THREE.Mesh(new THREE.CircleGeometry(1.5, 32), darkM); hole.position.copy(at); hole.rotation.y = ry + Math.PI / 2; scene.add(hole);
-        g.sewerMouth = at.clone();
+        g.sewerMouth = at.clone(); blockRect(cx - 12, cz - 12, cx + 12, cz + 12);
         placeAt('the sewer entrance', at.clone().setY(0)); break;
       }
     }
@@ -560,6 +571,60 @@ export function buildCity(g) {
     { const x = toX(SAND.cx), z = toZ(SAND.cy + SAND.ry * 0.55); const tw = std(0xe8e2d4, 0.8); for (const [dx, dz] of [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]]) box(0.12, 2.6, 0.12, x + dx, 1.1, z + dz, tw, { collide: false }); box(2.2, 0.15, 2.2, x, 2.45, z, tw); box(2.4, 1.2, 0.08, x, 3.1, z - 1.1, std(0xd8344a, 0.7), { collide: false }); places.beach = { name: 'Palm Tree Beach', pos: V(x, 0, z - 4) }; }
   }
 
+  // ================= infill: pack every gap with buildings =================
+  {
+    const segDist = (x, z) => { let best = Infinity; for (const s of segs) { const dx = x - s.a[0], dz = z - s.a[1]; let t = dx * s.u[0] + dz * s.u[1]; t = Math.max(0, Math.min(s.L, t)); const px = s.a[0] + s.u[0] * t - x, pz = s.a[1] + s.u[1] * t - z; best = Math.min(best, Math.hypot(px, pz)); } return best; };
+    const need = RW / 2 + SW + 0.4, pierRing = (() => { const [b0, b1, t1, t0] = PIER.map(P); return close([b0, b1, t1, t0]); })();
+    // a rough grid of which points are free (2 m cells), so trying a rectangle is quick
+    const minX = -440, maxX = 560, minZ = -440, maxZ = 240, C = 2, NX = (maxX - minX) / C, NZ = (maxZ - minZ) / C;
+    const free = new Uint8Array(NX * NZ), near = new Float32Array(NX * NZ);
+    for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) {
+      const x = minX + (i + 0.5) * C, z = minZ + (j + 0.5) * C;
+      if (!inLand(x, z) || !inLand(x + 6, z) || !inLand(x - 6, z) || !inLand(x, z + 6) || !inLand(x, z - 6)) continue;
+      if (built(x, z) || inRing(x, z, pierRing)) continue;
+      const d = segDist(x, z); near[i * NZ + j] = d;
+      if (d < need) continue;
+      if (z > toZ(578) && x > toX(140) && x < toX(660)) continue; // (keep the beach front open)
+      free[i * NZ + j] = 1;
+    }
+    const cell = (x, z) => [Math.floor((x - minX) / C), Math.floor((z - minZ) / C)];
+    const fits = (x0, z0, x1, z1) => { const [i0, j0] = cell(x0, z0), [i1, j1] = cell(x1, z1); if (i0 < 0 || j0 < 0 || i1 >= NX || j1 >= NZ) return false; for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) if (!free[i * NZ + j]) return false; return true; };
+    const take = (x0, z0, x1, z1, gap) => { const [i0, j0] = cell(x0 - gap, z0 - gap), [i1, j1] = cell(x1 + gap, z1 + gap); for (let i = Math.max(0, i0); i <= Math.min(NX - 1, i1); i++) for (let j = Math.max(0, j0); j <= Math.min(NZ - 1, j1); j++) free[i * NZ + j] = 0; };
+    const centre = V(toX(430), 0, toZ(440));
+    const SHOPS2 = ['CORNER DELI', 'PHARMACY', 'LAUNDROMAT', 'BOOKS', 'NOODLE BAR', 'HARDWARE', 'BAKERY', 'BARBER', 'LIQUOR', 'PIZZA', 'TATTOO', 'GROCER', 'KEBABS', 'NAILS', 'PHONES', 'DRY CLEANING', 'BUTCHER', 'SUSHI', 'THRIFT', 'BANK', 'OPTICIAN', 'BETTING', 'PAWN', 'TACOS', 'FURNITURE', 'RECORDS', 'VAPE', 'DENTIST', 'GYM', 'BAR', 'DUMPLINGS', 'CAMERAS', 'TAILOR', 'FISH & CHIPS', 'HAIR', 'VIDEO', 'TOYS', 'GUNSMITH', 'BIKES', 'PETS'];
+    let count = 0;
+    const sizes = [[30, 24], [26, 20], [22, 22], [20, 16], [16, 18], [14, 14], [12, 12], [10, 10]];
+    for (let pass = 0; pass < sizes.length; pass++) {
+      const [bw, bd] = sizes[pass];
+      for (let i = 0; i < NX; i += 2) for (let j = 0; j < NZ; j += 2) {
+        if (!free[i * NZ + j]) continue;
+        const x0 = minX + i * C, z0 = minZ + j * C;
+        for (const [w, d] of [[bw, bd], [bd, bw]]) {
+          let a0 = x0, b0 = z0;
+          if (!fits(a0, b0, a0 + w, b0 + d)) continue;
+          // slide toward the nearest road, so the buildings line the street
+          const cx0 = a0 + w / 2, cz0 = b0 + d / 2;
+          let best = null; for (const s of segs) { if (!s.axis) continue; const dist = s.axis === 'x' ? Math.abs(s.a[1] - cz0) : Math.abs(s.a[0] - cx0); const lo = Math.min(s.axis === 'x' ? s.a[0] : s.a[1], s.axis === 'x' ? s.b[0] : s.b[1]), hi = Math.max(s.axis === 'x' ? s.a[0] : s.a[1], s.axis === 'x' ? s.b[0] : s.b[1]), along = s.axis === 'x' ? cx0 : cz0; if (along < lo || along > hi) continue; if (!best || dist < best.dist) best = { s, dist }; }
+          let face = null;
+          if (best && best.dist < 40) {
+            const s = best.s, dx = s.axis === 'z' ? Math.sign(s.a[0] - cx0) : 0, dz = s.axis === 'x' ? Math.sign(s.a[1] - cz0) : 0;
+            for (let k = 0; k < 20 && fits(a0 + dx * 2, b0 + dz * 2, a0 + w + dx * 2, b0 + d + dz * 2); k++) { a0 += dx * 2; b0 += dz * 2; }
+            face = dx > 0 ? '+x' : dx < 0 ? '-x' : dz > 0 ? '+z' : '-z';
+            if (best.dist - (dx ? w : d) / 2 > 14) face = null;
+          }
+          const cx = a0 + w / 2, cz = b0 + d / 2, dc = Math.hypot(cx - centre.x, cz - centre.z);
+          const floors = Math.max(2, Math.round((dc < 150 ? 5 : dc < 260 ? 4 : 3) + (rand() - 0.4) * 4));
+          city.infill({ x: cx, z: cz, w: w - 0.6, d: d - 0.6, floors, face, shop: face && rand() < 0.75 ? SHOPS2[Math.floor(rand() * SHOPS2.length)] : null });
+          take(a0, b0, a0 + w, b0 + d, 2.2); // (an alley's width to the next one)
+          footprints.push(close([[a0, b0], [a0 + w, b0], [a0 + w, b0 + d], [a0, b0 + d]]));
+          count++;
+          break;
+        }
+      }
+    }
+    g.infillCount = count;
+  }
+
   // ================= street lamps and the odd street tree =================
   for (const s of segs) {
     if (s.L < 25) continue;
@@ -573,22 +638,17 @@ export function buildCity(g) {
     }
   }
 
-  // ================= the test track, in the empty north =================
-  {
-    const cx = toX(600), cz = toZ(212), PWd = 120, PD = 90;
-    const padT = canvasTex(256, 256, (c, w, h) => { noise(c, w, h, '#45474a', 0.16, 12000, 2); c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 2; c.strokeRect(0, 0, w, h); }, [PWd / 10, PD / 10]);
-    const pad = new THREE.Mesh(new THREE.PlaneGeometry(PWd, PD), std(0xffffff, 0.9, { map: padT })); pad.rotation.x = -Math.PI / 2; pad.position.set(cx, 0.021, cz); pad.receiveShadow = true; scene.add(pad);
-    const coneM = std(0xff6a1a, 0.6), coneG = new THREE.ConeGeometry(0.22, 0.6, 12); coneG.translate(0, 0.3, 0);
-    g.cones = [];
-    for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(coneG, coneM); m.castShadow = true; scene.add(m); const body = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(cx - 40 + i * 9, 0.3, cz - 25).setLinearDamping(0.3).setAngularDamping(0.5)); world.createCollider(R.ColliderDesc.cone(0.3, 0.22).setDensity(40).setFriction(0.8), body); g.cones.push({ m, body }); }
-    const ramp = (x, z, len, wid, hgt, ry) => {
-      const hw = wid / 2, pts = [[-hw, 0, -len / 2], [hw, 0, -len / 2], [-hw, 0, len / 2], [hw, 0, len / 2], [-hw, hgt, len / 2], [hw, hgt, len / 2]];
-      const v = new Float32Array(pts.flat()), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(v, 3)); geo.setIndex([0, 2, 1, 1, 2, 3, 0, 4, 2, 0, 1, 5, 0, 5, 4, 1, 3, 5, 2, 4, 5, 2, 5, 3]);
-      const m = new THREE.Mesh(geo.toNonIndexed(), std(0xbfb6a6, 0.8, { side: THREE.DoubleSide })); m.geometry.computeVertexNormals(); m.position.set(x, 0, z); m.rotation.y = ry; add(m);
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0)); world.createCollider(R.ColliderDesc.convexHull(v).setTranslation(x, 0, z).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }));
-    };
-    ramp(cx + 20, cz + 15, 14, 6, 2.4, Math.PI / 2); ramp(cx - 10, cz + 15, 9, 5, 1.2, -Math.PI / 2);
-    places.track = { name: 'the test track', pos: V(cx, 0, cz + PD / 2) };
+  // ================= cars parked along the kerbs =================
+  const kerbside = [];
+  for (const s of segs) {
+    if (!s.axis || s.L < 30) continue;
+    for (const sd of [-1, 1]) for (let t = 14, last = -99; t < s.L - 14; t += 6.5) {
+      if (rand() > 0.32 || t - last < 9 || s.cross.some(c => Math.abs(c - t) < RW / 2 + 9)) continue; // (room to pull out)
+      last = t;
+      const off = RW / 2 - 1.25, x = s.a[0] + s.u[0] * t + s.n[0] * sd * off, z = s.a[1] + s.u[1] * t + s.n[1] * sd * off;
+      if (!inLand(x, z) || !inLand(x + s.n[0] * sd * 3, z + s.n[1] * sd * 3)) continue;
+      kerbside.push([x, z, Math.atan2(s.u[0] * -sd, s.u[1] * -sd)]);
+    }
   }
 
   // ================= what everyone else needs =================
@@ -605,7 +665,7 @@ export function buildCity(g) {
     }
     return near ? near.clone() : V(toX(430), KERB, toZ(472));
   };
-  return { places, segs, inLand, inRoad, built, sidewalkPoint, parked, landMP, footprints };
+  return { places, segs, inLand, inRoad, built, sidewalkPoint, parked, kerbside, landMP, footprints };
 
   // ---------- the two car parks
   function deckLevels(r, levels, { broken = false } = {}) {
