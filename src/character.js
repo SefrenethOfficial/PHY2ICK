@@ -1,62 +1,18 @@
-// People: stylised but believable humans (no noses or ears), built on a bone-like rig so the
-// pose can be animated procedurally now and swapped for skinned models later.
+// People, in the style of the first game: built from blocks (a pelvis, a belly, a chest, upper
+// arms, forearms, hands, thighs, shins, shoes, round joints between them) on a round head with
+// just eyes and eyebrows: no nose, no ears, no mouth. The eyes and brows have their own little
+// bones, so faces change: happy, angry, sad, surprised, scared, blinking. Proper hairstyles.
+// The whole person is one skinned mesh (one draw call), posed by the same skeleton as before,
+// so the walk, the run, the gestures and the ragdolls all carry over.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
-const std = (color, rough = 0.8, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, ...extra });
 const bone = (parent, x, y, z) => { const o = new THREE.Bone(); o.position.set(x, y, z); parent.add(o); return o; };
-const lerp = (a, b, t) => a + (b - a) * t;
-const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-
-// One smooth body, skinned to the bones: tubes of horizontal rings (every limb hangs straight down
-// in the bind pose), each ring with a colour and up to two bone weights, so knees, elbows, the waist
-// and the shoulders bend like skin instead of showing seams.
-class BodyBuilder {
-  constructor(seg = 14) { this.seg = seg; this.pos = []; this.col = []; this.si = []; this.sw = []; this.idx = []; }
-  vert(x, y, z, c, w) {
-    this.pos.push(x, y, z); this.col.push(c.r, c.g, c.b);
-    const ws = [...w, [0, 0], [0, 0], [0, 0]].slice(0, 4);
-    this.si.push(...ws.map(q => q[0])); this.sw.push(...ws.map(q => q[1]));
-    return this.pos.length / 3 - 1;
-  }
-  // rings: [{ y, rx, rz, c (THREE.Color), w: [[bone, weight], …], x?, z? }], top to bottom
-  tube(cx, cz, rings, capTop = true, capBottom = true) {
-    const n = this.seg, starts = [];
-    for (const r of rings) {
-      starts.push(this.pos.length / 3);
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        this.vert(cx + (r.x || 0) + Math.sin(a) * r.rx, r.y, cz + (r.z || 0) + Math.cos(a) * r.rz, r.c, r.w);
-      }
-    }
-    for (let k = 0; k < rings.length - 1; k++) {
-      const a0 = starts[k], b0 = starts[k + 1];
-      for (let i = 0; i < n; i++) {
-        const i1 = (i + 1) % n;
-        this.idx.push(a0 + i, b0 + i, a0 + i1, a0 + i1, b0 + i, b0 + i1);
-      }
-    }
-    const cap = (k, up) => {
-      const r = rings[k], c = this.vert(cx + (r.x || 0), r.y + (up ? 0.012 : -0.012), cz + (r.z || 0), r.c, r.w), a0 = starts[k];
-      for (let i = 0; i < n; i++) { const i1 = (i + 1) % n; up ? this.idx.push(c, a0 + i, a0 + i1) : this.idx.push(c, a0 + i1, a0 + i); }
-    };
-    if (capTop) cap(0, true);
-    if (capBottom) cap(rings.length - 1, false);
-  }
-  geometry() {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
-    g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(this.si, 4));
-    g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(this.sw, 4));
-    g.setIndex(this.idx); g.computeVertexNormals();
-    return g;
-  }
-}
 
 export const SKIN = [0xf1c9a5, 0xe0ac86, 0xc68c62, 0x9c6a45, 0x6e4a32, 0x4a3122];
-export const HAIR = [0x1c1612, 0x3b2a1e, 0x6b4a2b, 0xa7793f, 0xd8b56a, 0x8c8c8c, 0x7a2d1c];
-export const CLOTH = [0x2f4f7f, 0x8a2d2d, 0x3f6b3f, 0xd8d2c4, 0x23262b, 0x6f5a8a, 0xc98a2e, 0x4c7d8c, 0x9a9a9a, 0xb04a6a];
+export const HAIR = [0x1c1612, 0x2a1d14, 0x3b2a1e, 0x6b4a2b, 0xa7793f, 0xd8b56a, 0x8c8c8c, 0x7a2d1c];
+export const CLOTH = [0xd9483b, 0x2f7fd8, 0x3aa760, 0xe0a52b, 0x8a54c9, 0x1f9aa3, 0xe06a9b, 0x6b7380, 0x2f4f7f, 0x8a2d2d, 0xd8d2c4, 0x23262b, 0xf2f0ea];
 const pick = (a, r = Math.random) => a[Math.floor(r() * a.length)];
 
 export function randomLook(r = Math.random) {
@@ -64,34 +20,39 @@ export function randomLook(r = Math.random) {
   return {
     female,
     skin: pick(SKIN, r), hair: pick(HAIR, r),
-    hairStyle: female ? pick(['long', 'bob', 'bun', 'short'], r) : pick(['short', 'short', 'buzz', 'bald', 'swept'], r),
-    shirt: pick(CLOTH, r), pants: pick([0x22303f, 0x2b2b2b, 0x4a3c2c, 0x5a6470, 0x1d2a44, 0x6b5b45], r),
+    hairStyle: female ? pick(['long', 'long', 'bob', 'bun', 'ponytail', 'curly', 'short'], r) : pick(['short', 'short', 'swept', 'buzz', 'bald', 'curly', 'afro', 'side'], r),
+    shirt: pick(CLOTH, r), pants: pick([0x2c3440, 0x4a3b2a, 0x34495e, 0x5b5b5b, 0x2d4a2d, 0x1d2a44, 0x6b5b45], r),
     shoes: pick([0x151515, 0x3a2a1c, 0xe8e8e8, 0x5a1d1d], r),
     longSleeves: r() < 0.4,
-    height: (female ? 1.62 : 1.74) + (r() - 0.5) * 0.14,
+    height: (female ? 1.64 : 1.76) + (r() - 0.5) * 0.14,
     build: 0.9 + r() * 0.25,
   };
 }
+
+// faces: [brow lift, brow tilt (+ = inner ends down), eye height, eye width]
+const FACES = {
+  neutral: [0, 0, 1, 1], happy: [0.005, -0.12, 0.5, 1.05], angry: [-0.008, 0.42, 0.72, 1], annoyed: [-0.004, 0.22, 0.85, 1],
+  sad: [0.003, -0.38, 0.85, 1], surprised: [0.017, 0, 1.35, 1.15], scared: [0.013, -0.3, 1.3, 1.1], hurt: [-0.002, -0.3, 0.4, 1], ko: [-0.003, 0, 0.1, 1.05],
+};
 
 export class Human {
   constructor(look = randomLook()) {
     this.look = look;
     const L = look, f = L.female;
-    const skinM = std(L.skin, 0.65), shoes = std(L.shoes, 0.6), hair = std(L.hair, 0.9);
     const root = this.root = new THREE.Group();
     const rig = this.rig = new THREE.Group(); // (scaled to the person's height, after binding)
     root.add(rig);
     const B = this.b = {};
-    const w = L.build, lw = Math.sqrt(w); // (build: the torso widens fully, the limbs a little)
+    const w = L.build, lw = Math.sqrt(w);
 
-    // the skeleton (bind pose: standing straight, arms down)
+    // the skeleton (bind pose: standing straight, arms down), the same as before
     const holder = new THREE.Object3D();
     B.hips = bone(holder, 0, 0.95, 0);
     B.spine = bone(B.hips, 0, 0.06, 0);
     B.chest = bone(B.spine, 0, 0.25, 0);
     B.neck = bone(B.chest, 0, 0.23, 0);
     B.head = bone(B.neck, 0, 0.065, 0);
-    const shX = (f ? 0.168 : 0.19) * w, hipX = (f ? 0.095 : 0.09) * w;
+    const shX = (f ? 0.17 : 0.195) * w, hipX = (f ? 0.095 : 0.09) * w;
     for (const s of [-1, 1]) {
       const k = s < 0 ? 'R' : 'L'; // (the person faces +Z: their left is +X)
       B['shoulder' + k] = bone(B.chest, s * shX, 0.17, 0);
@@ -102,98 +63,82 @@ export class Human {
       B['ankle' + k] = bone(B['knee' + k], 0, -0.43, 0);
     }
     this.bindPos = Object.fromEntries(Object.entries(B).map(([k, b]) => [k, b.position.clone()]));
-    const order = ['hips', 'spine', 'chest', 'neck', 'head', 'shoulderL', 'elbowL', 'wristL', 'shoulderR', 'elbowR', 'wristR', 'hipL', 'kneeL', 'ankleL', 'hipR', 'kneeR', 'ankleR'];
+    // the face's own bones (on the head, at each eye and brow): not part of the ragdoll
+    const HY = 1.555, HR = 0.118, HC = 0.1; // head bone height; head radius; head centre above the bone
+    const F = this.face = {};
+    for (const s of [-1, 1]) {
+      const k = s < 0 ? 'R' : 'L';
+      F['eye' + k] = bone(B.head, s * 0.043, HC + 0.008, 0.104);
+      F['brow' + k] = bone(B.head, s * 0.044, HC + 0.043, 0.1);
+    }
+    this.faceBind = Object.fromEntries(Object.entries(F).map(([k, b]) => [k, b.position.clone()]));
+    const order = ['hips', 'spine', 'chest', 'neck', 'head', 'shoulderL', 'elbowL', 'wristL', 'shoulderR', 'elbowR', 'wristR', 'hipL', 'kneeL', 'ankleL', 'hipR', 'kneeR', 'ankleR', 'eyeL', 'eyeR', 'browL', 'browR'];
     const I = Object.fromEntries(order.map((n, i) => [n, i]));
-    const C = (hex) => new THREE.Color(hex);
-    const cSkin = C(L.skin), cShirt = C(L.shirt), cPants = C(L.pants);
-    const bl = (a, b, t) => (t <= 0 ? [[I[a], 1]] : t >= 1 ? [[I[b], 1]] : [[I[a], 1 - t], [I[b], t]]);
-    const body = new BodyBuilder(16);
+    this.order = order;
 
-    // torso: pelvis → waist → chest → shoulders → neck (one piece)
-    const tors = f
-      ? [[1.62, .05, .05], [1.55, .054, .053], [1.5, .066, .06], [1.47, .11, .075], [1.43, .16, .092], [1.36, .165, .1], [1.28, .158, .118], [1.2, .142, .1], [1.1, .125, .088], [1.02, .14, .095], [1.0, .14, .095], [0.95, .168, .108], [0.9, .163, .104], [0.87, .13, .088]]
-      : [[1.62, .056, .055], [1.55, .06, .058], [1.5, .074, .066], [1.47, .125, .08], [1.43, .182, .098], [1.36, .185, .108], [1.28, .175, .112], [1.2, .158, .104], [1.1, .148, .098], [1.02, .15, .098], [1.0, .15, .098], [0.95, .158, .104], [0.9, .154, .1], [0.87, .12, .082]];
-    const shirtTop = 1.495, belt = 1.01;
-    const tRings = [];
-    for (const [y, rx, rz] of tors) {
-      const wt = y >= 1.5 ? bl('chest', 'neck', smooth(1.49, 1.54, y)) : y >= 1.2 ? bl('spine', 'chest', smooth(1.2, 1.32, y)) : bl('hips', 'spine', smooth(0.97, 1.08, y));
-      const c = y > shirtTop ? cSkin : y >= belt ? cShirt : cPants;
-      const ring = { y, rx: rx * (y < 1.5 ? w : 1), rz: rz * (y < 1.5 ? Math.sqrt(w) : 1), c, w: wt, z: y > 1.46 ? -0.008 : 0 };
-      tRings.push(ring);
-      if (y === 1.5) tRings.push({ ...ring, y: 1.497, c: cShirt, rx: ring.rx + 0.004, rz: ring.rz + 0.004 }); // (the collar: a crisp line)
-      if (y === 1.02) tRings.push({ ...ring, y: 1.012, c: cShirt }); // (a crisp belt line: shirt down to here, trousers below)
-    }
-    body.tube(0, 0, tRings, true, true);
+    // the parts: geometry in bind-pose space, a colour, and the one bone it rides on
+    const geos = [];
+    const add = (bn, geo, color, x, y, z, { rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1 } = {}) => {
+      let g = geo.index ? geo.toNonIndexed() : geo;
+      if (rx || ry || rz) g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, rz))); g.scale(sx, sy, sz); // (turn, then squash: a hair cap stays the head's shape)
+      g.translate(x, y, z);
+      for (const k of Object.keys(g.attributes)) if (!['position', 'normal'].includes(k)) g.deleteAttribute(k);
+      const n = g.attributes.position.count, c = new THREE.Color(color), col = new Float32Array(n * 3), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+      for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; si[i * 4] = I[bn]; sw[i * 4] = 1; }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+      geos.push(g);
+    };
+    const box = (W, H, D, r = 0.02) => new RoundedBoxGeometry(W, H, D, 1, Math.min(r, W / 2.2, H / 2.2, D / 2.2));
+    const ball = (r, ws = 10, hs = 8) => new THREE.SphereGeometry(r, ws, hs);
+    const sk = L.skin, sh = L.shirt, pa = L.pants;
 
-    // legs: hip → knee → ankle, one tube each, bending at the knee
-    const legP = [[1.0, .088], [0.92, .09], [0.8, .082], [0.68, .07], [0.58, .06], [0.52, .055], [0.47, .056], [0.4, .061], [0.32, .057], [0.22, .046], [0.13, .039], [0.07, .038]];
+    // torso: pelvis, belly, chest (a little V for men, a waist and hips for women)
+    add('hips', box((f ? 0.33 : 0.31) * w, 0.17, 0.2 * lw, 0.035), pa, 0, 0.955, 0);
+    add('spine', box((f ? 0.265 : 0.3) * w, 0.25, 0.19 * lw, 0.04), sh, 0, 1.15, 0.002);
+    add('chest', box((f ? 0.32 : 0.385) * w, 0.24, 0.21 * lw, 0.045), sh, 0, 1.37, 0.004);
+    add('hips', box((f ? 0.335 : 0.315) * w, 0.03, 0.205 * lw, 0.01), 0x1d1a18, 0, 1.03, 0); // (a belt)
+    // neck and head
+    add('neck', new THREE.CylinderGeometry(0.046, 0.05, 0.11, 10), sk, 0, 1.51, 0.004);
+    add('head', ball(HR, 22, 16), sk, 0, HY + HC, 0, { sx: 0.96, sy: 1.08, sz: 1 });
+    // arms: a round shoulder, upper arm, a round elbow, forearm, hand with a thumb
     for (const s of [-1, 1]) {
-      const k = s < 0 ? 'R' : 'L';
-      const rings = legP.map(([y, r]) => {
-        const wt = y > 0.86 ? bl('hips', 'hip' + k, smooth(1.0, 0.86, y) ) : y > 0.48 ? bl('hip' + k, 'knee' + k, smooth(0.58, 0.47, y)) : bl('knee' + k, 'ankle' + k, smooth(0.12, 0.06, y));
-        const xin = y > 0.85 ? -s * 0.012 * (y - 0.85) / 0.15 : 0; // (thighs meet the pelvis)
-        return { y, rx: r * lw * (f && y > 0.7 ? 1.06 : 1), rz: r * lw * 0.97, c: cPants, w: wt, x: s * hipX + xin };
-      });
-      body.tube(0, 0, rings, true, true);
+      const k = s < 0 ? 'R' : 'L', x = s * shX;
+      add('shoulder' + k, ball(0.066 * lw), sh, x, 1.43, 0);
+      add('shoulder' + k, box(0.104 * lw, 0.28, 0.112 * lw, 0.03), L.longSleeves ? sh : sk, x, 1.285, 0);
+      if (!L.longSleeves) add('shoulder' + k, box(0.12 * lw, 0.14, 0.128 * lw, 0.03), sh, x, 1.37, 0);
+      add('elbow' + k, ball(0.05 * lw), L.longSleeves ? sh : sk, x, 1.14, 0);
+      add('elbow' + k, box(0.088 * lw, 0.25, 0.096 * lw, 0.028), L.longSleeves ? sh : sk, x, 1.015, 0);
+      if (L.longSleeves) add('elbow' + k, box(0.096 * lw, 0.035, 0.104 * lw, 0.012), sh, x, 0.9, 0); // (the cuff)
+      add('wrist' + k, box(0.036, 0.1, 0.085, 0.016), sk, x, 0.82, 0.004);
+      add('wrist' + k, box(0.026, 0.055, 0.026, 0.011), sk, x - s * 0.006, 0.845, 0.05, { rx: 0.35 });
     }
-    // arms: shoulder → elbow → wrist, bending at the elbow
-    const armP = [[1.475, .045], [1.45, .057], [1.4, .058], [1.32, .052], [1.24, .046], [1.17, .042], [1.13, .041], [1.08, .043], [1.0, .039], [0.93, .033], [0.885, .029]];
-    const sleeveEnd = L.longSleeves ? 0.9 : 1.27;
+    // legs: thigh, a round knee, shin, a shoe on a sole
     for (const s of [-1, 1]) {
-      const k = s < 0 ? 'R' : 'L';
-      const rings = [];
-      for (const [y, r] of armP) {
-        const wt = y > 1.4 ? bl('chest', 'shoulder' + k, smooth(1.475, 1.41, y)) : y > 1.1 ? bl('shoulder' + k, 'elbow' + k, smooth(1.18, 1.11, y)) : bl('elbow' + k, 'wrist' + k, smooth(0.9, 0.87, y));
-        const ring = { y, rx: r * lw * 0.95, rz: r * lw, c: y > sleeveEnd ? cShirt : cSkin, w: wt, x: s * shX - s * (y > 1.43 ? (y - 1.43) * 0.6 : 0) };
-        rings.push(ring);
-        if (!L.longSleeves && y === 1.32) rings.push({ ...ring, y: 1.27, rx: ring.rx * 0.96 + 0.003, rz: ring.rz * 0.96 + 0.003, c: cShirt }, { ...ring, y: 1.268, rx: ring.rx * 0.93, rz: ring.rz * 0.93, c: cSkin });
-      }
-      body.tube(0, 0, rings, true, true);
+      const k = s < 0 ? 'R' : 'L', x = s * hipX;
+      add('hip' + k, box(0.155 * lw * (f ? 1.04 : 1), 0.43, 0.165 * lw, 0.04), pa, x, 0.71, 0);
+      add('knee' + k, ball(0.07 * lw), pa, x, 0.49, 0);
+      add('knee' + k, box(0.125 * lw, 0.41, 0.135 * lw, 0.035), pa, x, 0.28, 0);
+      add('ankle' + k, box(0.11, 0.085, 0.25, 0.03), L.shoes, x, 0.052, 0.045);
+      add('ankle' + k, box(0.116, 0.024, 0.262, 0.01), L.shoes === 0xe8e8e8 ? 0xd8d4cc : 0x26221f, x, 0.012, 0.045);
     }
-    const bodyM = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
-    const skinned = this.body = new THREE.SkinnedMesh(body.geometry(), bodyM);
+    // the face: eyes (a dark dot with a glint) and eyebrows, on their own bones
+    for (const s of [-1, 1]) {
+      const k = s < 0 ? 'R' : 'L', e = F['eye' + k].position, b = F['brow' + k].position;
+      add('eye' + k, ball(0.022, 12, 10), 0x141414, e.x, HY + e.y, e.z, { sx: 0.85, sy: 1.12, sz: 0.4 });
+      add('eye' + k, ball(0.0062, 6, 5), 0xffffff, e.x + 0.006, HY + e.y + 0.009, e.z + 0.008);
+      add('brow' + k, box(0.052, 0.014, 0.016, 0.006), new THREE.Color(L.hair).multiplyScalar(0.55), b.x, HY + b.y, b.z, { rz: s * -0.06, ry: s * 0.25 });
+    }
+    // hair
+    this.buildHair(L.hairStyle, L.hair, add, HY + HC, HR);
+
+    const geo = mergeGeometries(geos, false);
+    const mat = this.bodyM = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78 });
+    const skinned = this.body = new THREE.SkinnedMesh(geo, mat);
     skinned.castShadow = true; skinned.receiveShadow = true; skinned.frustumCulled = false;
     skinned.add(B.hips);
     skinned.updateMatrixWorld(true);
-    skinned.bind(new THREE.Skeleton(order.map(n => B[n])));
+    skinned.bind(new THREE.Skeleton(order.map(n => B[n] || F[n])));
     rig.add(skinned);
-    this.order = order; this.bodyM = bodyM;
-
-    // head (rigid, on the head bone)
-    const skin = skinM;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 24, 18), skin);
-    head.scale.set(0.95, 1.16, 1.04); head.position.y = 0.1; head.castShadow = true; B.head.add(head);
-    this.headMeshes = [head];
-    // the face: eyes and brows only (no nose, no ears)
-    const white = std(0xf4f1ea, 0.3), iris = std(0x2a1d14, 0.25);
-    for (const s of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.0155, 12, 10), white); eye.scale.set(1.15, 0.72, 0.3); eye.position.set(s * 0.036, 0.113, 0.0985); B.head.add(eye);
-      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.0082, 10, 8), iris); pupil.position.set(s * 0.036, 0.113, 0.1015); pupil.scale.z = 0.35; B.head.add(pupil);
-      const brow = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.0075, 0.012), hair); brow.position.set(s * 0.037, 0.137, 0.098); brow.rotation.z = s * -0.08; B.head.add(brow);
-      this.headMeshes.push(eye, pupil, brow);
-    }
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.005, 0.006), std(0x6a3a32, 0.6)); mouth.position.set(0, 0.053, 0.1045); B.head.add(mouth); this.mouth = mouth; this.headMeshes.push(mouth);
-    this.addHair(L.hairStyle, hair);
-
-    // hands: a palm with fingers together, and a thumb
-    for (const s of [-1, 1]) {
-      const wr = B['wrist' + (s < 0 ? 'R' : 'L')];
-      const palm = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.06, 4, 10), skin);
-      palm.scale.set(1.25, 1, 0.62); palm.position.set(0, -0.06, 0.004); palm.castShadow = true; wr.add(palm);
-      const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.011, 0.035, 3, 8), skin);
-      thumb.position.set(-s * 0.012, -0.045, 0.026); thumb.rotation.set(0.5, 0, -s * 0.35); wr.add(thumb);
-    }
-    // shoes: a rounded upper on a sole
-    const sole = std(0x2a2522, 0.9);
-    for (const s of [-1, 1]) {
-      const an = B['ankle' + (s < 0 ? 'R' : 'L')];
-      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.15, 4, 12), shoes);
-      upper.rotation.x = Math.PI / 2; upper.scale.set(1.08, 1, 0.82); upper.position.set(0, -0.022, 0.05); upper.castShadow = true; an.add(upper);
-      const so = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.022, 0.27), sole); so.position.set(0, -0.058, 0.05); an.add(so);
-    }
-    // fuse the head (and hair, eyes, brows) and the hands and shoes into two more skinned meshes,
-    // so a person is three draw calls, not twenty (the mouth stays separate: it moves when they talk)
-    this.fuse();
     rig.scale.setScalar(L.height / 1.75);
 
     // the animation state
@@ -202,56 +147,40 @@ export class Human {
     this.cur = {}; // smoothed joint rotations
     this.talkT = 0;
     this.lookYaw = 0;
+    // the face's state
+    this.expr = 'neutral'; this.exprT = 0; this.base = 'neutral';
+    this.fcur = [...FACES.neutral]; this.blinkT = 1 + Math.random() * 4;
   }
 
-  addHair(style, mat) {
-    const B = this.b;
-    const cap = (thetaLen, s = 1.08) => {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(0.105 * s, 20, 14, 0, Math.PI * 2, 0, thetaLen), mat);
-      m.scale.set(0.95, 1.16, 1.04); m.position.set(0, 0.1, -0.006); m.rotation.x = -0.5; m.castShadow = true; B.head.add(m); this.headMeshes.push(m); return m;
-    };
+  // hairstyles, from a few simple shapes, all on the head bone (cy: the head's centre; r: its radius)
+  buildHair(style, col, add, cy, r) {
     if (style === 'bald') return;
-    if (style === 'buzz') { cap(Math.PI * 0.5, 1.03); return; }
-    cap(Math.PI * (style === 'swept' ? 0.5 : 0.53), style === 'swept' ? 1.1 : 1.06);
-    if (style === 'long' || style === 'bob') {
-      const len = style === 'long' ? 0.26 : 0.12;
-      const back = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, len, 4, 12), mat);
-      back.scale.set(1.05, 1, 0.55); back.position.set(0, 0.08 - len / 2, -0.055); back.castShadow = true; this.b.head.add(back); this.headMeshes.push(back);
-    }
-    if (style === 'bun') {
-      const bun = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), mat); bun.position.set(0, 0.2, -0.09); this.b.head.add(bun); this.headMeshes.push(bun);
+    const cap = (s, theta, tilt, dy = 0, dz = -0.004) => add('head', new THREE.SphereGeometry(r * s, 24, 14, 0, Math.PI * 2, 0, theta), col, 0, cy + dy, dz, { rx: tilt - 0.24, sx: 0.96, sy: 1.08 }); // (tipped back: the hairline sits above the brows)
+    const rb = (W, H, D, x, y, z, o = {}) => add('head', new RoundedBoxGeometry(W, H, D, 1, Math.min(W, H, D) / 2.3), col, x, cy + y, z, o);
+    const blob = (rad, x, y, z, o = {}) => add('head', new THREE.SphereGeometry(rad, 10, 8), col, x, cy + y, z, o);
+    switch (style) {
+      case 'buzz': cap(1.045, Math.PI * 0.52, -0.5); break;
+      case 'short': cap(1.07, Math.PI * 0.56, -0.55); rb(0.16, 0.035, 0.05, 0, 0.1, 0.068, { rx: 0.5 }); break;
+      case 'side': cap(1.07, Math.PI * 0.56, -0.55); rb(0.18, 0.04, 0.06, 0.02, 0.1, 0.066, { rx: 0.5, rz: -0.22 }); rb(0.04, 0.09, 0.09, -0.112, 0.03, 0.01); rb(0.04, 0.09, 0.09, 0.112, 0.03, 0.01); break;
+      case 'swept': cap(1.07, Math.PI * 0.56, -0.55); rb(0.16, 0.06, 0.13, 0, 0.115, 0.045, { rx: -0.3 }); break;
+      case 'curly': cap(1.08, Math.PI * 0.55, -0.55); for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, ring = i % 2 ? 0.075 : 0.105, y = i % 2 ? 0.115 : 0.075; const z = Math.cos(a) * ring - 0.015; if (z > 0.06 && y < 0.1) continue; blob(0.038, Math.sin(a) * ring, y, z); } blob(0.045, 0, 0.13, -0.01); break;
+      case 'afro': { // a big round cloud of curls
+        cap(1.1, Math.PI * 0.56, -0.55);
+        for (let i = 0; i < 26; i++) { const u = (i + 0.5) / 26, el = Math.acos(1 - u * 1.25), az = i * 2.39996; const x = Math.sin(el) * Math.sin(az) * 0.13, y = Math.cos(el) * 0.13 + 0.05, z = Math.sin(el) * Math.cos(az) * 0.13 - 0.03; if (z > 0.05 && y < 0.11) continue; blob(0.058, x, y, z); }
+        break; }
+      case 'long': cap(1.08, Math.PI * 0.56, -0.55); rb(0.235, 0.33, 0.075, 0, -0.06, -0.1); rb(0.045, 0.24, 0.09, -0.112, -0.03, -0.015); rb(0.045, 0.24, 0.09, 0.112, -0.03, -0.015); rb(0.16, 0.035, 0.05, 0, 0.1, 0.068, { rx: 0.5 }); break;
+      case 'bob': cap(1.09, Math.PI * 0.56, -0.55); rb(0.26, 0.15, 0.17, 0, 0.0, -0.035); rb(0.17, 0.04, 0.05, 0, 0.1, 0.07, { rx: 0.5 }); break;
+      case 'bun': cap(1.06, Math.PI * 0.56, -0.5); blob(0.05, 0, 0.1, -0.1); break;
+      case 'ponytail': cap(1.06, Math.PI * 0.56, -0.5); blob(0.024, 0, 0.05, -0.118); add('head', new THREE.CapsuleGeometry(0.034, 0.16, 4, 10), col, 0, cy - 0.06, -0.14, { rx: 0.22 }); break;
+      default: cap(1.07, Math.PI * 0.56, -0.55);
     }
   }
 
-  setHeadVisible(v) { this.headSkin.visible = v; this.mouth.visible = v; }
+  // a face for a while (then back to their usual one): neutral, happy, angry, annoyed, sad, surprised, scared, hurt, ko
+  express(name, secs = 2.5) { this.expr = name; this.exprT = secs; }
+  setMood(name) { this.base = name; }
 
-  fuse() {
-    const B = this.b, I = Object.fromEntries(this.order.map((n, i) => [n, i]));
-    const skel = this.body.skeleton, inv = new THREE.Matrix4().copy(this.body.matrixWorld).invert();
-    this.rig.updateMatrixWorld(true);
-    const parts = { head: [], limbs: [] };
-    for (const name of this.order) {
-      for (const m of [...B[name].children]) {
-        if (!m.isMesh || m === this.mouth) continue;
-        const g = m.geometry.clone().toNonIndexed();
-        g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
-        for (const k of Object.keys(g.attributes)) if (!['position', 'normal'].includes(k)) g.deleteAttribute(k);
-        const n = g.attributes.position.count, c = m.material.color, col = new Float32Array(n * 3), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
-        for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; si[i * 4] = I[name]; sw[i * 4] = 1; }
-        g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
-        (name === 'head' ? parts.head : parts.limbs).push(g);
-        m.removeFromParent();
-      }
-    }
-    const make = (geos) => {
-      const geo = mergeGeometries(geos, false);
-      const sm = new THREE.SkinnedMesh(geo, this.bodyM); sm.castShadow = true; sm.receiveShadow = true; sm.frustumCulled = false;
-      this.rig.add(sm); sm.bind(skel, this.body.bindMatrix); return sm;
-    };
-    this.headSkin = make(parts.head);
-    this.limbSkin = make(parts.limbs);
-    this.headMeshes = [this.headSkin, this.mouth];
-  }
+  setHeadVisible(v) { this.headHidden = !v; }
 
   // back from a ragdoll: the bones go back to their own lengths, the animation takes over again
   resetPose() {
@@ -259,9 +188,28 @@ export class Human {
     this.cur = {};
   }
 
+  // the eyes and brows ease toward the face they're making; a blink every few seconds
+  updateFace(dt, talking) {
+    this.exprT -= dt;
+    const want = this.ragdoll ? (this.dead ? 'ko' : 'hurt') : this.exprT > 0 ? this.expr : this.base;
+    const tg = FACES[want] || FACES.neutral, c = this.fcur, k = 1 - Math.exp(-dt * 10);
+    for (let i = 0; i < 4; i++) c[i] += (tg[i] - c[i]) * k;
+    this.blinkT -= dt; if (this.blinkT < -0.13) this.blinkT = 1.5 + Math.random() * 4;
+    const blink = this.blinkT < 0 ? 0.12 : 1, bob = talking ? Math.sin(this.t * 7.3) * 0.0035 + Math.sin(this.t * 3.1) * 0.002 : 0;
+    const F = this.face, FB = this.faceBind;
+    for (const [k, s] of [['L', 1], ['R', -1]]) {
+      const e = F['eye' + k], b = F['brow' + k];
+      e.scale.set(c[3], Math.max(0.08, c[2] * blink), 1);
+      b.position.set(FB['brow' + k].x, FB['brow' + k].y + c[0] + bob, FB['brow' + k].z);
+      b.rotation.z = s * c[1];
+    }
+    this.b.head.scale.setScalar(this.headHidden ? 0.001 : 1);
+  }
+
   // s: { speed (m/s), grounded, vy, pose: 'stand' | 'drive' | 'passenger' | 'down', steer, talking, wave }
   update(dt, s) {
     this.t += dt;
+    this.updateFace(dt, s.talking);
     if (this.ragdoll) { this.ragdoll.frame(dt); return; }
     const B = this.b, T = {}; // T: target rotations, [x, y, z] per joint
     const set = (k, x = 0, y = 0, z = 0) => { T[k] = [x, y, z]; };
@@ -343,8 +291,6 @@ export class Human {
       if (s.wave) { set('shoulderR', -0.3, 0, -2.5); set('elbowR', -0.3 + Math.sin(this.t * 9) * 0.4, 0, 0); }
       if (s.point) { set('shoulderR', -1.45, 0, -0.05); set('elbowR', -0.05); }
     }
-    // talking: the mouth moves
-    this.mouth.scale.y = s.talking ? 1 + (Math.sin(this.t * 17) * 0.5 + 0.5) * 2.4 : 1;
 
     // ease every joint toward its target
     const k = 1 - Math.exp(-dt * 14);

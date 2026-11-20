@@ -165,7 +165,7 @@ export class Citizens {
         if (ahead > 2 && ahead < 14 && Math.abs(loc.x) < 1.6) {
           const side = V(loc.x >= 0 ? 1 : -1, 0, 0).applyQuaternion(car.group.quaternion).setY(0).normalize();
           goal = p.clone().addScaledVector(side, 4); spd = 5.5;
-          if (!n.dodgeSaid) { n.dodgeSaid = true; this.say(n, pick(['Whoa!', 'Watch it!', 'Hey!']), 1.6); setTimeout(() => (n.dodgeSaid = false), 4000); }
+          n.human.express('surprised', 1.5); if (!n.dodgeSaid) { n.dodgeSaid = true; this.say(n, pick(['Whoa!', 'Watch it!', 'Hey!']), 1.6); setTimeout(() => (n.dodgeSaid = false), 4000); }
         }
       }
       let want = V();
@@ -240,6 +240,7 @@ export class Citizens {
         const cs = dc < 60; if (n.castNow !== cs) { n.castNow = cs; for (const m of n.meshes) m.castShadow = cs; }
       } else n.animAcc = (n.animAcc || 0) + dt0;
       const dt = n.animAcc; n.animAcc = 0;
+      H.setMood(n.state === 'angry' ? 'angry' : n.state === 'flee' ? 'scared' : n.mood < -40 ? 'annoyed' : n.mood < -15 ? 'sad' : n.mood > 45 ? 'happy' : 'neutral');
       if (n.state === 'seated') { H.update(dt, { pose: 'passenger' }); continue; }
       if (H.ragdoll) { H.update(dt, {}); continue; }
       const p = this.pos(n);
@@ -306,7 +307,7 @@ export class Citizens {
         break;
       case 'money':
         if (g.money < 20) { g.hud.toast("You don't have $20"); break; }
-        g.money -= 20; m.gifts++; n.mood = Math.min(100, n.mood + 25);
+        g.money -= 20; m.gifts++; n.mood = Math.min(100, n.mood + 25); n.human.express(hostile ? 'surprised' : 'happy', 3);
         this.say(n, m.gifts > 2 ? 'Seriously? You keep doing this. Thank you!' : hostile ? '…Fine. Thanks, I guess.' : pick(['Oh! Thank you!', 'Wow, really? Thanks!', "That's very kind."]), 3);
         stay();
         break;
@@ -323,12 +324,12 @@ export class Citizens {
       }
       case 'compliment':
         m.compliments++;
-        if (m.insults > 0 && n.mood < 0) { this.say(n, "Oh, NOW you're being nice?", 3); n.mood += 5; }
-        else { this.say(n, pick(['Ha! Thanks.', 'You\'re sweet.', 'Well, that made my day.', 'Smooth. Very smooth.']), 2.8); n.mood = Math.min(100, n.mood + 10); }
+        if (m.insults > 0 && n.mood < 0) { this.say(n, "Oh, NOW you're being nice?", 3); n.mood += 5; n.human.express('annoyed', 3); }
+        else { this.say(n, pick(['Ha! Thanks.', 'You\'re sweet.', 'Well, that made my day.', 'Smooth. Very smooth.']), 2.8); n.mood = Math.min(100, n.mood + 10); n.human.express('happy', 3); }
         stay();
         break;
       case 'insult':
-        m.insults++; n.mood -= 35;
+        m.insults++; n.mood -= 35; n.human.express(n.brave > 0.45 ? 'angry' : 'sad', 3.5);
         if (n.mood < -40 && n.brave > 0.45) { n.state = 'angry'; n.stateT = 8; n.following = false; this.say(n, pick(['What did you just say to me?!', 'Say that again. I dare you.']), 3); }
         else if (n.mood < -40) { n.state = 'flee'; n.stateT = 5; n.following = false; this.say(n, pick(['Psycho!', 'Get away from me!']), 2.5); }
         else { this.say(n, pick(['Wow. Rude.', 'Excuse me?', 'Okay, that was uncalled for.']), 2.6); stay(); }
@@ -363,7 +364,7 @@ export class Citizens {
     const chest = n.human.ragdoll ? n.human.ragdoll.pelvis.add(new THREE.Vector3(0, 0.35, 0)) : this.pos(n).add(new THREE.Vector3(0, 1.3, 0));
     if (W.dmg === 0) { // the plastic kiddie knife
       g.hud.toast('The plastic knife bends. Nothing happens.');
-      if (!n.human.ragdoll) { n.mood -= 8; n.state = 'talk'; n.stateT = 3; this.say(n, pick(['…Was that a plastic knife?', 'Did you just… poke me?', "Ha! Is that from a kids' meal?", 'Okay. Weird. Bye.']), 3); }
+      if (!n.human.ragdoll) { n.mood -= 8; n.human.express('surprised', 2.5); n.state = 'talk'; n.stateT = 3; this.say(n, pick(['…Was that a plastic knife?', 'Did you just… poke me?', "Ha! Is that from a kids' meal?", 'Okay. Weird. Bye.']), 3); }
       return;
     }
     n.hp -= W.dmg; n.mood -= 80; n.mem.hitBy++;
@@ -389,7 +390,7 @@ export class Citizens {
   }
 
   die(n) {
-    n.state = 'dead'; n.deadT = 0; n.pooled = false; n.following = false; n.bubbleT = 0;
+    n.human.dead = true; n.state = 'dead'; n.deadT = 0; n.pooled = false; n.following = false; n.bubbleT = 0;
     this.panic(n.human.ragdoll ? n.human.ragdoll.pelvis : this.pos(n), n);
   }
 
