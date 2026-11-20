@@ -4,6 +4,8 @@ import polygonClipping from 'polygon-clipping';
 import { S, toX, toZ, LAND, LAND_BULGE, SAND, PIER, ROADS, PLACES, NORTH_X, NORTH_Y, NORTH_LINKS } from './map.js';
 import { canvasTex, noise, rng, texPair, drawAsphalt, drawPave } from './world.js';
 import { CityBuilder, worldUV } from './buildings.js';
+import { makeWater } from './water.js';
+import { buildInterior } from './interior.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 export const RW = 11, SW = 3.5, KERB = 0.15, WATER = -0.75;
@@ -51,7 +53,8 @@ export function buildCity(g) {
     return m;
   };
   const city = g.city = new CityBuilder(g); city.rand = rand;
-  const places = {}, footprints = []; // footprints: what's built on (rings), so lamps and people keep off it
+  const places = {}, footprints = [];
+  g.workers = []; // (shopkeepers, from the interiors) // footprints: what's built on (rings), so lamps and people keep off it
 
   // ================= land, sea wall, beach, sea =================
   const landMP = polygonClipping.union(...LAND.map(p => [close(p.map(P))]), [ellipseRing(LAND_BULGE)]);
@@ -92,14 +95,8 @@ export function buildCity(g) {
     // the sea bed and the sea
     const bed = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), std(0x6b6550, 1)); bed.rotation.x = -Math.PI / 2; bed.position.y = -8; scene.add(bed);
     world.createCollider(R.ColliderDesc.cuboid(3000, 0.5, 3000).setTranslation(0, -8.5, 0));
-    const wn = document.createElement('canvas'); wn.width = wn.height = 256; const wx = wn.getContext('2d'), img = wx.createImageData(256, 256);
-    const hgt = (x, y) => Math.sin(x * 0.098) * Math.cos(y * 0.074) + Math.sin((x + y) * 0.196) * 0.5 + Math.sin(x * 0.295 - y * 0.245) * 0.25;
-    for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) { const dx = hgt(x + 1, y) - hgt(x - 1, y), dy = hgt(x, y + 1) - hgt(x, y - 1), i = (y * 256 + x) * 4; img.data[i] = 128 - dx * 60; img.data[i + 1] = 128 - dy * 60; img.data[i + 2] = 255; img.data[i + 3] = 255; }
-    wx.putImageData(img, 0, 0);
-    const wt = new THREE.CanvasTexture(wn); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(300, 300);
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshStandardMaterial({ color: 0x1f5f7a, roughness: 0.06, metalness: 0.15, normalMap: wt, normalScale: new THREE.Vector2(0.35, 0.35), transparent: true, opacity: 0.88 }));
-    water.rotation.x = -Math.PI / 2; water.position.y = WATER; water.receiveShadow = true; scene.add(water);
-    g.water = water; g.waterLevel = WATER;
+    g.water = makeWater(g, WATER);
+    g.waterLevel = WATER;
   }
 
   // ================= roads, markings, crossings, sidewalks, paving, bridges =================
@@ -182,17 +179,18 @@ export function buildCity(g) {
     for (const s of segs) {
       let start = null;
       for (let t = 0; t <= s.L + 0.01; t += 1) {
-        const wet = !inLand(s.a[0] + s.u[0] * t, s.a[1] + s.u[1] * t) || !inLand(s.a[0] + s.u[0] * t + s.n[0] * (RW / 2), s.a[1] + s.u[1] * t + s.n[1] * (RW / 2)) || !inLand(s.a[0] + s.u[0] * t - s.n[0] * (RW / 2), s.a[1] + s.u[1] * t - s.n[1] * (RW / 2));
+        const wet = !inLand(s.a[0] + s.u[0] * t, s.a[1] + s.u[1] * t); // (only where the road itself is over water)
         if (wet && start === null) start = t;
         if ((!wet || t >= s.L) && start !== null) {
-          const t0 = Math.max(-RW / 2, start - 6), t1 = Math.min(s.L + RW / 2, t + 6), mid = (t0 + t1) / 2, len = t1 - t0;
+          const t0 = Math.max(-RW / 2, start - 4), t1 = Math.min(s.L + RW / 2, t + 4), mid = (t0 + t1) / 2, len = t1 - t0;
+          if (t - start < 1.5) { start = null; continue; } // (just grazing the coast: the land's enough)
           const cx = s.a[0] + s.u[0] * mid, cz = s.a[1] + s.u[1] * mid, ry = Math.atan2(s.u[0], s.u[1]);
-          const deck = new THREE.Mesh(new THREE.BoxGeometry(RW + 2 * SW, 0.9, len), deckM); deck.position.set(cx, -0.42, cz); deck.rotation.y = ry; add(deck);
-          col((RW + 2 * SW) / 2, 0.45, len / 2, cx, -0.45, cz, ry);
+          const deck = new THREE.Mesh(new THREE.BoxGeometry(RW + 2 * SW, 0.9, len), deckM); deck.position.set(cx, -0.5, cz); deck.rotation.y = ry; add(deck); // (its top just under the road surface)
+          col((RW + 2 * SW) / 2, 0.45, len / 2, cx, -0.42, cz, ry);
           // its own sidewalks and railings
           for (const sd of [-1, 1]) {
             const ox = s.n[0] * sd * (RW / 2 + SW / 2), oz = s.n[1] * sd * (RW / 2 + SW / 2);
-            const w = new THREE.Mesh(new THREE.BoxGeometry(SW, KERB, len), new THREE.MeshStandardMaterial({ ...texPair(256, drawPave, [1, len / 1.6]), roughness: 0.93 })); w.position.set(cx + ox, KERB / 2, cz + oz); w.rotation.y = ry; add(w);
+            const w = new THREE.Mesh(new THREE.BoxGeometry(SW, KERB + 0.06, len), new THREE.MeshStandardMaterial({ ...texPair(256, drawPave, [1, len / 1.6]), roughness: 0.93 })); w.position.set(cx + ox, KERB / 2 - 0.022, cz + oz); w.rotation.y = ry; add(w); // (a hair lower than the pavement it meets, so they never fight)
             col(SW / 2, KERB / 2, len / 2, cx + ox, KERB / 2, cz + oz, ry);
             const rx = cx + s.n[0] * sd * (RW / 2 + SW - 0.1), rz = cz + s.n[1] * sd * (RW / 2 + SW - 0.1);
             const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, len), railM); rail.position.set(rx, 0.65, rz); rail.rotation.y = ry; add(rail);
@@ -298,10 +296,19 @@ export function buildCity(g) {
     const [x0, z0, x1, z1] = r, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0;
     const face = facing(r);
     const bld = (opts) => { city.building({ x: cx, z: cz, w: w - 1, d: d - 1, ...opts }); blockRect(x0, z0, x1, z1); };
+    // a building with a real room inside, behind its front wall
+    const withRoom = (opts, kind, iopts = {}, maxDepth = 14, floors = 1, maxWidth = 18) => {
+      const avail = (face === '+z' || face === '-z' ? d : w) - 1;
+      const room = { face, depth: Math.max(6, Math.min(maxDepth, avail - (avail > 10 ? 2 : 0))), floors, width: maxWidth };
+      city.building({ x: cx, z: cz, w: w - 1, d: d - 1, ...opts, room }); blockRect(x0, z0, x1, z1);
+      const res = buildInterior(g, room, kind, { name, ...iopts }); g.workers.push(...res.workers);
+    };
+    const ROOMS = { 'Mini Mart': ['store', {}], 'A Rival Mini Mart': ['store', { lines: ["The OTHER mini mart? Never heard of it.", "Our prices are lower. Probably.", "What can I get you?"] }], 'Convenience Store': ['store', {}], 'Grocery': ['store', { fridges: true }], 'Game Shop': ['store', { products: 'games', fridges: false, sign: 'NEW RELEASES', lines: ["Pre-orders are back there.", "No, we don't have the new one yet.", "You look like a racing-game person."] }], 'Home Improvements': ['store', { products: 'tools', fridges: false, sign: 'PAINT · TOOLS · TIMBER', lines: ["Aisle 4 for hammers.", "We don't hire out the chainsaw any more. Long story."] }], 'Cheap House': ['store', { products: 'cheap', fridges: false, sign: 'EVERYTHING $2', lines: ["Everything's two dollars.", "Even that. Yes, that too."] }], 'Pawn Shop': ['pawn', {}], 'Spa': ['lobby', { variant: 'spa', floor: 'wood' }], 'City Wok': ['restaurant', { variant: 'wok', floor: 'tiles' }] };
     curAt = V(cx, 0, cz);
     switch (kind) {
       case 'shop':
-        bld({ floors: ex.floors || 2, style: ex.style || 'brick', shopFaces: [face], sign: ex.sign || name.toUpperCase(), wallIndex: ex.wall ?? null });
+        if (ROOMS[name] && !ex.solid) { const [k, io] = ROOMS[name]; withRoom({ floors: ex.floors || 2, style: ex.style || 'brick', shopFaces: [face], sign: ex.sign || name.toUpperCase(), wallIndex: ex.wall ?? null }, k, { bigWindows: k !== 'lobby', ...io }); ROOMS[name] = null; }
+        else bld({ floors: ex.floors || 2, style: ex.style || 'brick', shopFaces: [face], sign: ex.sign || name.toUpperCase(), wallIndex: ex.wall ?? null });
         placeAt(name, front(r, face)); break;
       case 'storefronts': { // a row of four
         const n = 4, along = w >= d;
@@ -313,7 +320,7 @@ export function buildCity(g) {
         blockRect(x0, z0, x1, z1); placeAt('the shops', front(r, face)); break;
       }
       case 'ritz':
-        bld({ floors: 5, style: 'brick', wallIndex: 3, shopFaces: [face], sign: "PUTIN'S RITZ", signColors: ['#1a1410', '#e8c46a'] });
+        withRoom({ floors: 5, style: 'brick', wallIndex: 3, shopFaces: [face], sign: "PUTIN'S RITZ", signColors: ['#1a1410', '#e8c46a'] }, 'lobby', { variant: 'ritz', floor: 'marble', tint: 0xffe2a8 }, 14, 1, 22);
         { const p = onFace(r, face, 0, 0.03, 3); const carpet = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 6), std(0x9a1c1c, 0.9)); carpet.rotation.x = -Math.PI / 2; carpet.rotation.z = faceYaw[face]; carpet.position.copy(p); scene.add(carpet); }
         placeAt("Putin's Ritz", front(r, face)); break;
       case 'triangle': {
@@ -341,7 +348,7 @@ export function buildCity(g) {
         blockRect(x0 - 2, z0 - 2, x1 + 2, z1 + 2); placeAt('the vegetable plot', front(r, face)); break;
       }
       case 'hospital': {
-        bld({ floors: 4, style: 'stucco', wallIndex: 5, entrance: face, entranceSign: 'HOSPITAL' });
+        withRoom({ floors: 4, style: 'stucco', wallIndex: 5, entrance: face, entranceSign: 'HOSPITAL' }, 'lobby', { variant: 'hospital', floor: 'tiles', tint: 0xf2f6ff, wallColor: 0xf2f2ee }, 14, 1, 24);
         // red crosses, an ambulance bay, a helipad on the roof
         const H = 4.2 + 3 * 3.3;
         for (const u of [-w / 3, w / 3]) { const p = onFace(r, face, u, H - 2.2, 0.62); const cr = signBoard('+', p.x, p.y, p.z, faceYaw[face], 2.4, { w: 128, h: 128, bg: '#ffffff', fg: '#d42a2a', font: 'bold 150px Arial' }); }
@@ -401,9 +408,8 @@ export function buildCity(g) {
         placeAt('the fountain', V(cx, 0, cz + rr + 2)); break;
       }
       case 'nightclub': {
-        bld({ floors: 2, style: 'stucco', wallIndex: 6, shopFaces: [face], sign: 'NIGHTCLUB', signColors: ['#120818', '#ff4fd8'] });
+        withRoom({ floors: 2, style: 'stucco', wallIndex: 6, shopFaces: [face], sign: 'NIGHTCLUB', signColors: ['#120818', '#ff4fd8'] }, 'club', { windows: false, floor: 'dark', ceiling: 0x111114, wallColor: 0x1a1420, noPanels: true, tint: 0xff4fd8, power: 40 }, 16, 1, 22);
         const p = onFace(r, face, 0, 6.6, 0.4); signBoard('◆ NIGHTCLUB ◆', p.x, p.y, p.z, faceYaw[face], 14, { bg: '#0a0410', fg: '#ff4fd8', glow: 0xff4fd8 });
-        const lp = new THREE.PointLight(0xff4fd8, 6, 14, 1.8); lp.position.copy(onFace(r, face, 0, 3, 2)); scene.add(lp);
         // the queue rope
         const door = onFace(r, face, -w / 4, 0, 2.2), along = (face === '+z' || face === '-z') ? V(1, 0, 0) : V(0, 0, 1);
         for (let i = 0; i < 6; i++) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 1, 10), std(0xd8b44a, 0.2, { metalness: 0.9 })); post.position.copy(door).addScaledVector(along, i * 1.6).setY(0.5); add(post); }
@@ -411,7 +417,7 @@ export function buildCity(g) {
         placeAt('the Nightclub', front(r, face)); break;
       }
       case 'lawfirm': {
-        city.building({ x: cx, z: cz, w: w - 9, d: d - 9, floors: 3, style: 'brick', wallIndex: 2, entrance: face, entranceSign: 'PAUL BADFELLA · ATTORNEY AT LAW' });
+        { const lw = w - 9, ld = d - 9, avail = (face === '+z' || face === '-z' ? ld : lw); const room = { face, depth: Math.min(12, avail - 2), floors: 1, width: 18 }; city.building({ x: cx, z: cz, w: lw, d: ld, floors: 3, style: 'brick', wallIndex: 2, entrance: face, entranceSign: 'PAUL BADFELLA · ATTORNEY AT LAW', room }); g.workers.push(...buildInterior(g, room, 'lobby', { variant: 'law', floor: 'carpet', floorColor: '#2a3a2e', name }).workers); }
         // the fence (you have to jump it)
         const fm = std(0x1f2124, 0.5, { metalness: 0.7 }), H = 1.25;
         for (const [a, b, c2, e] of [[x0, z0, x1, z0], [x0, z1, x1, z1], [x0, z0, x0, z1], [x1, z0, x1, z1]]) {
@@ -428,7 +434,7 @@ export function buildCity(g) {
         { const p = onFace(r, face, 0, 3.2, 0.3); signBoard('BOURKE', p.x, p.y, p.z, faceYaw[face], 6, { bg: '#2a2e33', fg: '#e8e8e8' }); }
         placeAt('the Bourke Office High Rise', front(r, face)); break;
       case 'coffee': {
-        bld({ floors: 2, style: 'brick', wallIndex: 0, shopFaces: [face], sign: 'COFFEE STORE', signColors: ['#2b1d12', '#f1dfa8'] });
+        withRoom({ floors: 3, style: 'brick', wallIndex: 0, shopFaces: [face], sign: 'COFFEE STORE', signColors: ['#2b1d12', '#f1dfa8'] }, 'cafe', { floor: 'wood', bigWindows: true, tint: 0xffd8a8 }, 13, 2, 18);
         // the detective's office upstairs: gold letters on the window
         const p = onFace(r, face, 0, 5.3, 0.14);
         { const pi = signBoard('PRIVATE INVESTIGATOR', p.x, p.y + 0.6, p.z + 0.02, faceYaw[face], 9, { bg: 'rgba(20,16,8,.55)', fg: '#f2d27a', font: 'bold 60px Georgia', glow: 0x6a5420 }); pi.material.transparent = true; }
@@ -442,15 +448,15 @@ export function buildCity(g) {
         placeAt("Grace's Flowers", front(r, face)); break;
       }
       case 'police': {
-        bld({ floors: 3, style: 'concrete', wallIndex: 1, entrance: face, entranceSign: 'POLICE' });
+        withRoom({ floors: 3, style: 'concrete', wallIndex: 1, entrance: face, entranceSign: 'POLICE' }, 'lobby', { variant: 'police', floor: 'tiles', tint: 0xeef4ff }, 14, 1, 20);
         const p = onFace(r, face, 0, 9.0, 0.25); signBoard('HALYARD POLICE', p.x, p.y, p.z, faceYaw[face], 10, { bg: '#1c3a7a', fg: '#ffffff' });
-        const fp = onFace(r, face, w / 2 - 3, 0, 3); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 9, 8), std(0xd8dade, 0.3, { metalness: 0.9 })); pole.position.copy(fp).setY(4.5); add(pole);
-        const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.1), std(0x1c3a7a, 0.8, { side: THREE.DoubleSide })); flag.position.copy(fp).add(V(0.9, 8.2, 0)); scene.add(flag);
+        const roofY = 4.2 + 2 * 3.3 + 0.6, fp = onFace(r, face, w / 2 - 4, 0, -3); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 6, 8), std(0xd8dade, 0.3, { metalness: 0.9 })); pole.position.copy(fp).setY(roofY + 3); add(pole); // (on the roof)
+        const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.1), std(0x1c3a7a, 0.8, { side: THREE.DoubleSide })); flag.position.copy(fp).add(V(0.9, roofY + 5.2, 0)); scene.add(flag);
         for (let k = 0; k < 3; k++) { const cp = onFace(r, face, -w / 2 + 4 + k * 3.2, 0, 7.5); parked.push([cp.x, cp.z, faceYaw[face], 0x1a1c20, 'police']); }
         placeAt('the Police Station', front(r, face)); break;
       }
       case 'pool':
-        bld({ floors: 2, style: 'glass', shopFaces: [face] });
+        withRoom({ floors: 3, style: 'glass' }, 'pool', { floor: 'tiles', tint: 0xe8f6ff, power: 24 }, 24, 2, 32);
         { const p = onFace(r, face, 0, 4.6, 0.3); signBoard('INDOOR POOL', p.x, p.y, p.z, faceYaw[face], 9, { bg: '#e8f2f6', fg: '#1f6a9a' }); }
         placeAt('the Indoor Pool', front(r, face)); break;
       case 'info': { // a little visitor kiosk in a plaza
@@ -481,17 +487,17 @@ export function buildCity(g) {
       case 'lot':
         lotPaint(x0, z0, x1, z1, d > w ? 'z' : 'x'); blockRect(x0, z0, x1, z1); placeAt(name === 'ABT Parking Lot' ? 'the ABT Parking Lot' : 'the parking lot', V(cx, 0, cz)); break;
       case 'diner': { // a long red diner with chrome, big windows, a neon sign; the rest of its lot is its car park
-        lotPaint(x0, z0, x1, z1, 'z'); blockRect(x0, z0, x1, z1);
         const dw = Math.min(w - 4, 17), dl = Math.min(d * 0.45, 46), dz = z0 + d * 0.3;
+        if (dz - dl / 2 - 2 - z0 > 8) lotPaint(x0, z0, x1, dz - dl / 2 - 2, 'z');
+        lotPaint(x0, dz + dl / 2 + 2, x1, z1, 'z'); blockRect(x0, z0, x1, z1);
         const red = std(0xc4161c, 0.4, { metalness: 0.2 }), chrome = std(0xd8dade, 0.12, { metalness: 1 });
-        box(dw, 4.2, dl, cx, 2.1, dz, red);
-        for (const y of [0.6, 3.9]) box(dw + 0.1, 0.18, dl + 0.1, cx, y, dz, chrome, { collide: false });
-        for (const s of [-1, 1]) for (let k = 0; k < Math.floor(dl / 2.6); k++) { const win = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 1.8), std(0x2a3a44, 0.05, { metalness: 0.7, emissive: 0x6a5a3a, emissiveIntensity: 0.25 })); win.position.set(cx + s * (dw / 2 + 0.02), 2.0, dz - dl / 2 + 1.5 + k * 2.6); win.rotation.y = s * Math.PI / 2; scene.add(win); }
+        { const room = { face: '-x', depth: dw, floors: 1, rect: [cx - dw / 2, dz - dl / 2, cx + dw / 2, dz + dl / 2], top: 4.2, wall: { m: red, scale: 3 } }; g.workers.push(...buildInterior(g, room, 'diner', { floor: 'checker', bigWindows: true, solidFloor: true, tint: 0xffe6c4, name: 'the Diner' }).workers); }
+        for (const y of [0.6, 3.9]) { for (const sx of [-1, 1]) box(0.08, 0.18, dl + 0.2, cx + sx * (dw / 2 + 0.04), y, dz, chrome, { collide: false }); for (const sz of [-1, 1]) box(dw + 0.2, 0.18, 0.08, cx, y, dz + sz * (dl / 2 + 0.04), chrome, { collide: false }); } // (chrome bands round the outside)
+        box(0.3, 4.2, dl, cx + dw / 2 - 0.15, 2.1, dz, red); // (the back wall; the front is the room's)
         const roof = new THREE.Mesh(new THREE.CylinderGeometry(dw / 2 + 0.3, dw / 2 + 0.3, dl, 24, 1, false, -Math.PI / 2, Math.PI), std(0xd8dade, 0.3, { metalness: 0.8 })); roof.rotation.x = Math.PI / 2; roof.scale.set(1, 1, 0.22); roof.position.set(cx, 4.2, dz); add(roof);
         const sg = signBoard('DINER', cx, 7.6, dz, Math.PI / 2, 9, { w: 512, h: 128, bg: '#1a0606', fg: '#ff2a2a', glow: 0xff2a2a, font: 'bold 110px "Arial Black", Arial' });
         const sg2 = sg.clone(); sg2.rotation.y = -Math.PI / 2; scene.add(sg2);
         box(0.3, 2.4, 0.3, cx, 5.4, dz, chrome, { collide: false });
-        const lp = new THREE.PointLight(0xff3a2a, 8, 20, 1.6); lp.position.set(cx, 7, dz); scene.add(lp);
         blockRect(cx - dw / 2 - 1, dz - dl / 2 - 1, cx + dw / 2 + 1, dz + dl / 2 + 1);
         placeAt('the Diner', V(cx - dw / 2 - 3, 0, dz)); break;
       }
@@ -506,7 +512,7 @@ export function buildCity(g) {
       case 'abandoned': abandoned(r); blockRect(x0, z0, x1, z1); placeAt('the abandoned car park', front(r, face)); break;
       case 'turkey': {
         const fw = Math.min(w - 8, 24), fd = Math.min(d - 6, 14);
-        city.building({ x: cx, z: cz, w: fw, d: fd, floors: 1, style: 'stucco', wallIndex: 7, shopFaces: [face], sign: 'ALBUQUERQUE BOILED TURKEY', signColors: ['#f2e2b0', '#9a2a1a'] });
+        { const room = { face, depth: Math.min(fd - 1, ((face === '+z' || face === '-z') ? fd : fw) - 1), floors: 1 }; city.building({ x: cx, z: cz, w: fw, d: fd, floors: 1, style: 'stucco', wallIndex: 7, shopFaces: [face], sign: 'ALBUQUERQUE BOILED TURKEY', signColors: ['#f2e2b0', '#9a2a1a'], room }); g.workers.push(...buildInterior(g, room, 'restaurant', { variant: 'turkey', bigWindows: true, name }).workers); }
         // the big roof sign, the drive-thru window and menu board (on the loop round it)
         const rs = signBoard('ABT', cx, 7.4, cz, faceYaw[face], 5, { w: 256, h: 128, bg: '#9a2a1a', fg: '#f2e2b0', font: 'bold 100px "Arial Black", Arial' });
         box(0.3, 3, 0.3, cx, 5.3, cz, iron, { collide: false });

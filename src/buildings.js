@@ -169,17 +169,31 @@ export class CityBuilder {
   }
 
   // style: 'brick' | 'stucco' | 'concrete' | 'glass'; shopFaces: which faces get shopfronts ('+z', '-z', '+x', '-x')
-  building({ x, z, w, d, floors, style, shopFaces = [], skipFloors = 0, solid = true, collider = true, entrance = null, wallIndex = null, openFloors = 0, sign = null, signColors = null, entranceSign = '14' }) {
+  building({ x, z, w, d, floors, style, shopFaces = [], skipFloors = 0, solid = true, collider = true, entrance = null, wallIndex = null, openFloors = 0, sign = null, signColors = null, entranceSign = '14', room = null }) {
     const g = this.g, R = g.R, r = this.rand;
     const H = GROUND + (floors - 1) * FLOOR;
     const set = this.walls[style], W = set[wallIndex ?? Math.floor(r() * set.length)];
     this.lastWall = W;
-    if (solid) {
-      const geo = new THREE.BoxGeometry(w, H, d); geo.translate(0, H / 2, 0);
-      worldUV(geo, W.scale);
-      const m = new THREE.Mesh(geo, W.m); m.position.set(x, 0, z); m.castShadow = m.receiveShadow = true; g.scene.add(m);
-    }
-    if (collider) g.world.createCollider(R.ColliderDesc.cuboid(w / 2, H / 2, d / 2).setTranslation(x, H / 2, z));
+    const block = (x0, z0, x1, z1, y0, y1) => { // a solid piece of the building
+      const bw = x1 - x0, bd = z1 - z0, bh = y1 - y0; if (bw < 0.05 || bd < 0.05 || bh < 0.05) return;
+      if (solid) { const geo = new THREE.BoxGeometry(bw, bh, bd); geo.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); worldUV(geo, W.scale); const m = new THREE.Mesh(geo, W.m); m.castShadow = m.receiveShadow = true; g.scene.add(m); }
+      if (collider) g.world.createCollider(R.ColliderDesc.cuboid(bw / 2, bh / 2, bd / 2).setTranslation((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2));
+    };
+    const X0 = x - w / 2, X1 = x + w / 2, Z0 = z - d / 2, Z1 = z + d / 2;
+    if (room) { // a room behind the front wall: solid behind it and above it
+      const D = room.depth, top = room.floors > 1 ? GROUND + (room.floors - 1) * FLOOR : GROUND;
+      // the room's width along the face (centred; the rest of the ground floor is solid)
+      const alongX = room.face === '+z' || room.face === '-z', faceLen = alongX ? w : d, RWd = Math.min(faceLen, room.width || faceLen), c = alongX ? x : z;
+      const a0 = c - RWd / 2, a1 = c + RWd / 2;
+      const rr = { '+z': [a0, Z1 - D, a1, Z1], '-z': [a0, Z0, a1, Z0 + D], '+x': [X1 - D, a0, X1, a1], '-x': [X0, a0, X0 + D, a1] }[room.face];
+      const back = { '+z': [X0, Z0, X1, Z1 - D], '-z': [X0, Z0 + D, X1, Z1], '+x': [X0, Z0, X1 - D, Z1], '-x': [X0 + D, Z0, X1, Z1] }[room.face];
+      block(...back, 0, H); block(...rr, top, H);
+      if (RWd < faceLen - 0.1) { // the solid bits either side of the room
+        if (alongX) { block(X0, rr[1], a0, rr[3], 0, H); block(a1, rr[1], X1, rr[3], 0, H); }
+        else { block(rr[0], Z0, rr[2], a0, 0, H); block(rr[0], a1, rr[2], Z1, 0, H); }
+      }
+      room.rect = rr; room.top = top; room.wall = W;
+    } else block(X0, Z0, X1, Z1, 0, H);
     const glassTower = style === 'glass';
     const trimC = { brick: [0xe9e4da, 0xd6cfc2, 0x2e2c2a], stucco: [0xf3efe6, 0x8a6a4a, 0x5c6a72], concrete: [0x55595d, 0xc8c4bc, 0x3a3d40], glass: [0x8a939b] }[style];
     const frameC = trimC[Math.floor(r() * trimC.length)];
@@ -193,9 +207,16 @@ export class CityBuilder {
     const litChance = 0.18;
     for (const F of faces) {
       const shop = shopFaces.includes(F.key) && !glassTower;
+      const roomHere = room && room.face === F.key; // (that face's ground floor is real: interior.js builds it)
       const bays = Math.max(1, Math.floor((F.len - 1) / 3.1)), bayW = (F.len - 1) / bays;
       // ground floor
-      if (shop) {
+      if (shop && roomHere) {
+        const sw = F.len - 1.6;
+        const awnC = [0x7a2a24, 0x24506e, 0x2d5a3a, 0x6e5a24, 0x3a3a3a][Math.floor(r() * 5)];
+        this.faceBox(T, F, 0, 3.55, 0.75, sw, 0.07, 1.5, awnC, 0.32);
+        this.faceBox(T, F, 0, 3.27, 1.45, sw, 0.3, 0.04, awnC);
+        this.signs.push({ F, u: 0, y: 3.95, w: Math.min(sw * 0.7, sign ? Math.max(7, sign.length * 0.55) : 7), name: sign ?? SHOPS[Math.floor(r() * SHOPS.length)], colors: signColors });
+      } else if (shop) {
         const sw = F.len - 1.6;
         this.faceBox(G, F, 0, 1.75, 0.03, sw, 2.7, 0.04, 0x5a6a74);
         this.faceBox(T, F, 0, 3.17, 0.06, sw + 0.2, 0.14, 0.12, 0x2b2b2b);
@@ -211,8 +232,7 @@ export class CityBuilder {
         this.signs.push({ F, u: 0, y: 3.95, w: Math.min(sw * 0.7, sign ? Math.max(7, sign.length * 0.55) : 7), name: sign ?? SHOPS[Math.floor(r() * SHOPS.length)], colors: signColors });
       }
       if (entrance === F.key) { // a front door with a canopy and a number
-        this.faceBox(T, F, 0, 2.62, 0.06, 2.0, 0.16, 0.14, frameC);
-        for (const sx of [-1, 1]) this.faceBox(T, F, sx * 0.92, 1.3, 0.06, 0.16, 2.6, 0.14, frameC);
+        if (!roomHere) { this.faceBox(T, F, 0, 2.62, 0.06, 2.0, 0.16, 0.14, frameC); for (const sx of [-1, 1]) this.faceBox(T, F, sx * 0.92, 1.3, 0.06, 0.16, 2.6, 0.14, frameC); }
         this.faceBox(T, F, 0, 3.05, 0.7, 3.2, 0.12, 1.4, 0x2b2d30);
         this.signs.push({ F, u: entranceSign.length > 3 ? 0 : 1.9, y: entranceSign.length > 3 ? 3.4 : 2.3, w: entranceSign.length > 3 ? Math.min(F.len - 2, entranceSign.length * 0.45) : 0.7, name: entranceSign, plain: true });
       }
@@ -224,6 +244,7 @@ export class CityBuilder {
       for (let fl = (shop ? 1 : 0) + skipFloors * 0; fl < floors; fl++) {
         if (fl < skipFloors) continue;
         if (glassTower) continue;
+        if (roomHere && fl < (room.floors || 1)) continue;
         const y0 = fl === 0 ? 0 : GROUND + (fl - 1) * FLOOR;
         const ww = style === 'concrete' ? bayW - 0.5 : 1.3, wh = fl === 0 ? 2.0 : 1.75;
         const sillY = y0 + (fl === 0 ? 1.0 : 0.95);

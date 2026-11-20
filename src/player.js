@@ -54,7 +54,7 @@ export class Player {
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
     }
     const run = k.has('ShiftLeft') || k.has('ShiftRight');
-    const t0 = this.body.translation(), feet = t0.y - CENTRE, wl = g.waterLevel ?? -99;
+    const t0 = this.body.translation(), feet = t0.y - CENTRE, wl = g.waterAt?.(t0.x, t0.z) ?? -99; this.wl = wl;
     this.swimming = feet < wl - 1.05;
     if (want.lengthSq() > 0) want.normalize().multiplyScalar(this.swimming ? (run ? 3.4 : 2.2) : run ? 6.2 : 1.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.cam.yaw);
     // ease toward the wanted velocity (a little weight to it)
@@ -110,7 +110,7 @@ export class Player {
     H.root.rotation.y = this.yaw;
     const W = this.g.weapons;
     if (this.swimming) { // (lie along the surface when swimming; upright when treading water)
-      const mv = Math.min(1, this.speed / 1.5), wl = this.g.waterLevel;
+      const mv = Math.min(1, this.speed / 1.5), wl = this.wl;
       H.root.position.y = wl - 1.45 + mv * 1.05;
       H.root.position.x -= Math.sin(this.yaw) * mv * 0.9; H.root.position.z -= Math.cos(this.yaw) * mv * 0.9;
     }

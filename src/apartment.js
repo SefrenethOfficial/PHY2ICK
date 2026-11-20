@@ -192,10 +192,13 @@ export function buildApartment(g) {
   boxM(4.0, 1.1, 0.15, 3.0, F + 0.55, -66.1, std(0xd8e2e6, 0.2, { transparent: true, opacity: 0.6 }));
   // ceiling lights (warm), fixtures
   for (const [x, z] of [[-5.5, -65], [-5.5, -71.5], [3, -70]]) {
-    const pl = new THREE.PointLight(0xffd7a8, 9, 13, 1.6); pl.position.set(x, Y2 - 0.45, z); scene.add(pl);
     const fx = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 20), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffe2b8, emissiveIntensity: 1.4 })); fx.position.set(x, Y2 - 0.06, z); scene.add(fx);
   }
-  const lobbyL = new THREE.PointLight(0xffe0b8, 7, 14, 1.6); lobbyL.position.set(0, Y1 - 0.6, -66); scene.add(lobbyL);
+  // (the room lights that follow you indoors light these two rooms too)
+  const wp = (x, y, z) => V(x + DX, y, z + DZ), ring = [[X0 + DX, ZF + DZ], [X1 + DX, ZF + DZ], [X1 + DX, ZB + DZ], [X0 + DX, ZB + DZ]];
+  g.rooms = g.rooms || [];
+  g.rooms.push({ kind: 'home', name: 'your apartment', ring, y0: Y1 - 0.3, y1: Y2 + 0.2, lights: [wp(-5.5, Y2 - 0.6, -67), wp(3, Y2 - 0.6, -70)], tint: 0xffd7a8, power: 16 });
+  g.rooms.push({ kind: 'home', name: 'the lobby', ring, y0: -1, y1: Y1 - 0.3, lights: [wp(0, Y1 - 0.8, -64), wp(0, Y1 - 0.8, -71)], tint: 0xffe0b8, power: 12 });
 
   // --- things you can pick up
   const P = g.props;

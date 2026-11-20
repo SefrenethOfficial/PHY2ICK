@@ -249,9 +249,30 @@ export class Car {
     vc.setWheelFrictionSlip(2, this.handbrake ? 0.75 : 2.0); vc.setWheelFrictionSlip(3, this.handbrake ? 0.75 : 2.0);
     this.throttle = throttle; this.braking = brake > 0.5;
     // a little downforce, so it sits flat at speed
-    this.body.resetForces(false); // (forces persist between steps: set it fresh each time)
+    this.body.resetForces(false); this.body.resetTorques(false); // (forces persist between steps: set them fresh each time)
     this.body.addForce(V(0, -1, 0).applyQuaternion(this.group.quaternion).multiplyScalar(spd * spd * 2.4), true);
+    this.floatInWater(h, throttle, steerIn);
     vc.updateVehicle(h, undefined, groups(G_CAR, G_WORLD | G_CAR)); // (the wheels ride on the road, not on people or loose things)
+  }
+
+  // in the water a car floats (bobbing, a bit nose-down), and you can putter about in it like a slow boat
+  floatInWater(h, throttle, steerIn) {
+    const g = this.g, wl = g.waterLevel; if (wl == null) return;
+    const t = this.body.translation();
+    const wet = t.y < wl + 1.0 && !(g.map?.inLand(t.x, t.z));
+    if (wet !== this.wet) { this.wet = wet; this.body.setLinearDamping(wet ? 1.2 : 0.02); this.body.setAngularDamping(wet ? 2.2 : 0.35); }
+    if (!wet) return;
+    const r = this.body.rotation(), q = new THREE.Quaternion(r.x, r.y, r.z, r.w), up = V(0, 1, 0);
+    for (const [x, z] of [[0.85, 1.9], [-0.85, 1.9], [0.85, -1.9], [-0.85, -1.9]]) {
+      const p = V(x, -0.25, z).applyQuaternion(q).add(V(t.x, t.y, t.z));
+      const depth = wl + Math.sin(performance.now() / 700 + x + z) * 0.05 - p.y;
+      if (depth > 0) this.body.addForceAtPoint({ x: 0, y: Math.min(depth, 1.2) * (z > 0 ? 8800 : 9600), z: 0 }, { x: p.x, y: p.y, z: p.z }, true);
+    }
+    if (this.driver && !g.wheel.open) { // an engine that's mostly a propeller now
+      const f = V(0, 0, 1).applyQuaternion(q).setY(0).normalize();
+      this.body.addForce({ x: f.x * throttle * 3200, y: 0, z: f.z * throttle * 3200 }, true);
+      this.body.addTorque({ x: 0, y: steerIn * 2400 * Math.sign(throttle || 1), z: 0 }, true);
+    }
   }
 
   frame(dt) {

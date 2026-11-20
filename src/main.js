@@ -48,7 +48,7 @@ class Game {
     this.loadTimes = { world: performance.now() - T0 };
     this.apt = buildApartment(this);
     this.city.finish();
-    for (const o of [this.water, this.fountainWater, this.sky]) if (o) o.userData.dynamic = true;
+    for (const o of [this.fountainWater, this.sky]) if (o) o.userData.dynamic = true;
     for (const c of this.cones || []) c.m.userData.dynamic = true;
     for (const s of this.weapons.slots) s.model.userData.dynamic = true;
     this.loadTimes.beforeBake = performance.now() - T0;
@@ -68,6 +68,9 @@ class Game {
     const lotCars = this.map.parked.filter(p => p[4] !== 'police').sort(() => Math.random() - 0.5).slice(0, 30);
     this.parkedCars = new ParkedCars(this, lotCars.concat(this.map.kerbside.sort(() => Math.random() - 0.5).slice(0, 70)));
     this.citizens = new Citizens(this, this.map, 40);
+    for (const w of this.workers || []) this.citizens.addWorker(w);
+    // two lights that follow you indoors (cheaper than a light in every room)
+    this.roomLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffe6c4, 0, 16, 1.5); this.scene.add(l); return l; });
     this.loadTimes.all = performance.now() - T0;
     this.wpBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 60, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
     this.wpBeam.visible = false; this.scene.add(this.wpBeam);
@@ -83,7 +86,7 @@ class Game {
     this.ao.blendIntensity = 0.85;
     comp.addPass(this.ao);
     comp.addPass(new OutputPass());
-    this.post = !/[?&]lowgfx/.test(location.search);
+    this.post = /[?&]hq/.test(location.search); // (fast by default; P, or ?hq, for ambient occlusion)
 
     this.bindInput();
     addEventListener('resize', () => { this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); r.setSize(innerWidth, innerHeight); comp.setSize(innerWidth, innerHeight); });
@@ -179,6 +182,18 @@ class Game {
     car.body.setLinvel({ x: 0, y: 0, z: 0 }, true); car.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
   }
 
+  // which room (if any) a point is in
+  roomAt(p) {
+    for (const r of this.rooms || []) { if (p.y < r.y0 || p.y > r.y1) continue; const ring = r.ring; let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, zi] = ring[i], [xj, zj] = ring[j]; if ((zi > p.z) !== (zj > p.z) && p.x < ((xj - xi) * (p.z - zi)) / (zj - zi) + xi) c = !c; } if (c) return r; }
+    return null;
+  }
+
+  // the water level here, if there's water here (the sea, or a pool)
+  waterAt(x, z) {
+    for (const pool of this.pools || []) { const ring = pool.ring; let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, zi] = ring[i], [xj, zj] = ring[j]; if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) c = !c; } if (c) return pool.level; }
+    return this.map.inLand(x, z) ? null : this.waterLevel;
+  }
+
   setWaypoint(place) { this.waypoint = place; this.wpBeam.position.copy(place.pos).setY(30); this.wpBeam.visible = true; this.hud.toast('Waypoint: ' + place.name, '#ffd23f'); }
   clearWaypoint(arrived) { if (arrived && this.waypoint) this.hud.toast('You\'ve arrived at ' + this.waypoint.name, '#ffd23f'); this.waypoint = null; this.wpBeam.visible = false; }
 
@@ -242,11 +257,14 @@ class Game {
     // the sun's shadows follow you
     const focus = pl.car ? pl.car.pos : pl.pos;
     this.sun.position.copy(focus).addScaledVector(this.sunDir, 160); this.sun.target.position.copy(focus); this.sun.target.updateMatrixWorld();
-    // indoors, the sky's light is mostly kept out: let the room's own lamps do the work
-    const inside = !pl.car && this.apt.inside(pl.pos.add(V(0, 1, 0)));
+    // indoors, the sky's light is mostly kept out: the room's own lights do the work
+    const room = this.roomAt(pl.car ? pl.car.pos : pl.pos.add(V(0, 1, 0)));
+    for (let i = 0; i < 2; i++) { const L = this.roomLights[i], pt = room?.lights[i] || room?.lights[0]; L.intensity = room && pt ? (room.power ?? 18) * (room.kind === 'club' ? 0.7 + 0.3 * Math.sin(performance.now() / 160 + i * 2) : 1) : 0; if (pt) { L.position.copy(pt); L.color.set(room.kind === 'club' ? [0xff4fd8, 0x4fd8ff][i] : room.tint); } }
+    for (const a of this.animators || []) a(performance.now() / 1000);
+    const inside = !!room;
     const envT = inside ? 0.3 : 0.75;
     this.scene.environmentIntensity += (envT - this.scene.environmentIntensity) * Math.min(1, rdt * 3);
-    if (this.water) { this.water.material.normalMap.offset.x += rdt * 0.004; this.water.material.normalMap.offset.y += rdt * 0.0025; }
+    if (this.water) this.water.update(rdt, this.camera);
     if (this.fountainWater) this.fountainWater.position.y = 0.45 + Math.sin(performance.now() / 600) * 0.01;
     this.hud.frame(rdt);
     if (pl.car && this.cam.mode === 'cockpit') pl.car.renderMirror(this.renderer, this.scene);

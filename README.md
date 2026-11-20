@@ -16,6 +16,14 @@ It's a **dense** city, not an open one: every gap between the places on the map 
 - **Downtown**: A Rival Mini Mart, the Indoor Pool, a row of shops, Mini Mart, Visitor Info, **Town Square** (a stone plaza with a statue, trees, benches and lamps), the Pawn Shop and the Grocery (with an alley between them), the **Diner** (long, red, chrome, a neon sign) and its car park.
 - **The south**: the Spa, **Fairview Heights** (where you live), the Convenience Store, the **construction site** (a half-built multi-storey car park you can drive or climb up, a crane, scaffolding, site hoarding), the **abandoned car park** (broken, graffitied, a burnt-out car), **Albuquerque Boiled Turkey** (with a drive-thru window and menu board on the loop road round it), its car park, the hedge, and the beach's washrooms, reception and car park.
 
+### Inside
+Walk in through the front door of most places: there's a real room behind it, lit, furnished, with someone working there you can talk to.
+- **Shops** (both Mini Marts, the Convenience Store, the Grocery, the Game Shop, both Home Improvements, Cheap House): aisles of stock, fridges along the back, a till and a shopkeeper. **The Pawn Shop**: glass cases, guitars on the wall, a man who's seen it all.
+- **The Diner**: checkerboard floor, booths along the windows, a counter with stools, a jukebox.
+- **The Coffee Store**: counter, tables, and a stair up to the **Detective Office** upstairs: a desk, filing cabinets, and a corkboard of photos joined with red string (PRATT, MERIDIAN, DOCKS 3AM, WHO PAID?). The detective is in.
+- **The Nightclub**: a dance floor that lights up to the beat, a bar, a DJ booth, booths. **The Indoor Pool**: a deck, lanes, a lifeguard, and water you can swim in.
+- **Lobbies** with a front desk: the **Hospital**, the **Police Station** (a wanted board), **Putin's Ritz** (marble, a chandelier, a red carpet), **Paul Badfella's** (bookshelves, carpet), the **Spa**. Restaurants: **City Wok** and **Albuquerque Boiled Turkey**.
+
 ### Home: Fairview Heights
 You start in your apartment: a loft on the first floor of your building at **Fairview Heights**, on the south avenue. Real windows look out over the street. There's a living room (sofa, TV showing Channel 6, a rug, a lamp), a kitchen with a dining table, a bed, moving boxes still stacked by the stair, and a stair down to the lobby and out the front door. Your car's parked outside.
 
@@ -48,6 +56,8 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - Doors, handles, side mirrors, headlights, tail lights that brighten when you brake, reversing lights, number plates.
 - Cars hit people: they get knocked down, then (depending on how brave they are) come after you or run. Drive at you and you'll be knocked flat too.
 - `R` puts a flipped car back on its wheels.
+- **Cars float.** Drive off the sea wall and the car bobs on the water; you can still (slowly) motor about and steer like a boat. The bridge over the inlet is solid to drive and walk on.
+- **Parked cars** line the kerbs and fill the car parks: press `F` by one to get in.
 
 ## Controls
 
@@ -64,7 +74,7 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 | `C` | inside view / chase camera |
 | `R` | flip the car back over |
 | `H` | hide the controls |
-| `P` | graphics: high (ambient occlusion) / fast |
+| `P` | graphics: fast (the default) / high (ambient occlusion); add `?hq` to the address to start on high |
 | Mouse | look |
 
 ## Running it
@@ -87,6 +97,8 @@ src/
   city.js       builds the island from the map: land, sea, beach, pier, roads, sidewalks, bridges, every place
   bake.js       merges everything that doesn't move into a few big meshes (fewer draw calls)
   parked.js     the parked cars: drawn in bulk, turned into real cars when you get in
+  interior.js   rooms behind the front doors: the shell, the furniture for each kind of place, the people working there
+  water.js      the sea: rolling waves, sliding ripples, the sky reflected
   buildings.js  building facades: windows, shopfronts, awnings, signs, balconies, cornices, rooftops
   apartment.js  your building at Fairview Heights: the lobby, the stair, your apartment, its things
   props.js      loose things: picking up, carrying, dropping, throwing

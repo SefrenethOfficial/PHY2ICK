@@ -1,7 +1,7 @@
 // Citizens: people who wander the park, sit on benches, and remember how you treated them.
 import * as THREE from 'three';
 import { Human, randomLook } from './character.js';
-import { G_WORLD, G_PED, groups } from './world.js';
+import { G_WORLD, G_CAR, G_PED, G_PROP, groups } from './world.js';
 import { Ragdoll } from './ragdoll.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -29,6 +29,10 @@ export class Citizens {
   constructor(g, map, n = 16) {
     this.g = g; this.map = map;
     this.list = [];
+    // one character controller moves everyone: they bump into walls, step up kerbs, keep to the ground
+    this.cc = g.world.createCharacterController(0.03);
+    this.cc.enableAutostep(0.45, 0.25, true); this.cc.enableSnapToGround(0.5);
+    this.cc.setMaxSlopeClimbAngle(50 * Math.PI / 180); this.cc.setApplyImpulsesToDynamicBodies(true);
     for (let i = 0; i < n; i++) this.spawn(NAMES[i % NAMES.length]);
   }
 
@@ -59,6 +63,14 @@ export class Citizens {
     };
     npc.target = this.randomPoint(p);
     this.list.push(npc);
+  }
+
+  // someone who works somewhere: stands at their post, says their own lines
+  addWorker(w) {
+    this.spawn(NAMES[Math.floor(Math.random() * NAMES.length)]);
+    const n = this.list[this.list.length - 1];
+    n.body.setTranslation({ x: w.pos.x, y: w.pos.y + CENTRE + 0.05, z: w.pos.z }, true);
+    n.state = 'post'; n.home = w.pos.clone(); n.homeYaw = w.yaw; n.yaw = w.yaw; n.lines = w.lines; n.role = w.role; n.mood = 30; n.target = null;
   }
 
   pos(n) { const t = n.body.translation(); return V(t.x, t.y - CENTRE, t.z); }
@@ -105,6 +117,9 @@ export class Citizens {
           break;
         case 'idle': case 'talk':
           if (n.stateT <= 0) this.wander(n);
+          break;
+        case 'post': // (at work: back to their spot if they've drifted)
+          if (Math.hypot(n.home.x - p.x, n.home.z - p.z) > 0.5) { goal = n.home; spd = 1.2; }
           break;
         case 'follow':
           if (pl.car) { // get in with you
@@ -167,14 +182,18 @@ export class Citizens {
   }
 
   move(n, p, vel, h) {
-    const nx = p.x + vel.x * h, nz = p.z + vel.z * h;
-    const gy = n.state === 'sit' ? p.y : this.groundAt(nx, nz, p.y + 1.2);
-    const y = p.y + (gy - p.y) * Math.min(1, h * 15);
-    n.body.setNextKinematicTranslation({ x: nx, y: y + CENTRE, z: nz });
-    n.speed = Math.hypot(vel.x, vel.z);
+    if (n.state === 'sit') { n.body.setNextKinematicTranslation({ x: p.x + vel.x * h, y: p.y + CENTRE, z: p.z + vel.z * h }); n.speed = 0; return; }
+    n.vy = (n.vy || 0) - 18 * h;
+    this.cc.computeColliderMovement(n.col, { x: vel.x * h, y: n.vy * h, z: vel.z * h }, undefined, groups(G_PED, G_WORLD | G_CAR | G_PED | G_PROP));
+    const m = this.cc.computedMovement();
+    if (this.cc.computedGrounded()) n.vy = 0;
+    const t = n.body.translation();
+    if (t.y < -20) { const q = this.randomPoint(); n.body.setTranslation({ x: q.x, y: q.y + CENTRE + 0.1, z: q.z }, true); return; } // (fell out of the world)
+    n.body.setNextKinematicTranslation({ x: t.x + m.x, y: t.y + m.y, z: t.z + m.z });
+    n.speed = Math.hypot(m.x, m.z) / h;
   }
 
-  wander(n) { n.state = n.following ? 'follow' : 'wander'; n.target = this.randomPoint(this.pos(n)); n.stateT = 0; }
+  wander(n) { if (n.home && !n.following) { n.state = 'post'; return; } n.state = n.following ? 'follow' : 'wander'; n.target = this.randomPoint(this.pos(n)); n.stateT = 0; }
 
   board(n, car) {
     n.state = 'seated'; car.passenger = n; n.col.setEnabled(false);
@@ -203,6 +222,7 @@ export class Citizens {
       if (n.speed > 0.3) face = Math.atan2(n.vel.x, n.vel.z);
       if (['talk', 'angry'].includes(n.state) || (g.wheel.open && g.wheel.target === n)) { const q = pl.pos; face = Math.atan2(q.x - p.x, q.z - p.z); }
       if (n.state === 'sit') face = n.yaw;
+      if (n.state === 'post' && n.speed < 0.3 && !(g.wheel.open && g.wheel.target === n)) face = n.homeYaw;
       if (face !== null) { let d = face - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 8); }
       H.root.rotation.y = n.yaw;
       if (n.state === 'sit') { H.root.position.y = p.y - 0.42 * H.rig.scale.y; H.root.position.addScaledVector(V(Math.sin(n.yaw), 0, Math.cos(n.yaw)), -0.05); }
@@ -247,6 +267,7 @@ export class Citizens {
         else if (m.gifts > 0 && Math.random() < 0.4) line = "Hey, it's the twenty-dollar guy! What's up?";
         else if (m.insults > 0 && n.mood < 10) line = "Oh. It's you again. What now?";
         else if (m.talks >= 3 && Math.random() < 0.4) line = 'You again! People are going to talk.';
+        else if (n.lines) line = (!m.met ? `I'm ${n.name}. ` : '') + pick(n.lines);
         else if (!m.met) line = `Hi. I'm ${n.name}. ` + (n.gossip.length ? n.gossip.pop() : pick(SMALL));
         else line = (n.gossip.length && Math.random() < 0.7) ? n.gossip.pop() : pick(SMALL);
         m.met = true; this.say(n, line); m.talks++; n.mood += hostile ? 0 : 3; stay();
