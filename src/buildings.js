@@ -215,7 +215,7 @@ export class CityBuilder {
         const awnC = [0x7a2a24, 0x24506e, 0x2d5a3a, 0x6e5a24, 0x3a3a3a][Math.floor(r() * 5)];
         this.faceBox(T, F, 0, 3.55, 0.75, sw, 0.07, 1.5, awnC, 0.32);
         this.faceBox(T, F, 0, 3.27, 1.45, sw, 0.3, 0.04, awnC);
-        this.signs.push({ F, u: 0, y: 3.95, w: Math.min(sw * 0.7, sign ? Math.max(7, sign.length * 0.55) : 7), name: sign ?? SHOPS[Math.floor(r() * SHOPS.length)], colors: signColors });
+        this.signs.push({ F, u: 0, y: 3.4, out: 1.49, h: 0.62, w: Math.min(sw * 0.8, Math.max(4, (sign ?? 'SHOP NAME HERE').length * 0.36 + 1)), name: sign ?? SHOPS[Math.floor(r() * SHOPS.length)], colors: signColors }); // (on the front of the awning: clear of the roof, the windows and the awning itself)
       } else if (shop) {
         const sw = F.len - 1.6;
         this.faceBox(G, F, 0, 1.75, 0.03, sw, 2.7, 0.04, 0x5a6a74);
@@ -229,7 +229,7 @@ export class CityBuilder {
         this.faceBox(T, F, 0, 3.55, 0.75, sw, 0.07, 1.5, awnC, 0.32);
         this.faceBox(T, F, 0, 3.27, 1.45, sw, 0.3, 0.04, awnC);
         // the sign
-        this.signs.push({ F, u: 0, y: 3.95, w: Math.min(sw * 0.7, sign ? Math.max(7, sign.length * 0.55) : 7), name: sign ?? SHOPS[Math.floor(r() * SHOPS.length)], colors: signColors });
+        this.signs.push({ F, u: 0, y: 3.4, out: 1.49, h: 0.62, w: Math.min(sw * 0.8, Math.max(4, (sign ?? 'SHOP NAME HERE').length * 0.36 + 1)), name: sign ?? SHOPS[Math.floor(r() * SHOPS.length)], colors: signColors }); // (on the front of the awning: clear of the roof, the windows and the awning itself)
       }
       if (entrance === F.key) { // a front door with a canopy and a number
         if (!roomHere) { this.faceBox(T, F, 0, 2.62, 0.06, 2.0, 0.16, 0.14, frameC); for (const sx of [-1, 1]) this.faceBox(T, F, sx * 0.92, 1.3, 0.06, 0.16, 2.6, 0.14, frameC); }
@@ -322,8 +322,8 @@ export class CityBuilder {
         // the sign, from the atlas
         const bgs = ['#1d2a38', '#2b1d1d', '#f1ebe0', '#1f3324', '#3a2f1d', '#2a2a30'], bg = bgs[Math.floor(r() * bgs.length)];
         const uv = this.atlas.add(shop, bg, bg === '#f1ebe0' ? '#7a2a24' : '#f1dfa8');
-        const sw2 = Math.min(sw * 0.75, 7), sh = sw2 * 48 / 256;
-        const cx = F.cx + F.nx * 0.09, cz = F.cz + F.nz * 0.09, y = 3.85;
+        const sw2 = Math.min(sw * 0.75, 3.4), sh = sw2 * 48 / 256;
+        const cx = F.cx + F.nx * 1.43, cz = F.cz + F.nz * 1.43, y = 3.3 + sh / 2 - 0.12; // (standing on the awning's front edge)
         const ux = F.ux, uz = F.uz;
         const pts = [[cx - ux * sw2 / 2, y - sh / 2, cz - uz * sw2 / 2], [cx + ux * sw2 / 2, y - sh / 2, cz + uz * sw2 / 2], [cx + ux * sw2 / 2, y + sh / 2, cz + uz * sw2 / 2], [cx - ux * sw2 / 2, y + sh / 2, cz - uz * sw2 / 2]];
         this.atlasQuads.push({ pts, uv });
@@ -354,14 +354,15 @@ export class CityBuilder {
     mk(this.glass, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.08, metalness: 0.55, emissive: 0x151a1e }), false);
     // shop signs (each its own little texture)
     for (const s of this.signs) {
-      const t = tex(512, 96, (c, w, h) => {
+      const sh = s.h ?? s.w * 96 / 512, cw = Math.min(1024, Math.max(256, Math.round(96 * s.w / sh / 32) * 32));
+      const t = tex(cw, 96, (c, w, h) => {
         const bgs = ['#1d2a38', '#2b1d1d', '#f1ebe0', '#1f3324', '#3a2f1d'], bg = s.colors?.[0] ?? (s.plain ? '#e9e4da' : bgs[Math.floor(Math.random() * bgs.length)]);
         c.fillStyle = bg; c.fillRect(0, 0, w, h);
-        c.fillStyle = s.colors?.[1] ?? (bg === '#f1ebe0' || s.plain ? '#7a2a24' : '#f1dfa8'); c.font = 'bold 56px "Arial Narrow", Arial'; const fw = c.measureText(s.name).width; if (fw > 480) c.font = `bold ${Math.floor(56 * 480 / fw)}px "Arial Narrow", Arial`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(s.name, w / 2, h / 2 + 3);
+        c.fillStyle = s.colors?.[1] ?? (bg === '#f1ebe0' || s.plain ? '#7a2a24' : '#f1dfa8'); c.font = 'bold 56px "Arial Narrow", Arial'; const fw = c.measureText(s.name).width; if (fw > w - 32) c.font = `bold ${Math.floor(56 * (w - 32) / fw)}px "Arial Narrow", Arial`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(s.name, w / 2, h / 2 + 3);
       });
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(s.w, s.w * 96 / 512), new THREE.MeshStandardMaterial({ map: t, roughness: 0.6, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.15 }));
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(s.w, sh), new THREE.MeshStandardMaterial({ map: t, roughness: 0.6, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.15 }));
       const F = s.F;
-      m.position.set(F.cx + F.ux * s.u + F.nx * 0.09, s.y, F.cz + F.uz * s.u + F.nz * 0.09);
+      const out = s.out ?? 0.09; m.position.set(F.cx + F.ux * s.u + F.nx * out, s.y, F.cz + F.uz * s.u + F.nz * out);
       m.rotation.y = Math.atan2(F.nx, F.nz);
       g.scene.add(m);
     }

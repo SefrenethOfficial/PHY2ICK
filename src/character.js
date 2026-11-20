@@ -249,40 +249,49 @@ export class Human {
       set('hipL', -0.7 - up * 0.2); set('kneeL', 1.0); set('ankleL', 0.2); set('hipR', -0.15); set('kneeR', 0.5 + up * 0.3); set('ankleR', 0.1);
       set('shoulderL', -0.4, 0, 0.55); set('elbowL', -0.6); set('wristL'); set('shoulderR', 0.3, 0, -0.55); set('elbowR', -0.5); set('wristR');
     } else {
-      // walking / running: a gait driven by speed
-      const walk = Math.min(spd / 1.5, 1), run = THREE.MathUtils.clamp((spd - 2) / 3.5, 0, 1);
-      if (spd > 0.15) this.phase += dt * (4.4 + 1.3 * spd);
-      else this.phase += dt * 0.5 * Math.sign(Math.sin(this.phase) || 1) * 0; // (feet settle)
-      const p = this.phase, amp = walk * 0.42 + run * 0.5;
+      // walking / running: a long, loose stride (heel strike on a nearly straight knee, the knee folds through
+      // the swing, the foot rolls off the toes), hips that sway and turn, shoulders that turn against them,
+      // relaxed arms that swing a little across the body; running leans in, drives the knees and pumps the arms
+      const walk = Math.min(spd / 1.4, 1), run = THREE.MathUtils.clamp((spd - 2.2) / 3.3, 0, 1), still = 1 - walk;
+      if (spd > 0.12) this.phase += dt * (3.5 + 1.0 * Math.min(spd, 7));
+      const p = this.phase, amp = walk * 0.5 + run * 0.32;
       const sinP = Math.sin(p), cosP = Math.cos(p);
-      hipsY = 0.95 - walk * 0.012 - run * 0.04 + Math.cos(2 * p) * (0.012 * walk + 0.025 * run);
-      const breathe = Math.sin(this.t * 1.7) * 0.015 * (1 - walk);
-      set('hips', 0, sinP * 0.08 * amp, 0);
-      set('spine', 0.04 + run * 0.18 + breathe, -sinP * 0.14 * amp, 0);
-      set('chest', breathe * 0.5, 0, 0);
-      set('neck', -run * 0.1); set('head', -run * 0.08, this.lookYaw, 0);
+      hipsY = 0.95 - walk * 0.02 - run * 0.05 + Math.cos(2 * p) * (0.018 * walk + 0.03 * run);
+      const breathe = Math.sin(this.t * 1.7) * 0.015 * still, carry = s.carry === 'big' ? 1 : 0;
+      this.hipsX = -cosP * 0.022 * walk * (1 - run); // (the weight goes over the standing leg)
+      set('hips', 0, sinP * 0.16 * amp, -Math.cos(2 * p) * 0.035 * walk * (1 - run) * Math.sign(cosP || 1) * 0);
+      set('spine', 0.05 + walk * 0.03 + run * 0.22 - carry * 0.08 + breathe, -sinP * 0.2 * amp, sinP * 0.03 * walk);
+      set('chest', breathe * 0.5, -sinP * 0.12 * amp * (1 - carry), 0);
+      set('neck', -run * 0.12); set('head', -run * 0.1 + 0.02 * walk, this.lookYaw + sinP * 0.1 * amp, 0);
       for (const [k, sg] of [['L', -1], ['R', 1]]) {
-        const th = sg * sinP * amp;                                      // thigh swing (- is forward)
-        const swing = Math.max(0, -sg * cosP);                          // this leg is swinging forward
-        const kn = 0.06 + swing * (0.55 * walk + 0.9 * run) + run * 0.25;
-        set('hip' + k, th - run * 0.08, 0, (k === 'L' ? 1 : -1) * 0.02);
+        const q = sg < 0 ? p : p + Math.PI, sq = Math.sin(q), cq = Math.cos(q);           // this leg's own phase: forward-most at q = π/2
+        const th = -sq * amp - run * 0.12 - Math.max(0, cq) * run * 0.35;                // thigh (- is forward); runners lift the knee through
+        const swing = Math.pow(Math.max(0, cq), 1.4);                                     // folding through the swing
+        const load = Math.max(0, -cq) * (0.12 * walk + 0.3 * run);                        // a little give on the standing leg
+        const kn = 0.04 + swing * (0.85 * walk + 1.5 * run) + load;
+        const heel = Math.pow(Math.max(0, sq), 6) * 0.22 * walk;                          // toes up as the heel lands
+        const push = Math.pow(Math.max(0, -Math.sin(q + 0.5)), 5) * (0.35 * walk + 0.25 * run); // rolling off the toes
+        set('hip' + k, th, -sg * 0.04 * walk, (k === 'L' ? 1 : -1) * 0.025);
         set('knee' + k, kn);
-        set('ankle' + k, -(th + kn) * 0.45 + 0.05);
+        set('ankle' + k, -(th + kn) * 0.85 + kn * 0.1 - heel + push);
       }
-      // arms counter-swing; elbows bend more when running
-      const idleSway = Math.sin(this.t * 0.9) * 0.03 * (1 - walk);
-      set('shoulderL', sinP * amp * 0.75 + idleSway, 0, 0.08 + run * 0.1);
-      set('shoulderR', -sinP * amp * 0.75 - idleSway, 0, -0.08 - run * 0.1);
-      set('elbowL', -0.12 - run * 1.25 - walk * 0.15); set('elbowR', -0.12 - run * 1.25 - walk * 0.15);
-      set('wristL'); set('wristR');
+      // arms: against the legs, elbows soft when walking, bent and pumping when running
+      const idleSway = Math.sin(this.t * 0.9) * 0.03 * still, armA = amp * (0.85 + run * 0.6);
+      const aL = sinP * armA + idleSway, aR = -sinP * armA - idleSway;
+      set('shoulderL', aL, 0, 0.07 + run * 0.12 - Math.max(0, -aL) * 0.25 * walk);
+      set('shoulderR', aR, 0, -0.07 - run * 0.12 + Math.max(0, -aR) * 0.25 * walk);
+      set('elbowL', -0.18 - walk * 0.12 - Math.max(0, -aL) * 0.45 * walk - run * 1.25); set('elbowR', -0.18 - walk * 0.12 - Math.max(0, -aR) * 0.45 * walk - run * 1.25);
+      set('wristL', 0, 0, -0.1); set('wristR', 0, 0, 0.1);
       // talking hands, and a wave
       if (s.talking && spd < 0.3) {
         const g1 = Math.sin(this.t * 3.1) * 0.5 + 0.5, g2 = Math.sin(this.t * 2.3 + 1) * 0.5 + 0.5;
         set('shoulderR', -0.35 - g1 * 0.25, 0, -0.15); set('elbowR', -0.9 - g2 * 0.4, 0.3);
         set('shoulderL', -0.1 - g2 * 0.15, 0, 0.12); set('elbowL', -0.5 - g1 * 0.3);
       }
-      if (s.carry) { set('shoulderL', -1.0, 0, -0.25); set('elbowL', -0.7); set('shoulderR', -1.0, 0, 0.25); set('elbowR', -0.7); }
-      else if (s.weapon && s.attack == null) { set('elbowR', -0.55 - run * 0.9, 0, 0); set('wristR', 0.2); }
+      if (s.carry === 'small') { set('shoulderR', -0.3, 0, 0.02); set('elbowR', -1.25, -0.1, 0); set('wristR', 0, 0, 0.2); } // (in the right hand, held out a little)
+      else if (s.carry) { // both hands under and round the thing, forearms level, close to the chest
+        set('shoulderL', -0.38, 0, -0.04); set('elbowL', -1.32, 0.15, 0); set('wristL', 0.1, 0, 0.35); set('shoulderR', -0.38, 0, 0.04); set('elbowR', -1.32, -0.15, 0); set('wristR', 0.1, 0, -0.35); }
+      else if (s.weapon && s.attack == null) { set('shoulderR', -0.18 - run * 0.3 + Math.sin(p) * 0.15 * walk, 0, -0.12); set('elbowR', -0.6 - run * 0.8, 0, 0); set('wristR', 0.25); } // (held ready at the side; it swings less)
       if (s.attack != null) { // a swing: wind up over the shoulder, then chop down and across
         const a = s.attack, up = a < 0.4 ? a / 0.4 : 1 - Math.min(1, (a - 0.4) / 0.25);
         set('shoulderR', -0.7 - up * 1.9, 0, -0.25 - up * 0.3); set('elbowR', -0.25 - up * 1.0, 0, 0); set('wristR', 0.6 - up * 0.9);
@@ -305,6 +314,7 @@ export class Human {
     this.cur.hipsY = (this.cur.hipsY ?? hipsY) + (hipsY - (this.cur.hipsY ?? hipsY)) * k;
     B.hips.position.y = this.cur.hipsY;
     B.hips.position.z = hipsZ;
+    this.cur.hipsX = (this.cur.hipsX ?? 0) + ((this.hipsX || 0) - (this.cur.hipsX ?? 0)) * k; B.hips.position.x = this.cur.hipsX; this.hipsX = 0;
     this.cur.tilt = (this.cur.tilt ?? 0) + (rootTilt - (this.cur.tilt ?? 0)) * (1 - Math.exp(-dt * 8));
     this.rig.rotation.x = this.cur.tilt;
   }

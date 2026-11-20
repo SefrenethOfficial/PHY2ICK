@@ -19,7 +19,8 @@ export class Props {
     const col = world.createCollider(desc.setFriction(0.7).setCollisionGroups(groups(G_PROP, 0xffff)), body);
     mesh.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
     mesh.userData.dynamic = true; scene.add(mesh);
-    const p = { mesh, body, col, name };
+    const bb = new THREE.Box3().setFromObject(mesh), sz = bb.getSize(new THREE.Vector3());
+    const p = { mesh, body, col, name, size: sz };
     this.list.push(p); this.byCollider.set(col.handle, p);
     this.sync(p);
     return p;
@@ -78,7 +79,11 @@ export class Props {
     // carry it in front of you, a little to the right
     const dir = new THREE.Vector3(); g.camera.getWorldDirection(dir);
     const flat = V(dir.x, 0, dir.z).normalize();
-    const target = pl.pos.add(V(0, 1.15 + THREE.MathUtils.clamp(dir.y, -0.6, 0.6) * 0.6, 0)).addScaledVector(flat, 0.85).add(V(flat.z, 0, -flat.x).multiplyScalar(-0.15));
+    const r = Math.min(0.35, Math.max(p.size.x, p.size.z) / 2), small = this.small = Math.max(p.size.x, p.size.y, p.size.z) < 0.3;
+    const sc = pl.human.rig.scale.y, right = V(-flat.z, 0, flat.x);
+    const target = small // (small things in the right hand; big ones against the chest, between both hands)
+      ? pl.pos.add(V(0, 1.13 * sc, 0)).addScaledVector(flat, 0.48 * sc).addScaledVector(right, 0.18 * sc)
+      : pl.pos.add(V(0, 1.12 * sc + THREE.MathUtils.clamp(dir.y, -0.6, 0.6) * 0.12, 0)).addScaledVector(flat, 0.3 + r);
     const t = p.body.translation();
     const dv = target.sub(V(t.x, t.y, t.z));
     if (dv.length() > 2.5) { this.drop(false); return; } // (snagged on something)

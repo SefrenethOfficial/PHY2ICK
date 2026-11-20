@@ -18,7 +18,7 @@ It's a **dense** city, not an open one: every gap between the places on the map 
 
 ### Inside
 Walk in through the front door of most places: there's a real room behind it, lit, furnished, with someone working there you can talk to.
-- **Shops** (both Mini Marts, the Convenience Store, the Grocery, the Game Shop, both Home Improvements, Cheap House): aisles of stock, fridges along the back, a till and a shopkeeper. **The Pawn Shop**: glass cases, guitars on the wall, a man who's seen it all.
+- **Shops** (both Mini Marts, the Convenience Store, the Grocery, the Game Shop, both Home Improvements, Cheap House): proper gondola shelving (plinths, end panels, price strips, hanging aisle signs) stocked with rows of products (cereal boxes, cans, bottles, bags, game cases, paint tins, depending on the shop); glass-door **fridges and freezers** along the back with lit shelves of drinks and frozen food; an open **chest freezer** by the window; the till with a scratchies stand, and a back counter behind the shopkeeper (tobacco and lotto, pre-orders, key cutting…). **The Pawn Shop**: glass cases, guitars on the wall, a man who's seen it all.
 - **The Diner**: checkerboard floor, booths along the windows, a counter with stools, a jukebox.
 - **The Coffee Store**: counter, tables, and a stair up to the **Detective Office** upstairs: a desk, filing cabinets, and a corkboard of photos joined with red string (PRATT, MERIDIAN, DOCKS 3AM, WHO PAID?). The detective is in.
 - **The Nightclub**: a dance floor that lights up to the beat, a bar, a DJ booth, booths. **The Indoor Pool**: a deck, lanes, a lifeguard, and water you can swim in.
@@ -33,13 +33,15 @@ You start in your apartment: a loft on the first floor of your building at **Fai
 ### Moving about
 - **Swimming**: go into the water and you swim (front crawl when moving, treading water when still). `Space` at a low edge pulls you out.
 - **Vaulting**: `Space` in front of something low (a fence, a wall, a bench) and you vault it.
+- **The walk**: a long, loose stride: the heel lands on a nearly straight knee, the knee folds through the swing, the foot rolls off the toes; the hips sway and turn, the shoulders turn against them, the arms swing a little across the body. Running leans in, drives the knees and pumps the arms.
+- **Carrying**: small things (a mug, a bottle) in your right hand; big things against your chest in both hands.
 
 ### People
 - **Built like the first game's people, with more parts.** Blocks for the pelvis, belly and chest, upper arms, forearms, hands (with a thumb), thighs, shins and shoes on soles, with round shoulders, elbows and knees between them; short or long sleeves, a belt. A round head with **just eyes and eyebrows**: no nose, no ears, no mouth.
 - **Faces that change.** The eyes and brows have their own little bones: people look happy when you give them money or compliment them, angry when they come after you, annoyed or sad when you insult them, surprised when a car nearly hits them, scared when they run, screw their eyes up when they're knocked down, and close them for good when they die. Everyone blinks, and their brows move when they talk.
 - **Proper hair**: short, side-parted, swept, buzz, curly, a big afro, long, a bob, a bun, a ponytail, or bald.
 - **Animated from a skeleton.** Every person has a joint rig (hips, spine, chest, neck, head, shoulders, elbows, wrists, hips, knees, ankles) and a gait driven by speed: a walk blends into a run, arms swing against the legs, the body bobs and leans, knees bend on the swing. They breathe when standing, gesture when they talk, turn their heads to look at you, sit on benches, point when giving directions, and sit properly in cars with their hands on the wheel. Each person is a single mesh (one draw call).
-- **Citizens** wander the park, stop, sit on benches, step round each other, and jump out of the way of cars coming at them. Each has a name, a **mood** and a **memory** of you: how often you've talked, given them money, complimented or insulted them, or run them over.
+- **Citizens** keep to the sidewalks, walking along beside the road; at a corner they turn or cross. Before crossing they stop at the kerb, **look left, right and left again**, and wait until nothing's coming. Now and then they cross over mid-block, stop for a moment, sit on a bench, or **go shopping**: in through the door, along an aisle to look at the shelves, to the till to pay (the shopkeeper says something back), and out again. They step round each other and jump out of the way of cars coming at them. Each has a name, a **mood** and a **memory** of you: how often you've talked, given them money, complimented or insulted them, or run them over.
 
 ### The interaction wheel
 Walk up to someone and **hold `E`**. Time slows down and a wheel opens with their name (once you've met) and how they feel about you:
@@ -58,6 +60,7 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - Doors, handles, side mirrors, headlights, tail lights that brighten when you brake, reversing lights, number plates.
 - Cars hit people: they get knocked down, then (depending on how brave they are) come after you or run. Drive at you and you'll be knocked flat too.
 - `R` puts a flipped car back on its wheels.
+- **Get out at any speed.** Press `F` while moving and you throw yourself out: you tumble along the road (it hurts more the faster you were going) and the car rolls on without you.
 - **Cars float.** Drive off the sea wall and the car bobs on the water; you can still (slowly) motor about and steer like a boat. The bridge over the inlet is solid to drive and walk on.
 - **Parked cars** line the kerbs and fill the car parks: press `F` by one to get in.
 
@@ -114,7 +117,7 @@ src/
   player.js     you: Rapier's character controller (steps, slopes), walking, running, jumping
   camera.js     over-the-shoulder camera, chase camera, the inside view
   car.js        the car: raycast-vehicle physics, the body and cabin, gauges, the mirror
-  citizens.js   people in the park: wandering, benches, moods, memory, what they say
+  citizens.js   people: walking the sidewalks, crossing roads, shopping, benches, moods, memory, what they say
   wheel.js      the interaction wheel
   hud.js        money, health, the minimap, prompts, messages, speech bubbles, the waypoint, the speedo
   style.css     the HUD and the title screen

@@ -114,7 +114,7 @@ export class Player {
       H.root.position.y = wl - 1.45 + mv * 1.05;
       H.root.position.x -= Math.sin(this.yaw) * mv * 0.9; H.root.position.z -= Math.cos(this.yaw) * mv * 0.9;
     }
-    H.update(dt, { speed: this.speed, grounded: this.grounded || this.swimming, vy: this.vy, pose: this.swimming ? 'swim' : 'stand', talking: this.talkT > 0, weapon: !!W.held, attack: W.attackPhase, carry: !!this.g.props.held });
+    H.update(dt, { speed: this.speed, grounded: this.grounded || this.swimming, vy: this.vy, pose: this.swimming ? 'swim' : 'stand', talking: this.talkT > 0, weapon: !!W.held, attack: W.attackPhase, carry: this.g.props.held ? (this.g.props.small ? 'small' : 'big') : null });
     this.talkT = Math.max(0, (this.talkT || 0) - dt);
   }
 
@@ -198,6 +198,26 @@ export class Player {
     this.vel.set(0, 0, 0);
     car.seatPerson(this.human, seat);
     car.driver = this;
+  }
+
+  // getting out at speed: you throw the door open and go, and the road does the rest
+  bailOut() {
+    const car = this.car; if (!car) return;
+    const g = this.g, lv = car.body.linvel(), spd = Math.hypot(lv.x, lv.z);
+    this.exitCar();
+    const p = this.pos, side = new THREE.Vector3(p.x - car.pos.x, 0, p.z - car.pos.z).normalize();
+    const H = this.human;
+    H.resetPose(); H.root.position.copy(p); H.root.rotation.set(0, this.yaw, 0);
+    H.update(1 / 60, { speed: 0, grounded: false, vy: -1, pose: 'stand' }); H.root.updateMatrixWorld(true);
+    const v = new THREE.Vector3(lv.x * 0.92 + side.x * 2.4, 1.6, lv.z * 0.92 + side.z * 2.4);
+    this.ragdoll = H.ragdoll = new Ragdoll(g, H, v, 3 + spd * 0.35);
+    this.col.setEnabled(false);
+    this.downT = 1.8 + Math.min(2.5, spd * 0.08);
+    const dmg = Math.max(0, spd - 7) * 2.2;
+    this.hp = Math.max(0, this.hp - dmg);
+    if (spd > 9) g.blood.spray(this.ragdoll.pelvis.add(new THREE.Vector3(0, 0.3, 0)), v.clone().normalize(), 14, 2);
+    if (this.hp <= 0) this.die();
+    else g.hud.toast(spd > 14 ? 'You threw yourself out of a moving car. Bold.' : 'You bailed out!');
   }
 
   exitCar() {

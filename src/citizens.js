@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Human, randomLook } from './character.js';
 import { G_WORLD, G_CAR, G_PED, G_PROP, groups } from './world.js';
 import { Ragdoll } from './ragdoll.js';
+import { RW, SW } from './city.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const HALF = 0.5, RAD = 0.28, CENTRE = HALF + RAD;
@@ -61,8 +62,9 @@ export class Citizens {
       mem: { met: false, talks: 0, gifts: 0, insults: 0, compliments: 0, hitBy: 0 },
       following: false, bubbleT: 0, blockedT: 0, gossip: [...GOSSIP].sort(() => Math.random() - 0.5),
     };
-    npc.target = this.randomPoint(p);
+    npc.target = this.randomPoint(p); npc.laneOff = RW / 2 + SW * (0.32 + Math.random() * 0.36); npc.eventT = 3 + Math.random() * 18;
     this.list.push(npc);
+    this.setLane(npc, p);
   }
 
   // someone who works somewhere: stands at their post, says their own lines
@@ -89,6 +91,61 @@ export class Citizens {
     return !!hit;
   }
 
+  // ---- getting about: people keep to the sidewalks, walking along beside a road; at a corner they turn
+  // or cross; before crossing they stop at the kerb and look both ways, and wait for cars to pass
+  lanePt(n, t) { const s = n.lane.s, o = n.laneOff * n.lane.sd; return V(s.a[0] + s.u[0] * t + s.n[0] * o, 0, s.a[1] + s.u[1] * t + s.n[1] * o); }
+  walkable(q) { const m = this.map; return m.inLand(q.x, q.z) && !m.inRoad(q.x, q.z) && !m.built(q.x, q.z); }
+  // the sidewalk nearest p (and which way along it is closest to `heading`)
+  setLane(n, p, heading = null) {
+    let best = null, bd = 14;
+    for (const s of this.map.segs) {
+      const dx = p.x - s.a[0], dz = p.z - s.a[1], t = dx * s.u[0] + dz * s.u[1]; if (t < -3 || t > s.L + 3) continue;
+      const side = dx * s.n[0] + dz * s.n[1], sd = side >= 0 ? 1 : -1, d = Math.abs(Math.abs(side) - n.laneOff);
+      if (d < bd) { bd = d; best = { s, sd, t }; }
+    }
+    if (!best) { n.lane = null; return false; }
+    const h = heading ? heading.x * best.s.u[0] + heading.z * best.s.u[1] : 0;
+    n.lane = { s: best.s, sd: best.sd, dir: Math.abs(h) > 0.2 ? Math.sign(h) : (Math.random() < 0.5 ? -1 : 1) };
+    n.kerbT = 0.6; return true;
+  }
+  laneT(n, p) { const s = n.lane.s; return (p.x - s.a[0]) * s.u[0] + (p.z - s.a[1]) * s.u[1]; }
+  // straight across the road ahead: where you'd step up onto the far kerb
+  crossTo(p, dir) {
+    let k = 0.5; for (; k < 4.5; k += 0.5) { const q = p.clone().addScaledVector(dir, k); if (this.map.inRoad(q.x, q.z)) break; } // (to the kerb…)
+    if (k >= 4.5) return null; const k0 = k;
+    for (; k < 34; k += 0.5) { const q = p.clone().addScaledVector(dir, k); if (!this.map.inRoad(q.x, q.z)) break; } // (…and across)
+    if (k >= 33.5 || k - k0 < 3) return null;
+    const q = p.clone().addScaledVector(dir, k + 1.3);
+    return this.walkable(q) ? q : null;
+  }
+  // a turn at a corner: another road's sidewalk passing right here
+  cornerLane(n, p) {
+    const opts = [];
+    for (const s of this.map.segs) {
+      if (s === n.lane.s) continue;
+      const dx = p.x - s.a[0], dz = p.z - s.a[1], t = dx * s.u[0] + dz * s.u[1]; if (t < -4 || t > s.L + 4) continue;
+      const side = dx * s.n[0] + dz * s.n[1]; if (Math.abs(Math.abs(side) - n.laneOff) > 2.2) continue;
+      const sd = side >= 0 ? 1 : -1;
+      for (const dir of [-1, 1]) { const o = n.laneOff * sd, q = V(s.a[0] + s.u[0] * (t + dir * 5) + s.n[0] * o, 0, s.a[1] + s.u[1] * (t + dir * 5) + s.n[1] * o); if (this.walkable(q)) opts.push({ s, sd, dir }); }
+    }
+    return opts.length ? pick(opts) : null;
+  }
+  roadClear(p) { // no car coming: nothing moving within 30 m that's heading this way
+    for (const c of this.g.cars) {
+      if (Math.abs(c.speed) < 1.5) continue;
+      const dx = p.x - c.pos.x, dz = p.z - c.pos.z, d = Math.hypot(dx, dz); if (d > 32) continue;
+      const v = c.body.linvel(); if (v.x * dx + v.z * dz > 0 || d < 7) return false;
+    }
+    return true;
+  }
+  startCross(n, p, to, sideways = false) {
+    n.cross = { to, sideways }; n.state = 'crossLook'; n.stateT = 1.9 + Math.random() * 0.8; n.crossYaw = Math.atan2(to.x - p.x, to.z - p.z); n.lookT = 0;
+  }
+  // a trip to the shops: in, along an aisle, pick something up, pay, out
+  goShopping(n, shop) {
+    const r = shop.route(); n.route = r.pts; n.stops = r.stops; n.routeI = 0; n.shop = shop; n.state = 'shop'; n.stuckT = 0;
+  }
+
   physics(h0) {
     const g = this.g, pl = g.player, pp = pl.car ? pl.car.pos.clone() : pl.pos;
     this.stepN = (this.stepN || 0) + 1;
@@ -108,14 +165,64 @@ export class Citizens {
       let goal = null, spd = 0;
       const dP = Math.hypot(pp.x - p.x, pp.z - p.z);
       switch (n.state) {
-        case 'wander':
-          goal = n.target; spd = n.walkSpeed;
-          if (Math.hypot(goal.x - p.x, goal.z - p.z) < 0.8) {
-            const b = g.benches.find(b => !b.taken && b.pos.distanceTo(p) < 12);
-            if (b && Math.random() < 0.35) { n.state = 'toBench'; n.bench = b; b.taken = n; }
-            else { n.state = 'idle'; n.stateT = 3 + Math.random() * 7; }
+        case 'wander': {
+          spd = n.walkSpeed;
+          if (!n.lane && !this.setLane(n, p)) { goal = n.target; if (Math.hypot(goal.x - p.x, goal.z - p.z) < 0.8) n.target = this.randomPoint(p); break; }
+          const L = n.lane, t = this.laneT(n, p);
+          goal = this.lanePt(n, t + L.dir * 3);
+          { const lp = this.lanePt(n, t); if (Math.hypot(lp.x - p.x, lp.z - p.z) > 6) this.setLane(n, p, V(goal.x - p.x, 0, goal.z - p.z)); } // (well off the line: back to the nearest one)
+          n.kerbT -= h; n.eventT -= h;
+          if (n.kerbT <= 0) {
+            n.kerbT = 0.3;
+            const ahead = this.lanePt(n, t + L.dir * 2.2), fwd = V(L.s.u[0] * L.dir, 0, L.s.u[1] * L.dir);
+            if (!this.walkable(ahead)) {
+              const road = this.map.inRoad(ahead.x, ahead.z), corner = this.cornerLane(n, p), to = road ? this.crossTo(p, fwd) : null;
+              if (corner && (!to || Math.random() < 0.4)) { n.lane = corner; n.kerbT = 2.5; }
+              else if (to) this.startCross(n, p, to);
+              else L.dir = -L.dir;
+              break;
+            }
+            if (n.eventT <= 0) { // now and then: stop for a bit, sit down, go into a shop, or cross over
+              n.eventT = 10 + Math.random() * 22;
+              const shop = (g.shops || []).find(sh => sh.outside.distanceTo(p) < 35);
+              const b = g.benches.find(b => !b.taken && b.pos.distanceTo(p) < 12);
+              const r = Math.random();
+              if (shop && r < 0.55) { this.goShopping(n, shop); break; }
+              if (b && r < 0.3) { n.state = 'toBench'; n.bench = b; b.taken = n; break; }
+              if (r < 0.75) { const to = this.crossTo(p, V(-L.s.n[0] * L.sd, 0, -L.s.n[1] * L.sd)); if (to) { this.startCross(n, p, to, true); break; } }
+              if (r < 0.85) { n.state = 'idle'; n.stateT = 2 + Math.random() * 5; }
+            }
           }
           break;
+        }
+        case 'crossLook': // at the kerb: left, right, left again, and wait until nothing's coming
+          n.lookT += h;
+          if (n.stateT <= 0 && this.roadClear(p)) { n.state = 'crossGo'; n.stateT = 14; }
+          break;
+        case 'crossGo':
+          goal = n.cross.to; spd = n.walkSpeed * 1.2;
+          if (Math.hypot(goal.x - p.x, goal.z - p.z) < 0.7 || n.stateT <= 0) { n.state = 'wander'; const dir = V(goal.x - p.x, 0, goal.z - p.z); this.setLane(n, p, n.cross.sideways ? V(Math.sin(n.yaw + (Math.random() < 0.5 ? 1.57 : -1.57)), 0, Math.cos(n.yaw + 1.57)) : V(Math.sin(n.crossYaw), 0, Math.cos(n.crossYaw))); n.kerbT = 2; }
+          break;
+        case 'shop': {
+          const stop = n.stops[n.routeI];
+          goal = n.route[n.routeI]; spd = n.walkSpeed * 0.85;
+          if (n.waitT > 0) { n.waitT -= h; goal = null; if (n.waitT <= 0) n.routeI++; break; }
+          const d = Math.hypot(goal.x - p.x, goal.z - p.z);
+          n.stuckT = d < (n.lastD ?? 99) - 0.02 ? 0 : n.stuckT + h; n.lastD = d;
+          if (d < 0.45 || n.stuckT > 3.5) {
+            n.stuckT = 0; n.lastD = 99;
+            if (stop === 'browse') { n.waitT = 2.5 + Math.random() * 4; n.faceYaw = n.shop.shelfYaw; n.pointT = 1.2; if (Math.random() < 0.3) this.say(n, pick(['Hmm…', 'Where do they keep the…', 'They moved everything again.', 'Ooh.']), 2); }
+            else if (stop === 'till') {
+              n.waitT = 3 + Math.random() * 2; n.faceYaw = n.shop.tillYaw;
+              if (Math.random() < 0.6) this.say(n, pick(['Just this, thanks.', 'And a bag, please.', 'Card, thanks.', 'Keep the change.']), 2.4);
+              const clerk = this.list.find(o => o.role === 'clerk' && o.home && o.home.distanceTo(n.shop.till) < 4);
+              if (clerk && Math.random() < 0.7) setTimeout(() => this.say(clerk, pick(["That's $4.50.", 'Cash or card?', 'Have a good one.', 'Want a bag?', 'Next!']), 2.4), 900);
+            }
+            else n.routeI++;
+            if (n.routeI >= n.route.length) { n.state = 'wander'; n.faceYaw = null; this.setLane(n, p); n.eventT = 30 + Math.random() * 30; }
+          }
+          break;
+        }
         case 'toBench':
           goal = n.bench.pos; spd = n.walkSpeed;
           if (Math.hypot(goal.x - p.x, goal.z - p.z) < 0.5) { n.state = 'sit'; n.stateT = 12 + Math.random() * 20; n.yaw = n.bench.yaw; }
@@ -184,7 +291,7 @@ export class Citizens {
       if (want.lengthSq() > 0.01 && n.blk) {
         n.blockedT += h;
         want.applyAxisAngle(V(0, 1, 0), 1.1); // (step round it)
-        if (n.blockedT > 1.5 && n.state === 'wander') { n.target = this.randomPoint(p); n.blockedT = 0; }
+        if (n.blockedT > 1.5 && n.state === 'wander') { if (n.lane) n.lane.dir = -n.lane.dir; else n.target = this.randomPoint(p); n.blockedT = 0; }
       } else n.blockedT = Math.max(0, n.blockedT - h);
       n.vel.lerp(want, Math.min(1, h * 8));
       if (n.vy === 0 && want.lengthSq() < 0.0001 && n.vel.lengthSq() < 0.0004) { n.vel.set(0, 0, 0); n.speed = 0; continue; } // (standing still on the ground: nothing to compute)
@@ -204,7 +311,7 @@ export class Citizens {
     n.speed = Math.hypot(m.x, m.z) / h;
   }
 
-  wander(n) { if (n.home && !n.following) { n.state = 'post'; return; } n.state = n.following ? 'follow' : 'wander'; n.target = this.randomPoint(this.pos(n)); n.stateT = 0; }
+  wander(n) { if (n.home && !n.following) { n.state = 'post'; return; } n.state = n.following ? 'follow' : 'wander'; const p = this.pos(n); n.target = this.randomPoint(p); n.stateT = 0; n.faceYaw = null; if (n.state === 'wander') this.setLane(n, p, n.vel.lengthSq() > 0.1 ? n.vel : null); }
 
   board(n, car) {
     n.state = 'seated'; car.passenger = n; n.col.setEnabled(false);
@@ -250,6 +357,8 @@ export class Citizens {
       if (['talk', 'angry'].includes(n.state) || (g.wheel.open && g.wheel.target === n)) { const q = pl.pos; face = Math.atan2(q.x - p.x, q.z - p.z); }
       if (n.state === 'sit') face = n.yaw;
       if (n.state === 'post' && n.speed < 0.3 && !(g.wheel.open && g.wheel.target === n)) face = n.homeYaw;
+      if (n.state === 'crossLook') face = n.crossYaw;
+      if (n.state === 'shop' && n.waitT > 0 && n.faceYaw != null) face = n.faceYaw;
       if (face !== null) { let d = face - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 8); }
       H.root.rotation.y = n.yaw;
       if (n.state === 'sit') { H.root.position.y = p.y - 0.42 * H.rig.scale.y; H.root.position.addScaledVector(V(Math.sin(n.yaw), 0, Math.cos(n.yaw)), -0.05); }
@@ -257,6 +366,7 @@ export class Citizens {
       const dP = pl.pos.distanceTo(p);
       let ly = 0;
       if (dP < 6 && !pl.car) { const a = Math.atan2(pl.pos.x - p.x, pl.pos.z - p.z) - n.yaw; ly = THREE.MathUtils.clamp(Math.atan2(Math.sin(a), Math.cos(a)), -1, 1); }
+      if (n.state === 'crossLook') { const lt = n.lookT || 0; ly = lt < 0.2 ? 0 : lt < 0.9 ? 1.05 : lt < 1.6 ? -1.05 : lt < 2.1 ? 0.9 : 0; } // (left, right, left)
       H.lookYaw += (ly - H.lookYaw) * Math.min(1, dt * 5);
       H.update(dt, {
         speed: n.speed, grounded: true, vy: 0,

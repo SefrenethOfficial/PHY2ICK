@@ -143,9 +143,8 @@ class Game {
     const pl = this.player;
     if (pl.ragdoll) return;
     if (pl.car) {
-      if (Math.abs(pl.car.speed) > 3) { this.hud.toast('Slow down to get out'); return; }
-      const car = pl.car;
-      pl.exitCar();
+      const car = pl.car, fast = Math.abs(car.speed) > 3;
+      if (fast) pl.bailOut(); else pl.exitCar(); // (at speed you tumble out; the car rolls on without you)
       if (car.passenger) this.citizens.unboard(car.passenger, car);
       this.cam.lookYaw = this.cam.lookPitch = 0;
       this.cam.yaw = car.yaw + Math.PI * 0.75; this.cam.pitch = 0.22; this.cam.smoothTarget = null; // (the camera swings out to your side, clear of the car)
