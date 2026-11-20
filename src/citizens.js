@@ -32,15 +32,12 @@ export class Citizens {
     for (let i = 0; i < n; i++) this.spawn(NAMES[i % NAMES.length]);
   }
 
-  randomPoint() {
-    const { x, z } = this.map.walk;
-    for (let i = 0; i < 30; i++) {
-      const p = V((Math.random() * 2 - 1) * x, 0, (Math.random() * 2 - 1) * z);
-      if (Math.hypot(p.x, p.z) < 5.5) continue; // (the fountain)
-      if (Math.abs(p.x - 30) < 4 && Math.abs(p.z - 20) < 3) continue; // (the café)
-      return p;
-    }
-    return V(0, 0, 8);
+  // somewhere on a sidewalk: near home and the middle of town at first, then near wherever they are
+  randomPoint(near = null) {
+    const g = this.g, m = this.map;
+    if (near) return m.sidewalkPoint(near, 55);
+    const hubs = [g.apt.door, g.townSquare || g.apt.door, g.places['the coffee store']?.pos, g.places['palm tree beach']?.pos, g.places['the diner']?.pos].filter(Boolean);
+    return m.sidewalkPoint(hubs[Math.floor(Math.random() * hubs.length)], 70);
   }
 
   spawn(name) {
@@ -55,11 +52,12 @@ export class Citizens {
       hp: 100, mood: Math.floor(Math.random() * 35), // −100 … 100
       brave: Math.random(),
       walkSpeed: 1.15 + Math.random() * 0.45,
-      state: 'wander', target: this.randomPoint(), stateT: 0,
+      state: 'wander', target: null, stateT: 0,
       yaw: Math.random() * 6.28, speed: 0, vel: V(),
       mem: { met: false, talks: 0, gifts: 0, insults: 0, compliments: 0, hitBy: 0 },
       following: false, bubbleT: 0, blockedT: 0, gossip: [...GOSSIP].sort(() => Math.random() - 0.5),
     };
+    npc.target = this.randomPoint(p);
     this.list.push(npc);
   }
 
@@ -161,7 +159,7 @@ export class Citizens {
       if (want.lengthSq() > 0.01 && this.blocked(n, p, want.clone().normalize())) {
         n.blockedT += h;
         want.applyAxisAngle(V(0, 1, 0), 1.1); // (step round it)
-        if (n.blockedT > 1.5 && n.state === 'wander') { n.target = this.randomPoint(); n.blockedT = 0; }
+        if (n.blockedT > 1.5 && n.state === 'wander') { n.target = this.randomPoint(p); n.blockedT = 0; }
       } else n.blockedT = Math.max(0, n.blockedT - h);
       n.vel.lerp(want, Math.min(1, h * 8));
       this.move(n, p, n.vel, h);
@@ -176,7 +174,7 @@ export class Citizens {
     n.speed = Math.hypot(vel.x, vel.z);
   }
 
-  wander(n) { n.state = n.following ? 'follow' : 'wander'; n.target = this.randomPoint(); n.stateT = 0; }
+  wander(n) { n.state = n.following ? 'follow' : 'wander'; n.target = this.randomPoint(this.pos(n)); n.stateT = 0; }
 
   board(n, car) {
     n.state = 'seated'; car.passenger = n; n.col.setEnabled(false);

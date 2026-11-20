@@ -18,7 +18,7 @@ export class Props {
     const body = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(pos.x, pos.y, pos.z).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }).setLinearDamping(0.15).setAngularDamping(0.3).setCcdEnabled(true));
     const col = world.createCollider(desc.setFriction(0.7).setCollisionGroups(groups(G_PROP, 0xffff)), body);
     mesh.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
-    scene.add(mesh);
+    mesh.userData.dynamic = true; scene.add(mesh);
     const p = { mesh, body, col, name };
     this.list.push(p); this.byCollider.set(col.handle, p);
     this.sync(p);

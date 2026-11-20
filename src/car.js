@@ -2,6 +2,7 @@
 // (seats, dashboard, working gauges, a steering wheel that turns, a rear-view mirror that works).
 import * as THREE from 'three';
 import { G_WORLD, G_CAR, G_PED, G_RAG, G_PROP, groups } from './world.js';
+import { bakeStatic } from './bake.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const GY = -0.71; // where the ground is in the car's own frame, at rest
@@ -174,8 +175,10 @@ export class Car {
       const t = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 28), tyre); t.rotation.z = Math.PI / 2; t.castShadow = true; sp.add(t);
       const r = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.25, 20), rimM); r.rotation.z = Math.PI / 2; sp.add(r);
       for (let i = 0; i < 5; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.36, 0.05), rimM); s.position.x = Math.sign(x) * 0.13; s.rotation.x = (i / 5) * Math.PI; sp.add(s); }
+      bakeStatic(sp);
       return { g: w, spin: sp };
     });
+    bakeStatic(this.shell, new Set([this.wheelGrp])); // (the body's fixed parts: a handful of meshes, not dozens)
   }
 
   drawGauges(kmh, rpm) {

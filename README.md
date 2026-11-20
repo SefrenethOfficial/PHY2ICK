@@ -4,30 +4,26 @@ The in-between chapter of [Physick](https://github.com/SefrenethOfficial/Physick
 
 Play it at **https://sefrenethofficial.github.io/PHY2ICK/**
 
-## Right now: the test area
+## The island
 
-Before the real map, everything new gets tried out in one small test area: a block of road around a park (a fountain, trees, benches, Café Noir), streets of buildings, and a test track to the east with a slalom, two jump ramps and a long straight.
+The map is the island from `PHY2ICK_Map.svg`, built to scale (1 px of the drawing = 1.3 m): the same coastline, every road (with sidewalks, kerbs, lane markings and zebra crossings), and every building and place, each with its own look and sign. A **minimap** (top right) turns with the camera.
 
-### Home: No. 14
-You start in your apartment, a loft on the first floor of No. 14, the brick building on the north side of the park. Real windows look out over the street. There's a living room (sofa, TV showing Channel 6, a rug, a lamp), a kitchen with a dining table, a bed, moving boxes still stacked by the stair, and a stair down to the lobby and out the front door.
+- **The sea all round**, a sea wall where land meets water, and **the inlet** cutting in from the south-west, with a **bridge** where the road crosses it. **Palm Tree Beach** slopes into the water along the south, with palms, umbrellas, towels and a lifeguard tower. **The Pier**: a timber boardwalk all the way up the east coast, with lamps and benches.
+- **The west block** (the triangle by the inlet): Game Shop, Home Improvements (×2), Cheap House, **Putin's Ritz** (a hotel with a red carpet), City Wok, **Shitty Wok** and **Triangle and Co.** (triangular buildings), and a fenced vegetable plot. **The sewer entrance** is a big culvert in the inlet's bank, half under water: you have to swim to it.
+- **North of the avenue**: the **Hospital** (red crosses, an ambulance bay, a helipad; you wake up here if you black out), the **Skatepark**, the park with the **Playground** (swings, a slide, a climbing frame), the fountain, the **Nightclub** (neon sign, queue rope), **Paul Badfella's law firm** (behind a fence you have to jump), the **Bourke Office High Rise**, the **Coffee Store** with **PRIVATE INVESTIGATOR** on the window upstairs, **Grace's Flowers**, the little park, and the **Police Station** (in its own road loop, police cars outside).
+- **Downtown**: A Rival Mini Mart, the Indoor Pool, a row of shops, Mini Mart, Visitor Info, **Town Square** (a stone plaza with a statue, trees, benches and lamps), the Pawn Shop and the Grocery (with an alley between them), the **Diner** (long, red, chrome, a neon sign) and its car park.
+- **The south**: the Spa, **Fairview Heights** (where you live), the Convenience Store, the **construction site** (a half-built multi-storey car park you can drive or climb up, a crane, scaffolding, site hoarding), the **abandoned car park** (broken, graffitied, a burnt-out car), **Albuquerque Boiled Turkey** (with a drive-thru window and menu board on the loop road round it), its car park, the hedge, and the beach's washrooms, reception and car park.
+- **The test track** (ramps, a slalom, a long straight) is now in the empty land to the north.
+
+### Home: Fairview Heights
+You start in your apartment: a loft on the first floor of your building at **Fairview Heights**, on the south avenue. Real windows look out over the street. There's a living room (sofa, TV showing Channel 6, a rug, a lamp), a kitchen with a dining table, a bed, moving boxes still stacked by the stair, and a stair down to the lobby and out the front door. Your car's parked outside.
 
 - **Pick things up.** Mugs, a bottle, books, cans, apples, a cereal box, a pan, cushions, chairs, the moving boxes, a basketball, and a traffic cone (don't ask). `Click` to pick something up and carry it, `Click` again to put it down, `Right-click` to throw it.
 - **The weapon rack** ("FOR EMERGENCIES") by the top of the stair: a **Hatchet**, a **Butter Knife** and a **Plastic Kiddie Knife**. Press `E` at the rack to take one (or put it back), `Click` to swing, `X` to put it away. The hatchet drops people; the butter knife makes them bleed and run; the plastic knife bends, and people laugh at you.
 
-### Ragdolls and blood
-- When someone's hit by a car, or by a hatchet, they go **limp**: a real ragdoll (eleven physics bodies jointed at the skeleton; knees and elbows only bend the right way) that tumbles, rolls and lands however it lands. Cars shove bodies around. If they're only hurt, they get back up where they ended up, and then come after you or run.
-- **Blood**: droplets that fly and fall and splat where they land, a spray on every hit, and a pool that spreads under a body. Bodies stay for a minute and a half; then someone new turns up in the park.
-- People who see violence **panic** and run.
-- You can be knocked flat too (by a car, or a shove). Lose all your health and you **black out**, then wake up at home, $100 poorer for the ambulance.
-
-### The look
-- **A physical sky**, and the same sky lights the whole scene (reflections and ambient light), with a warm sun and sharp, long-range shadows.
-- **Ambient occlusion**: soft contact shadows in corners, under cars, round furniture and where walls meet the ground. (`P` switches it off on slower computers; or add `?lowgfx` to the address.)
-- **Textures**: asphalt with aggregate, repairs, cracks, oil stains and worn paint; concrete pavement slabs with joints and stains; grass with patches of colour across the park; brick, stucco and concrete walls with relief.
-- Indoors, the sky's light is mostly kept out, so rooms are lit by their own lamps.
-
-### Buildings
-Four styles of building: **brick** (framed windows with mullions, stone sills and lintels, floor bands), **stucco** (balconies with railings), **concrete** (wide window bands) and **glass towers**. All have cornices and parapets, roofs with air-con units, water tanks and stair housings; most have **shopfronts** at street level: big shop windows, a door, a striped awning and a sign (Corner Deli, Noodle Bar, Pawn & Gold, Laundromat…). Some windows are lit.
+### Moving about
+- **Swimming**: go into the water and you swim (front crawl when moving, treading water when still). `Space` at a low edge pulls you out.
+- **Vaulting**: `Space` in front of something low (a fence, a wall, a bench) and you vault it.
 
 ### People
 - **Believable, not photoreal.** Each body is one smooth, skinned mesh (torso, arms and legs in one piece, with clothes coloured on: collars, sleeves, a belt line), so elbows, knees, hips and shoulders bend like skin instead of showing seams. Hands with a thumb, shoes on soles, and a face with eyes, brows and a mouth: no noses, no ears. Different skin tones, hairstyles (short, swept, buzz, bald, bob, long, bun), clothes, heights and builds.
@@ -40,7 +36,7 @@ Walk up to someone and **hold `E`**. Time slows down and a wheel opens with thei
 - **Talk:** they introduce themselves, then gossip (the Hollows bombing, the army at the naval base, a ship with no flag, Pratt out on bail…), or small talk. They remember you ("You again!", "It's the twenty-dollar guy!").
 - **Follow me / Stop following:** if they like you enough, they come along. Get in a car and they'll get in the passenger seat; get out and they get out too.
 - **Give $20:** makes their day.
-- **Directions:** they point the way and set a waypoint (a beam of light and a marker on screen) to somewhere in the test area.
+- **Directions:** they point the way and set a waypoint (a beam of light and a marker on screen) to somewhere on the island.
 - **Compliment** and **Insult:** insult someone enough and they'll either run off or come over and shove you.
 
 Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`. `Q` cancels.
@@ -58,7 +54,7 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 |---|---|
 | `WASD` | move (in a car: drive, brake/reverse, steer) |
 | `Shift` | run |
-| `Space` | jump (in a car: handbrake) |
+| `Space` | jump; vault something low; climb out of the water (in a car: handbrake) |
 | Hold `E` | talk to someone (the interaction wheel); at the rack: take / put back a weapon |
 | `Click` | pick up / drop; with a weapon: swing |
 | `Right-click` | throw what you're carrying |
@@ -85,9 +81,12 @@ Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows`).
 ```
 src/
   main.js       setup, input, the main loop, post-processing, getting in and out of cars, cars hitting people
-  world.js      the test area: sky and sun, roads, sidewalks, the park, the test track; places the buildings
+  world.js      the sky and the sun, shared textures
+  map.js        the map, as drawn: the coastline, every road, every place
+  city.js       builds the island from the map: land, sea, beach, pier, roads, sidewalks, bridges, every place
+  bake.js       merges everything that doesn't move into a few big meshes (fewer draw calls)
   buildings.js  building facades: windows, shopfronts, awnings, signs, balconies, cornices, rooftops
-  apartment.js  No. 14: the lobby, the stair, your apartment, its furniture and loose things
+  apartment.js  your building at Fairview Heights: the lobby, the stair, your apartment, its things
   props.js      loose things: picking up, carrying, dropping, throwing
   weapons.js    the hatchet, the butter knife, the plastic kiddie knife, the rack, swinging
   ragdoll.js    ragdolls: physics bodies and joints that pose the skeleton
@@ -98,7 +97,7 @@ src/
   car.js        the car: raycast-vehicle physics, the body and cabin, gauges, the mirror
   citizens.js   people in the park: wandering, benches, moods, memory, what they say
   wheel.js      the interaction wheel
-  hud.js        money, health, prompts, messages, speech bubbles, the waypoint, the speedo
+  hud.js        money, health, the minimap, prompts, messages, speech bubbles, the waypoint, the speedo
   style.css     the HUD and the title screen
 ```
 

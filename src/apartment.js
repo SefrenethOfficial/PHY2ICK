@@ -1,5 +1,6 @@
-// Your apartment building (No. 14, on the north side of the park): a lobby, a stair, and a loft
-// apartment on the first floor with real windows, furniture, things to pick up and a weapon rack.
+// Your building, in Fairview Heights: a lobby, a stair, and a loft apartment on the first floor with
+// real windows, furniture, things to pick up and a weapon rack. (Laid out at x = 0, front at z = −60,
+// then moved, whole, to where g.homeAt says.)
 import * as THREE from 'three';
 import { worldUV, GROUND, FLOOR } from './buildings.js';
 import { canvasTex } from './world.js';
@@ -9,11 +10,13 @@ const X0 = -11, X1 = 11, ZF = -60, ZB = -76, T = 0.3; // the footprint; wall thi
 const Y1 = GROUND, Y2 = GROUND + FLOOR;             // floor 1 (the apartment), and its ceiling
 
 export function buildApartment(g) {
-  const { scene, world, R, city } = g;
+  const { world, R, city } = g;
+  const DX = g.homeAt.x, DZ = g.homeAt.zf - ZF;
+  const scene = new THREE.Group(); scene.position.set(DX, 0, DZ); g.scene.add(scene);
   const add = (m, shadow = true) => { m.castShadow = shadow; m.receiveShadow = true; scene.add(m); return m; };
   const col = (hx, hy, hz, x, y, z, rx = 0, ry = 0) => {
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, 0));
-    return world.createCollider(R.ColliderDesc.cuboid(hx, hy, hz).setTranslation(x, y, z).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }));
+    return world.createCollider(R.ColliderDesc.cuboid(hx, hy, hz).setTranslation(x + DX, y, z + DZ).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }));
   };
   const boxM = (w, h, d, x, y, z, mat, { collide = true, shadow = true, rx = 0, ry = 0 } = {}) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.rotation.set(rx, ry, 0); add(m, shadow);
@@ -24,8 +27,8 @@ export function buildApartment(g) {
 
   // the facade (windows, door, cornice) comes from the city builder; the walls are ours, with real holes
   city.windows = [];
-  city.building({ x: (X0 + X1) / 2, z: (ZF + ZB) / 2, w: X1 - X0, d: ZF - ZB, floors: 4, style: 'brick', wallIndex: 1, solid: false, collider: false, entrance: '+z', openFloors: 2 });
-  const wins = city.windows; city.windows = null;
+  city.building({ x: (X0 + X1) / 2 + DX, z: (ZF + ZB) / 2 + DZ, w: X1 - X0, d: ZF - ZB, floors: 4, style: 'brick', wallIndex: 1, solid: false, collider: false, entrance: '+z', openFloors: 2, entranceSign: 'FAIRVIEW HEIGHTS' });
+  const wins = city.windows.map(w => ({ ...w, u: w.u })); city.windows = null; // (u runs along the face: unchanged by the move)
   const brick = city.lastWall;
   const plaster = std(0xe6e0d4, 0.95), lobbyWall = std(0xcfc6b4, 0.9);
 
@@ -196,7 +199,7 @@ export function buildApartment(g) {
 
   // --- things you can pick up
   const P = g.props;
-  const prop = (mesh, desc, x, y, z, name, ry = 0) => P.add(mesh, desc, V(x, y, z), name, ry);
+  const prop = (mesh, desc, x, y, z, name, ry = 0) => P.add(mesh, desc, V(x + DX, y, z + DZ), name, ry);
   const mug = (x, z, c) => prop(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.1, 14), std(c, 0.4)), R.ColliderDesc.cylinder(0.05, 0.045).setDensity(700), x, F + 0.84, z, 'a mug');
   mug(-6.3, -70.0, 0xd8d2c4); mug(-5.7, -70.4, 0x2f4f7f);
   prop(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.3, 12), std(0x2d6a3a, 0.15, { transparent: true, opacity: 0.85 })), R.ColliderDesc.cylinder(0.15, 0.04).setDensity(500), -5.8, F + 0.94, -69.95, 'a bottle');
@@ -229,12 +232,12 @@ export function buildApartment(g) {
   }
 
   // --- the weapon rack (on the back wall, by the top of the stair)
-  g.weapons.buildRack(V(3.4, F + 1.45, ZB + T + 0.06), 0);
+  g.weapons.buildRack(V(3.4 + DX, F + 1.45, ZB + T + 0.06 + DZ), 0);
 
   g.places = g.places || {};
   return {
-    spawn: V(3.4, F + 0.05, -72.6), spawnYaw: Math.PI, // facing the rack
-    door: V(0, 0, ZF + 1.2),
-    inside: (p) => p.x > X0 && p.x < X1 && p.z < ZF && p.z > ZB && p.y < Y2,
+    spawn: V(3.4 + DX, F + 0.05, -72.6 + DZ), spawnYaw: Math.PI, // facing the rack
+    door: V(DX, 0, ZF + 1.2 + DZ),
+    inside: (p) => p.x - DX > X0 && p.x - DX < X1 && p.z - DZ < ZF && p.z - DZ > ZB && p.y < Y2,
   };
 }

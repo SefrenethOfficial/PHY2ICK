@@ -54,14 +54,28 @@ export class Player {
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
     }
     const run = k.has('ShiftLeft') || k.has('ShiftRight');
-    if (want.lengthSq() > 0) want.normalize().multiplyScalar(run ? 6.2 : 1.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.cam.yaw);
+    const t0 = this.body.translation(), feet = t0.y - CENTRE, wl = g.waterLevel ?? -99;
+    this.swimming = feet < wl - 1.05;
+    if (want.lengthSq() > 0) want.normalize().multiplyScalar(this.swimming ? (run ? 3.4 : 2.2) : run ? 6.2 : 1.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.cam.yaw);
     // ease toward the wanted velocity (a little weight to it)
     const acc = this.grounded ? (want.lengthSq() > 0 ? 9 : 12) : 2;
     this.vel.x += (want.x - this.vel.x) * Math.min(1, acc * h);
     this.vel.z += (want.z - this.vel.z) * Math.min(1, acc * h);
-    if (this.grounded && !busy && this.jumpQ) { this.vy = 5.2; this.grounded = false; }
+    const fwd = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
+    if (this.swimming) {
+      // float with your head out; Space pulls you out where the edge is low enough
+      this.vy += ((wl - 1.3 - feet) * 10 - this.vy * 4) * h;
+      if (this.jumpQ && !busy) this.climbOut(fwd, wl);
+    } else {
+      if (this.grounded && !busy && this.jumpQ) {
+        const v = this.vaultHeight(fwd, feet);
+        if (v) { this.vy = Math.sqrt(2 * 18 * (v + 0.45)); this.vaultT = 0.55; } else this.vy = 5.2;
+        this.grounded = false;
+      }
+      this.vy -= 18 * h;
+    }
     this.jumpQ = false;
-    this.vy -= 18 * h;
+    if (this.vaultT > 0) { this.vaultT -= h; this.vel.x = fwd.x * 3.6; this.vel.z = fwd.z * 3.6; } // (over it)
     if (this.knock) { this.vel.add(this.knock); this.knock = null; }
     const desired = { x: this.vel.x * h, y: this.vy * h, z: this.vel.z * h };
     this.cc.computeColliderMovement(this.col, desired, undefined, groups(G_PED, G_WORLD | G_CAR | G_PED | G_PROP)); // (not the thing you're carrying, not ragdolls)
@@ -95,8 +109,43 @@ export class Player {
     }
     H.root.rotation.y = this.yaw;
     const W = this.g.weapons;
-    H.update(dt, { speed: this.speed, grounded: this.grounded, vy: this.vy, pose: 'stand', talking: this.talkT > 0, weapon: !!W.held, attack: W.attackPhase, carry: !!this.g.props.held });
+    if (this.swimming) { // (lie along the surface when swimming; upright when treading water)
+      const mv = Math.min(1, this.speed / 1.5), wl = this.g.waterLevel;
+      H.root.position.y = wl - 1.45 + mv * 1.05;
+      H.root.position.x -= Math.sin(this.yaw) * mv * 0.9; H.root.position.z -= Math.cos(this.yaw) * mv * 0.9;
+    }
+    H.update(dt, { speed: this.speed, grounded: this.grounded || this.swimming, vy: this.vy, pose: this.swimming ? 'swim' : 'stand', talking: this.talkT > 0, weapon: !!W.held, attack: W.attackPhase, carry: !!this.g.props.held });
     this.talkT = Math.max(0, (this.talkT || 0) - dt);
+  }
+
+  // something low in front you could vault (a fence, a wall, a bench)? its height above your feet
+  vaultHeight(fwd, feet) {
+    const g = this.g, t = this.body.translation(), ex = (c) => c.handle !== this.col.handle && !c.isSensor();
+    const knee = g.world.castRay(new g.R.Ray({ x: t.x, y: feet + 0.5, z: t.z }, { x: fwd.x, y: 0, z: fwd.z }), 1.0, true, g.R.QueryFilterFlags.EXCLUDE_DYNAMIC, undefined, undefined, undefined, ex);
+    if (!knee) return 0;
+    const head = g.world.castRay(new g.R.Ray({ x: t.x, y: feet + 1.75, z: t.z }, { x: fwd.x, y: 0, z: fwd.z }), 1.3, true, g.R.QueryFilterFlags.EXCLUDE_DYNAMIC, undefined, undefined, undefined, ex);
+    if (head) return 0; // (too tall)
+    const d = knee.timeOfImpact + 0.04, down = g.world.castRay(new g.R.Ray({ x: t.x + fwd.x * d, y: feet + 1.7, z: t.z + fwd.z * d }, { x: 0, y: -1, z: 0 }), 1.7, true, g.R.QueryFilterFlags.EXCLUDE_DYNAMIC, undefined, undefined, undefined, ex);
+    const top = down ? feet + 1.7 - down.timeOfImpact : feet + 1.5;
+    const hgt = top - feet;
+    return hgt > 0.45 && hgt < 1.6 ? hgt : 0;
+  }
+
+  // pull yourself out of the water onto a ledge in front
+  climbOut(fwd, wl) {
+    const g = this.g, t = this.body.translation();
+    for (const d of [0.9, 1.4]) {
+      const x = t.x + fwd.x * d, z = t.z + fwd.z * d;
+      const hit = g.world.castRay(new g.R.Ray({ x, y: wl + 2.5, z }, { x: 0, y: -1, z: 0 }), 3.5, true, g.R.QueryFilterFlags.EXCLUDE_DYNAMIC, undefined, undefined, undefined, (c) => c.handle !== this.col.handle);
+      if (!hit) continue;
+      const top = wl + 2.5 - hit.timeOfImpact;
+      if (top > wl - 0.2 && top < wl + 1.9) {
+        const at = { x: x + fwd.x * 0.3, y: top + CENTRE + 0.08, z: z + fwd.z * 0.3 };
+        this.body.setTranslation(at, true); this.body.setNextKinematicTranslation(at); this.vy = 0; this.climbT = 0.4;
+        return true;
+      }
+    }
+    return false;
   }
 
   // hit by a car (or shoved): you go limp, and get up when you've stopped rolling
@@ -131,15 +180,15 @@ export class Player {
     this.dead = true;
     g.hud.blackout(true);
     if (g.weapons.held) g.weapons.putAway(true);
-    setTimeout(() => { // you come round at home
+    setTimeout(() => { // you come round at the Hospital
       if (this.ragdoll) { this.ragdoll.dispose(); this.ragdoll = this.human.ragdoll = null; }
       this.human.resetPose();
-      const s = g.apt.spawn;
+      const s = g.hospitalSpawn || g.apt.spawn; if (g.hospitalYaw != null) { this.yaw = g.hospitalYaw; g.cam.yaw = g.hospitalYaw + Math.PI; }
       this.body.setTranslation({ x: s.x, y: s.y + CENTRE + 0.1, z: s.z }, true); this.body.setNextKinematicTranslation({ x: s.x, y: s.y + CENTRE + 0.1, z: s.z });
       this.col.setEnabled(true); this.dead = false; this.hp = 100; this.vel.set(0, 0, 0); this.vy = 0;
       g.money = Math.max(0, g.money - 100);
       g.hud.blackout(false);
-      g.hud.toast('You wake up at home, aching. The ambulance bill: $100');
+      g.hud.toast('You wake up outside the Hospital, aching. The bill: $100');
     }, 5000);
   }
 

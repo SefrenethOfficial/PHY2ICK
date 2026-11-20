@@ -8,6 +8,7 @@ export class Hud {
     this.moneyEl = $('money'); this.hpEl = $('hpfill'); this.promptEl = $('prompt'); this.toastsEl = $('toasts');
     this.bubblesEl = $('bubbles'); this.speedEl = $('speedo'); this.wpEl = $('waypoint'); this.fpsEl = $('fps'); this.helpEl = $('help');
     this.bubbles = new Map();
+    this.mini = document.getElementById('minimap'); this.miniX = this.mini.getContext('2d');
     this.fpsT = 0; this.frames = 0;
   }
 
@@ -38,7 +39,43 @@ export class Hud {
     this.promptEl.innerHTML = text || ''; this.promptEl.style.display = text ? 'block' : 'none';
   }
 
+  // the minimap: the whole island drawn once (2 px a metre), then the bit round you, every frame
+  buildMap() {
+    const m = this.g.map, PX = 2, X0 = -560, Z0 = -620, W = 1300, H = 960;
+    const c = document.createElement('canvas'); c.width = W * PX / 2; c.height = H * PX / 2; // (1 px per metre)
+    const x = c.getContext('2d'), k = c.width / W;
+    const tx = (X) => (X - X0) * k, tz = (Z) => (Z - Z0) * k;
+    x.fillStyle = '#244a63'; x.fillRect(0, 0, c.width, c.height);
+    const poly = (ring, fill) => { x.beginPath(); ring.forEach(([X, Z], i) => (i ? x.lineTo(tx(X), tz(Z)) : x.moveTo(tx(X), tz(Z)))); x.closePath(); x.fillStyle = fill; x.fill('evenodd'); };
+    for (const p of m.landMP) { x.beginPath(); for (const ring of p) ring.forEach(([X, Z], i) => (i ? x.lineTo(tx(X), tz(Z)) : x.moveTo(tx(X), tz(Z)))); x.fillStyle = '#5d6b55'; x.fill('evenodd'); }
+    for (const f of m.footprints) poly(f, '#8d8a84');
+    x.strokeStyle = '#d8d4cc'; x.lineCap = 'round';
+    for (const s of m.segs) { x.lineWidth = 11 * k; x.beginPath(); x.moveTo(tx(s.a[0]), tz(s.a[1])); x.lineTo(tx(s.b[0]), tz(s.b[1])); x.stroke(); }
+    this.mapC = c; this.mapK = k; this.mapO = [X0, Z0];
+  }
+
+  drawMini() {
+    if (!this.mapC) this.buildMap();
+    const g = this.g, ctx = this.miniX, S = this.mini.width, k = this.mapK, zoom = 1.6; // (screen px per map px)
+    const p = g.player.car ? g.player.car.pos : g.player.pos;
+    const yaw = g.cam.yaw; // (the map turns with the camera)
+    ctx.save(); ctx.clearRect(0, 0, S, S);
+    ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2, 0, 7); ctx.clip();
+    ctx.fillStyle = '#244a63'; ctx.fillRect(0, 0, S, S);
+    ctx.translate(S / 2, S / 2); ctx.rotate(yaw); ctx.scale(zoom, zoom);
+    ctx.drawImage(this.mapC, -(p.x - this.mapO[0]) * k, -(p.z - this.mapO[1]) * k);
+    if (g.waypoint) { const w = g.waypoint.pos; ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc((w.x - p.x) * k, (w.z - p.z) * k, 4 / zoom * 1.6, 0, 7); ctx.fill(); }
+    ctx.restore();
+    // you: an arrow pointing the way you face (relative to the camera)
+    const face = (g.player.car ? g.player.car.yaw : g.player.yaw) - yaw - Math.PI;
+    ctx.save(); ctx.translate(S / 2, S / 2); ctx.rotate(-face);
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(6, 6); ctx.lineTo(0, 3); ctx.lineTo(-6, 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2 - 1.5, 0, 7); ctx.stroke();
+  }
+
   frame(dt) {
+    this.drawMini();
     const g = this.g, cam = g.camera, W = innerWidth, H = innerHeight;
     this.moneyEl.textContent = '$' + g.money.toLocaleString();
     this.hpEl.style.width = g.player.hp + '%';

@@ -1,6 +1,7 @@
 // People: stylised but believable humans (no noses or ears), built on a bone-like rig so the
 // pose can be animated procedurally now and swapped for skinned models later.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const std = (color, rough = 0.8, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, ...extra });
 const bone = (parent, x, y, z) => { const o = new THREE.Bone(); o.position.set(x, y, z); parent.add(o); return o; };
@@ -156,7 +157,7 @@ export class Human {
     skinned.updateMatrixWorld(true);
     skinned.bind(new THREE.Skeleton(order.map(n => B[n])));
     rig.add(skinned);
-    rig.scale.setScalar(L.height / 1.75);
+    this.order = order; this.bodyM = bodyM;
 
     // head (rigid, on the head bone)
     const skin = skinM;
@@ -190,6 +191,11 @@ export class Human {
       upper.rotation.x = Math.PI / 2; upper.scale.set(1.08, 1, 0.82); upper.position.set(0, -0.022, 0.05); upper.castShadow = true; an.add(upper);
       const so = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.022, 0.27), sole); so.position.set(0, -0.058, 0.05); an.add(so);
     }
+    // fuse the head (and hair, eyes, brows) and the hands and shoes into two more skinned meshes,
+    // so a person is three draw calls, not twenty (the mouth stays separate: it moves when they talk)
+    this.fuse();
+    rig.scale.setScalar(L.height / 1.75);
+
     // the animation state
     this.phase = Math.random() * 6;
     this.t = Math.random() * 10;
@@ -217,7 +223,35 @@ export class Human {
     }
   }
 
-  setHeadVisible(v) { for (const m of this.headMeshes) m.visible = v; }
+  setHeadVisible(v) { this.headSkin.visible = v; this.mouth.visible = v; }
+
+  fuse() {
+    const B = this.b, I = Object.fromEntries(this.order.map((n, i) => [n, i]));
+    const skel = this.body.skeleton, inv = new THREE.Matrix4().copy(this.body.matrixWorld).invert();
+    this.rig.updateMatrixWorld(true);
+    const parts = { head: [], limbs: [] };
+    for (const name of this.order) {
+      for (const m of [...B[name].children]) {
+        if (!m.isMesh || m === this.mouth) continue;
+        const g = m.geometry.clone().toNonIndexed();
+        g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
+        for (const k of Object.keys(g.attributes)) if (!['position', 'normal'].includes(k)) g.deleteAttribute(k);
+        const n = g.attributes.position.count, c = m.material.color, col = new Float32Array(n * 3), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+        for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; si[i * 4] = I[name]; sw[i * 4] = 1; }
+        g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+        (name === 'head' ? parts.head : parts.limbs).push(g);
+        m.removeFromParent();
+      }
+    }
+    const make = (geos) => {
+      const geo = mergeGeometries(geos, false);
+      const sm = new THREE.SkinnedMesh(geo, this.bodyM); sm.castShadow = true; sm.receiveShadow = true; sm.frustumCulled = false;
+      this.rig.add(sm); sm.bind(skel, this.body.bindMatrix); return sm;
+    };
+    this.headSkin = make(parts.head);
+    this.limbSkin = make(parts.limbs);
+    this.headMeshes = [this.headSkin, this.mouth];
+  }
 
   // back from a ragdoll: the bones go back to their own lengths, the animation takes over again
   resetPose() {
@@ -246,6 +280,16 @@ export class Human {
         set('shoulderL', -0.35, 0, 0.12); set('elbowL', -1.1); set('wristL');
         set('shoulderR', -0.35, 0, -0.12); set('elbowR', -1.1); set('wristR');
       }
+    } else if (s.pose === 'swim') { // front crawl (treading water when still)
+      const mv = Math.min(1, (s.speed || 0) / 1.5);
+      this.phase += dt * (2.2 + mv * 3.2);
+      const p = this.phase;
+      rootTilt = mv * 1.25; hipsY = 0.95;
+      set('hips'); set('spine', 0.05); set('chest'); set('neck', -mv * 0.9); set('head', -mv * 0.3, Math.sin(p) * 0.25 * mv);
+      set('shoulderL', -1.5 + Math.cos(p) * 1.6 * mv - (1 - mv) * 0.3, 0, 0.35 + (1 - mv) * Math.sin(p) * 0.6); set('elbowL', -0.4 - Math.max(0, Math.sin(p)) * 0.8 * mv);
+      set('shoulderR', -1.5 - Math.cos(p) * 1.6 * mv - (1 - mv) * 0.3, 0, -0.35 - (1 - mv) * Math.sin(p) * 0.6); set('elbowR', -0.4 - Math.max(0, -Math.sin(p)) * 0.8 * mv);
+      set('wristL'); set('wristR');
+      for (const [k, sg] of [['L', 1], ['R', -1]]) { set('hip' + k, Math.sin(p * 2 + (sg > 0 ? 0 : Math.PI)) * 0.3, 0, sg * 0.05); set('knee' + k, 0.25 + Math.max(0, Math.sin(p * 2 + (sg > 0 ? 0 : Math.PI))) * 0.3); set('ankle' + k, 0.5); }
     } else if (s.pose === 'down') {
       rootTilt = -Math.PI / 2 + 0.1; hipsY = 0.22;
       set('hips'); set('spine', 0.1); set('chest'); set('neck', -0.2); set('head', 0, 0.3);

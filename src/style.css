@@ -53,3 +53,5 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px; border: 1px soli
 #blackout.on { opacity: 1; }
 #blackout b { font: 700 64px/1 'Arial Narrow', Arial; letter-spacing: 6px; color: #d8312b; text-shadow: 0 3px 0 #000; }
 #blackout span { opacity: .75; }
+
+#minimap { position: absolute; right: 20px; top: 92px; width: 200px; height: 200px; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,.5); }

@@ -4,8 +4,21 @@
   "description": "PHY2ICK: the in-between chapter of Physick. A three.js open-world game.",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
-  "repository": { "type": "git", "url": "git+https://github.com/SefrenethOfficial/PHY2ICK.git" },
-  "dependencies": { "@dimforge/rapier3d-compat": "^0.21.0", "three": "^0.186.1" },
-  "devDependencies": { "vite": "^8.3.4" }
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SefrenethOfficial/PHY2ICK.git"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "polygon-clipping": "^0.15.7",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  }
 }

@@ -16,6 +16,7 @@ import { CameraRig } from './camera.js';
 import { Props } from './props.js';
 import { Weapons } from './weapons.js';
 import { Blood } from './blood.js';
+import { bakeStatic } from './bake.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -44,17 +45,22 @@ class Game {
     this.map = buildWorld(this);
     this.apt = buildApartment(this);
     this.city.finish();
+    for (const o of [this.water, this.fountainWater, this.sky]) if (o) o.userData.dynamic = true;
+    for (const c of this.cones || []) c.m.userData.dynamic = true;
+    for (const s of this.weapons.slots) s.model.userData.dynamic = true;
+    this.baked = bakeStatic(this.scene);
     this.cam = new CameraRig(this);
     this.wheel = new Wheel(this);
     this.player = new Player(this, this.apt.spawn);
     this.player.yaw = this.apt.spawnYaw; this.cam.yaw = this.apt.spawnYaw + Math.PI; this.cam.pitch = 0.18;
-    this.cars = [
-      new Car(this, V(-67.6, 0.02, 30), Math.PI, 0x9b1c1c),
-      new Car(this, V(-67.6, 0.02, 20), Math.PI, 0x1f4f8a),
-      new Car(this, V(-30, 0.02, -52.4), -Math.PI / 2, 0x2b2d30),
-      new Car(this, V(150, 0.02, -3), Math.PI / 2, 0xd8d6d0),
-    ];
-    this.citizens = new Citizens(this, this.map, 16);
+    // cars: the police station's, and some in the car parks
+    const paints = [0x9b1c1c, 0x1f4f8a, 0x2b2d30, 0xd8d6d0, 0x3f6b3f, 0x8a6a2a, 0x5a5f66, 0x6a2a5a];
+    const spots = this.map.parked.filter(p => p[4] === 'police').concat(this.map.parked.filter(p => p[4] !== 'police').sort(() => Math.random() - 0.5).slice(0, 13));
+    this.cars = spots.map((p, i) => new Car(this, V(p[0], 0.03, p[1]), p[2], p[3] ?? paints[i % paints.length]));
+    { // one right outside your front door
+      const d = this.apt.door; this.cars.push(new Car(this, V(d.x + 8, 0.03, d.z + 6.2), Math.PI / 2, 0x9b1c1c));
+    }
+    this.citizens = new Citizens(this, this.map, 26);
     this.wpBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 60, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
     this.wpBeam.visible = false; this.scene.add(this.wpBeam);
 
@@ -230,6 +236,7 @@ class Game {
     const inside = !pl.car && this.apt.inside(pl.pos.add(V(0, 1, 0)));
     const envT = inside ? 0.3 : 0.75;
     this.scene.environmentIntensity += (envT - this.scene.environmentIntensity) * Math.min(1, rdt * 3);
+    if (this.water) { this.water.material.normalMap.offset.x += rdt * 0.004; this.water.material.normalMap.offset.y += rdt * 0.0025; }
     if (this.fountainWater) this.fountainWater.position.y = 0.45 + Math.sin(performance.now() / 600) * 0.01;
     this.hud.frame(rdt);
     if (pl.car && this.cam.mode === 'cockpit') pl.car.renderMirror(this.renderer, this.scene);
