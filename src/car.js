@@ -31,7 +31,7 @@ const arch = (c, r, yc, n = 10) => { const out = []; for (let i = 0; i <= n; i++
 
 export class Car {
   constructor(g, pos, yaw = 0, color = 0x9b1c1c, name = 'Sedan', opts = {}) {
-    this.g = g; this.name = name; this.police = !!opts.police; this.camper = !!opts.camper; this.convertible = !!opts.convertible;
+    this.g = g; this.name = name; this.police = !!opts.police; this.camper = !!opts.camper; this.convertible = !!opts.convertible; this.taxi = !!opts.taxi; this.box = opts.box || null;
     this.hp = 1000; this.burning = false; this.wrecked = false; this.siren = false; this.ai = null; this.crew = []; this.flipT = 0; this.wreckFireT = 0; this.smokeT = 0;
     const { world, R } = g;
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
@@ -41,7 +41,7 @@ export class Car {
     this.col = world.createCollider(R.ColliderDesc.cuboid(0.88, 0.27, 2.25).setTranslation(0, 0.04, 0)
       .setMassProperties(1350, { x: 0, y: -0.32, z: 0.05 }, { x: 2700, y: 3000, z: 760 }, { x: 0, y: 0, z: 0, w: 1 })
       .setFriction(0.5).setRestitution(0.1).setSolverGroups(solver), this.body);
-    if (opts.camper) world.createCollider(R.ColliderDesc.cuboid(0.92, 0.68, 0.86).setTranslation(0, GY + 1.47, -1.56).setDensity(0).setSolverGroups(solver), this.body);
+    if (opts.camper || opts.box) world.createCollider(R.ColliderDesc.cuboid(0.92, 0.68, 0.86).setTranslation(0, GY + 1.47, -1.56).setDensity(0).setSolverGroups(solver), this.body);
     this.roofCol = world.createCollider(R.ColliderDesc.cuboid(0.72, 0.26, 0.85).setTranslation(0, 0.56, -0.4).setDensity(0).setSolverGroups(solver), this.body);
 
     // the raycast vehicle
@@ -206,6 +206,8 @@ export class Car {
     });
     if (this.police) this.livery(RY);
     if (this.camper) this.camperBox(RY);
+    if (this.taxi) this.taxiKit(RY);
+    if (this.box) this.boxKit(this.box);
     bakeStatic(this.shell, new Set([this.wheelGrp, this.barR, this.barB, this.doors.driver, this.doors.passenger, this.lidP, this.trunkIn].filter(Boolean))); // (the body's fixed parts: a handful of meshes, not dozens)
     this.paintMeshes = []; this.shell.traverse((m) => { if (m.isMesh && m.material === this.paint) this.paintMeshes.push(m); });
   }
@@ -224,6 +226,39 @@ export class Car {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.12), dark)).position.set(0.62, 1.35, -2.46);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.14, 0.4), dark)).position.set(0, 2.21, -1.6); // (the vent)
     add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, 0.2), dark)).position.set(-0.5, 2.18, -2.0);
+    this.lidP && (this.lidP.visible = false);
+  }
+
+  // a cab: a lit TAXI sign on the roof and a chequered strip down the doors
+  taxiKit(RY) {
+    const add = (m) => { this.shell.add(m); return m; };
+    const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
+    x.fillStyle = '#fff6c8'; x.fillRect(0, 0, 256, 64); x.fillStyle = '#111'; x.font = 'bold 46px Arial Black, Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('TAXI', 128, 34);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    const sign = add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.16, 0.2), new THREE.MeshStandardMaterial({ map: t, emissive: 0xffe680, emissiveIntensity: 0.6, emissiveMap: t, roughness: 0.4 })));
+    sign.position.set(0, RY + 0.11, -0.35);
+    const cc = document.createElement('canvas'); cc.width = 256; cc.height = 16; const y = cc.getContext('2d');
+    for (let i = 0; i < 32; i++) for (let j = 0; j < 2; j++) { y.fillStyle = (i + j) % 2 ? '#111' : '#f2d21c'; y.fillRect(i * 8, j * 8, 8, 8); }
+    const ct = new THREE.CanvasTexture(cc); ct.colorSpace = THREE.SRGBColorSpace;
+    for (const sd of [-1, 1]) { const m = add(new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.1), new THREE.MeshStandardMaterial({ map: ct, roughness: 0.4 }))); m.position.set(sd * 0.915, 0.42, -0.3); m.rotation.y = sd * Math.PI / 2; }
+  }
+
+  // a delivery van: a tall box on the back, the firm's name on the sides
+  boxKit(brand) {
+    const add = (m) => { m.castShadow = m.receiveShadow = true; this.shell.add(m); return m; };
+    const B = typeof brand === 'object' ? brand : { name: 'PARCEL', bg: '#f2f2ee', fg: '#c8202a' };
+    const c = document.createElement('canvas'); c.width = 512; c.height = 256; const x = c.getContext('2d');
+    x.fillStyle = B.bg; x.fillRect(0, 0, 512, 256); x.fillStyle = B.fg; x.fillRect(0, 200, 512, 24);
+    x.font = 'bold 84px Arial Black, Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(B.name, 256, 110);
+    if (B.sub) { x.font = 'bold 30px Arial'; x.fillText(B.sub, 256, 172); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    const plain = new THREE.MeshStandardMaterial({ color: new THREE.Color(B.bg), roughness: 0.55 }), side = new THREE.MeshStandardMaterial({ map: t, roughness: 0.55 });
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.86, 1.36, 1.72), [plain, plain, plain, plain, plain, plain])).position.set(0, 1.47, -1.56);
+    for (const sd of [-1, 1]) { const m = add(new THREE.Mesh(new THREE.PlaneGeometry(1.68, 1.2), side)); m.position.set(sd * 0.935, 1.5, -1.56); m.rotation.y = sd * Math.PI / 2; }
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.5, 0.5), plain)).position.set(0, 1.9, -0.6);
+    const dark = new THREE.MeshStandardMaterial({ color: 0x1a1c1e, roughness: 0.4 });
+    for (const sx of [-0.45, 0.45]) add(new THREE.Mesh(new THREE.BoxGeometry(0.88, 1.2, 0.03), plain)).position.set(sx, 1.42, -2.43);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.2, 0.04), dark)).position.set(0, 1.42, -2.45);
     this.lidP && (this.lidP.visible = false);
   }
 

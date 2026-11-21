@@ -307,12 +307,12 @@ export function buildApartment(g) {
   const cardT = canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#b48a5a'; c.fillRect(0, 0, w, h); c.fillStyle = '#d9c8a0'; c.fillRect(0, h / 2 - 8, w, 16); c.fillStyle = '#5a3a1e'; c.font = 'bold 14px Arial'; c.fillText('STUFF', 38, 40); });
   for (const [x, y, z, s] of [[4.0, 0.22, -66.75, 0.44], [4.0, 0.62, -66.75, 0.36]]) prop(new THREE.Mesh(new THREE.BoxGeometry(s, s, s), std(0xffffff, 0.9, { map: cardT })), R.ColliderDesc.cuboid(s / 2, s / 2, s / 2).setDensity(120), x, F + y, z, 'a box');
 
-  // --- the weapon rack (on your room's back wall)
-  g.weapons.buildRack(V(5.1 + DX, F + 1.45, ZC0 + WT / 2 + 0.03 + DZ), 0);
+  // --- a small dresser against your room's back wall (the top drawer: a butter knife, all you've got)
+  g.weapons.buildDrawer(V(5.4 + DX, F, ZC0 + WT / 2 + 0.25 + DZ), 0);
 
   g.places = g.places || {};
   return {
-    spawn: V(5.1 + DX, F + 0.05, -65.9 + DZ), spawnYaw: Math.PI, // (in your room, facing the rack)
+    spawn: V(5.1 + DX, F + 0.05, -65.9 + DZ), spawnYaw: Math.PI, // (in your room, facing the dresser)
     door: V(DX, 0, ZF + 1.2 + DZ),
     // the story's places: the bath (where you wake up), the clothes on your bed, the TV, a step on the stair
     bath: { pos: V(X0 + T + 0.75 + DX, F + 0.06, ZC1 + WT / 2 + 0.41 + DZ), yaw: Math.PI / 2, out: V(-9.2 + DX, F + 0.05, -68.4 + DZ) },

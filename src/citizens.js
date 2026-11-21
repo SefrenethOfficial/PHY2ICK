@@ -41,8 +41,39 @@ export class Citizens {
   randomPoint(near = null) {
     const g = this.g, m = this.map;
     if (near) return m.sidewalkPoint(near, 55);
+    const pp = g.player && (g.player.car ? g.player.car.pos : g.player.pos);
+    if (pp && g.story?.phase !== 'creator' && Math.random() < 0.6) { const q = this.offscreenPoint(pp); if (q) return q; }
     const hubs = [g.apt.door, g.townSquare || g.apt.door, g.places['the coffee store']?.pos, g.places['palm tree beach']?.pos, g.places['the diner']?.pos].filter(Boolean);
     return m.sidewalkPoint(hubs[Math.floor(Math.random() * hubs.length)], 70);
+  }
+
+  // a sidewalk 60–110 m from you, out of sight: where somebody new can turn up without popping in
+  offscreenPoint(pp) {
+    const cam = this.g.camera;
+    for (let i = 0; i < 8; i++) {
+      const q = this.map.sidewalkPoint(pp, 110), d = Math.hypot(q.x - pp.x, q.z - pp.z);
+      if (d < 60) continue;
+      if (this._fr && d < 140 && this._fr.containsPoint(V(q.x, 1, q.z))) continue;
+      return q;
+    }
+    return null;
+  }
+  // people who've wandered far off come back round to wherever you are (so the whole city has people in it, not
+  // just the middle of town)
+  recycle(dt) {
+    const g = this.g, pl = g.player; if (!pl || g.story?.phase === 'creator') return;
+    this.recT = (this.recT || 0) - dt; if (this.recT > 0) return; this.recT = 0.5;
+    const pp = pl.car ? pl.car.pos : pl.pos;
+    for (let k = 0; k < 3; k++) {
+      const n = this.list[(this.recI = ((this.recI || 0) + 1) % this.list.length)];
+      if (!n || n.state !== 'wander' || n.home || n.cop || n.companion || n.storyNpc || n.tenant || n.role || n.shop || n.following || n.human.ragdoll || n.human.root.visible) continue;
+      const t = n.body.translation(); if (Math.hypot(t.x - pp.x, t.z - pp.z) < 150) continue;
+      const q = this.offscreenPoint(pp); if (!q) continue;
+      n.body.setTranslation({ x: q.x, y: q.y + CENTRE + 0.1, z: q.z }, true); n.body.setNextKinematicTranslation({ x: q.x, y: q.y + CENTRE + 0.1, z: q.z });
+      n.vel.set(0, 0, 0); n.target = this.randomPoint(q); n.lane = null; this.setLane(n, q);
+      if (Math.random() < 0.5) n.mem = { met: false, talks: 0, gifts: 0, insults: 0, compliments: 0, hitBy: 0 }; // (often a different person, as far as you're concerned)
+      break;
+    }
   }
 
   spawn(name, opts = {}) {
@@ -396,6 +427,7 @@ export class Citizens {
     cam.updateMatrixWorld(); this._pv = this._pv || new THREE.Matrix4(); this._fr = this._fr || new THREE.Frustum(); this._sp = this._sp || new THREE.Sphere(V(), 2.2);
     this._fr.setFromProjectionMatrix(this._pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     this.frameN = (this.frameN || 0) + 1;
+    this.recycle(dt0);
     for (let i = 0; i < this.list.length; i++) {
       const n = this.list[i];
       n.bubbleT = Math.max(0, n.bubbleT - dt0);
@@ -577,14 +609,15 @@ export class Citizens {
     n.state = 'down'; n.stateT = 2.4 + Math.random(); n.following = false;
   }
 
-  hitByCar(n, dir, force) {
+  hitByCar(n, dir, force, car = null) {
     if (n.state === 'seated' || n.state === 'dead') return;
-    n.mem.hitBy++; n.mood -= 60;
-    if (n.companion) this.g.wren?.hurtBy(force > 4 ? 'car' : 'bump');
+    const yours = !car || car === this.g.player.car;
+    if (yours) { n.mem.hitBy++; n.mood -= 60; }
+    if (n.companion && yours) this.g.wren?.hurtBy(force > 4 ? 'car' : 'bump');
     const v = dir.clone().setY(0).normalize().multiplyScalar(Math.min(force, 18) * 0.85); v.y = Math.min(6, 1.2 + force * 0.3);
     this.knock(n, v, 3 + force * 0.4);
     n.hp -= force * 6.5;
-    if (this.g.player.car && force > 2.5) this.crimeAt(n, n.hp <= 0);
+    if (yours && this.g.player.car && force > 2.5) this.crimeAt(n, n.hp <= 0);
     if (force > 6) { this.g.blood.spray(n.human.ragdoll.pelvis.add(new THREE.Vector3(0, 0.35, 0)), v.clone().normalize(), Math.min(60, force * 3), 3.5); for (let i = 0; i < Math.min(4, force / 4); i++) { const b = ['chest', 'head', 'hipL', 'shoulderR', 'kneeR'][Math.floor(Math.random() * 5)], w = new THREE.Vector3(); n.human.b[b].getWorldPosition(w); n.human.wound(w, 0.1, 0.8); } }
     if (n.hp <= 0) this.die(n);
     else { this.after(n, force > 10); if (n.hp < 35) this.downed(n); }
@@ -672,6 +705,7 @@ export class Citizens {
 
   // everyone near something violent runs
   panic(at, except, R = 28) {
+    this.g.traffic?.panic(at, R * 1.6);
     for (const o of this.list) {
       if (o === except || ['dead', 'seated'].includes(o.state) || o.human.ragdoll) continue;
       const d = this.pos(o).distanceTo(at);

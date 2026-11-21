@@ -11,6 +11,9 @@ import { Hud } from './hud.js';
 import { CameraRig } from './camera.js';
 import { Props } from './props.js';
 import { Weapons } from './weapons.js';
+import { RW } from './city.js';
+import { Traffic } from './traffic.js';
+import { Save } from './save.js';
 import { Blood } from './blood.js';
 import { bakeStatic } from './bake.js';
 import { ParkedCars } from './parked.js';
@@ -72,13 +75,15 @@ class Game {
     const spots = this.map.parked.filter(p => p[4] === 'police'); // (only these are real cars from the start; the rest are parked copies until you take one)
     this.cars = spots.map((p, i) => new Car(this, V(p[0], 0.03, p[1]), p[2], p[3] ?? paints[i % paints.length], 'Police Cruiser', { police: true }));
     { // one right outside your front door
-      const d = this.apt.door; this.cars.push(new Car(this, V(d.x + 8, 0.03, d.z + 6.2), Math.PI / 2, 0x9b1c1c));
+      const d = this.apt.door; this.cars.push(new Car(this, this.kerbSnap(V(d.x + 8, 0.03, d.z + 6.2)), Math.PI / 2, 0x9b1c1c));
     }
     const lotCars = this.map.parked.filter(p => p[4] !== 'police').sort(() => Math.random() - 0.5).slice(0, 30);
     this.parkedCars = new ParkedCars(this, lotCars.concat(this.map.kerbside.sort(() => Math.random() - 0.5).slice(0, 70)));
     this.citizens = new Citizens(this, this.map, 40);
     for (const w of this.workers || []) this.citizens.addWorker(w);
     this.police = new Police(this); this.police.warm(3);
+    this.traffic = new Traffic(this);
+    this.saver = new Save(this);
     this.drugs = new Drugs(this);
     this.setupDrugs();
     this.tenants = new Tenants(this, this.apt.tenants);
@@ -98,6 +103,7 @@ class Game {
     this.clock = new THREE.Clock();
     this.started = false;
     r.setAnimationLoop(() => this.tick());
+    if (Save.has()) document.querySelector('#splash .modes').innerHTML = '<button data-mode="continue">Continue</button><button data-mode="story" class="alt">New game</button>';
     document.getElementById('splash').classList.add('ready');
     this.title.start();
     window.game = this;
@@ -112,7 +118,8 @@ class Game {
       if (!this.started) {
         const mode = e.target.closest('[data-mode]')?.dataset.mode; if (!mode) return;
         this.started = true; splash.classList.add('playing'); this.sfx.unlock();
-        if (mode === 'story') { splash.style.display = 'none'; this.title.end(); this.story.begin(); return; }
+        if (mode === 'story') { Save.wipe(); splash.style.display = 'none'; this.title.end(); this.story.begin(); return; }
+        if (mode === 'continue') { splash.style.display = 'none'; this.title.end(); if (!this.saver.load()) this.story.begin(); lock(); return; }
       }
       lock();
     });
@@ -189,6 +196,15 @@ class Game {
     });
   }
 
+  // a point pulled in to the kerb of the nearest road (so a parked car's out of the traffic)
+  kerbSnap(p) {
+    let best = null, bd = 12;
+    for (const s of this.map.segs) { const dx = p.x - s.a[0], dz = p.z - s.a[1], t = dx * s.u[0] + dz * s.u[1]; if (t < 0 || t > s.L) continue; const side = dx * s.n[0] + dz * s.n[1]; if (Math.abs(side) < bd) { bd = Math.abs(side); best = { s, t, sd: side >= 0 ? 1 : -1 }; } }
+    if (!best) return p;
+    const { s, t, sd } = best, off = RW / 2 - 1.25;
+    return V(s.a[0] + s.u[0] * t + s.n[0] * sd * off, p.y, s.a[1] + s.u[1] * t + s.n[1] * sd * off);
+  }
+
   nearestCar() {
     const p = this.player.pos; let best = null, bd = 3.6;
     for (const c of this.cars) { const d = c.pos.distanceTo(p.clone().add(V(0, 0.8, 0))); if (d < bd && !c.driver) { bd = d; best = c; } }
@@ -218,6 +234,7 @@ class Game {
       if (pl.hostage) { if (c.passenger) { this.hud.toast('The passenger seat is taken'); return; } pl.bundle(c); c.openDoor('passenger', 1.0); }
       if (this.weapons.cur !== 'fists') { const m = this.weapons.models[this.weapons.cur]; if (m) m.visible = false; }
       if (c.police) this.police.crime('carjack', pl.pos);
+      if (c.tRec) this.traffic.carjack(c);
       pl.enterCar(c);
     }
   }
@@ -429,7 +446,7 @@ class Game {
     const peds = [];
     const pl = this.player;
     if (!pl.car && !pl.ragdoll && !pl.dead) peds.push({ p: pl.pos, hit: (d, f) => (f > 2.5 ? pl.knockDown(d, f) : (pl.knock = d.clone().setY(0).normalize().multiplyScalar(2.5))) });
-    for (const n of this.citizens.list) if (!['seated', 'dead'].includes(n.state) && !n.human.ragdoll) peds.push({ p: this.citizens.pos(n), hit: (d, f) => (f > 2.5 ? this.citizens.hitByCar(n, d, f) : null) });
+    for (const n of this.citizens.list) if (!['seated', 'dead'].includes(n.state) && !n.human.ragdoll) peds.push({ p: this.citizens.pos(n), hit: (d, f, car) => (f > 2.5 ? this.citizens.hitByCar(n, d, f, car) : null) });
     for (const car of this.cars) {
       const v = car.body.linvel(), sp = Math.hypot(v.x, v.z);
       if (sp < 0.4) continue;
@@ -438,7 +455,7 @@ class Game {
         if (Math.abs(loc.x) < 1.15 && Math.abs(loc.z) < 2.55 && Math.abs(loc.y) < 1.6) {
           const side = V(Math.sign(loc.x) || 1, 0, 0).applyQuaternion(car.group.quaternion);
           const dir = V(v.x, 0, v.z).normalize().multiplyScalar(0.8).add(side.multiplyScalar(0.35));
-          ped.hit(dir, sp);
+          ped.hit(dir, sp, car);
           if (sp > 2.5) car.body.applyImpulse({ x: -v.x * 35, y: 0, z: -v.z * 35 }, true);
         }
       }
@@ -463,6 +480,8 @@ class Game {
     this.checkHits();
     this.weapons.update(dt);
     this.police.update(dt);
+    this.traffic.update(dt);
+    if (this.started) this.saver.update(rdt);
     this.pickups.update(dt);
     this.fx.update(dt);
     this.sfx.update(rdt);
@@ -499,9 +518,10 @@ class Game {
       else if (kc) prompt = '<kbd>G</kbd> let them out of the car';
       else if (this.trunkCar()) { const tc = this.trunkCar(); prompt = tc.trunk.length ? `<kbd>G</kbd> open the boot (${tc.trunk.length} inside)` : this.bodyNear() ? '<kbd>G</kbd> throw them in the boot' : '<kbd>G</kbd> open the boot'; }
       else if (this.props.held) { const h = this.props.held; prompt = `Carrying ${h.name}${h.shop && !h.paid ? ` ($${h.price}, not paid for)` : ''} · <kbd>Click</kbd> drop · <kbd>Right-click</kbd> throw · <kbd>V</kbd> pocket it`; }
+      else if (slot && slot.drawer) prompt = !this.weapons.drawer.open ? '<kbd>E</kbd> open the drawer' : !slot.taken ? '<kbd>E</kbd> take the Butter Knife' : this.weapons.inv.has('butter') ? '<kbd>E</kbd> put the Butter Knife back' : '<kbd>E</kbd> close the drawer';
       else if (slot) prompt = slot.taken ? `<kbd>E</kbd> put the ${this.weapons.held.name} back` : `<kbd>E</kbd> take the ${{ hatchet: 'Hatchet', butter: 'Butter Knife', kiddie: 'Plastic Kiddie Knife' }[slot.id]}`;
       else if (n) prompt = `Hold <kbd>E</kbd> interact with ${n.mem.met ? n.name : 'this person'}`;
-      else if (c) prompt = '<kbd>F</kbd> get in the car';
+      else if (c) prompt = c.tRec ? '<kbd>F</kbd> pull the driver out and take the car' : '<kbd>F</kbd> get in the car';
       else { const p = this.weapons.held ? null : this.props.aimed(); if (p) prompt = `<kbd>Click</kbd> pick up ${p.name}`; else if (this.weapons.W.gun) prompt = `<kbd>Right mouse</kbd> aim · <kbd>Click</kbd> fire · <kbd>R</kbd> reload`; else if (this.weapons.held) prompt = `<kbd>Click</kbd> swing the ${this.weapons.held.name} · <kbd>X</kbd> fists`; else if (this.police.stars) prompt = '<kbd>Y</kbd> give yourself up'; }
     }
     this.hud.prompt(this.started && !this.story?.locked ? prompt : '');

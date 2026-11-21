@@ -290,33 +290,41 @@ export class Story {
       this.fadeS(1, 0.8),
       this.call(() => { el('chapter').innerHTML = `<span>${msg}</span><small>${where} Try that again.</small>`; el('chapter').classList.add('on'); }),
       this.wait(2.6),
-      this.call(() => {
-        el('chapter').classList.remove('on');
-        g.police.clear(); g.police.stars = 0;
-        if (g.van?.inside) g.van.exit(true); if (g.van) g.van.leaning = null;
-        if (g.drugs.cook) g.drugs.finish(true);
-        // the old Wren goes (out of whatever car, alive or not); a new one's with you
-        const W = this.wren;
-        if (W) { const car = g.cars.find(c => c.passenger === W); if (car) { car.passenger = null; car.unseat(W.human); } if (C.list.includes(W)) C.remove(W); }
-        this.spawnWren();
-        if (cp === 'drive') {
-          const me = this.stairMe; pl.respawn(me, 0); g.cam.yaw = Math.PI; g.cam.pitch = 0.2; this.wrenUp(this.wren);
-          this.carNear(V(A.door.x + 8, 0.03, A.door.z + 6.2), Math.PI / 2);
-        } else if (cp === 'toVan') {
-          const at = this.afterVic; pl.respawn(at, this.afterVicYaw); this.wrenStand(at.clone().add(V(1.2, 0, 0.6)));
-          this.carNear(at.clone().add(V(4, 0.03, 3)), this.afterVicYaw + Math.PI / 2);
-        } else if (cp === 'van') {
-          const out = g.camper.trunkPoint(1.6); pl.respawn(out, g.camper.yaw + Math.PI); this.wrenStand(out.clone().add(V(0, 0, 0))); g.van.wrenLean(this.wren); this.wren.storyLean = true;
-          if (g.drugs.solvent < 1) g.drugs.solvent = 1; if (g.drugs.salts < 1) g.drugs.salts = 1;
-        }
-      }),
+      this.call(() => { el('chapter').classList.remove('on'); this.resetTo(cp); }),
       this.wait(0.5),
       this.fadeS(0, 0.8),
     ]);
     this.onDone = () => ({ drive: () => this.startDrive(), toVan: () => this.startToVan(), van: () => this.startFirstCook() })[cp]();
   }
+  // put everything back as it was at a checkpoint (after a failure, or loading a save)
+  resetTo(cp) {
+    const g = this.g, A = g.apt, pl = g.player, C = g.citizens;
+    g.police.clear(); g.police.stars = 0;
+    if (g.van?.inside) g.van.exit(true); if (g.van) g.van.leaning = null;
+    if (g.drugs.cook) g.drugs.finish(true);
+    // the old Wren goes (out of whatever car, alive or not); a new one's with you
+    const W = this.wren;
+    if (W) { const car = g.cars.find(c => c.passenger === W); if (car) { car.passenger = null; car.unseat(W.human); } if (C.list.includes(W)) C.remove(W); }
+    this.spawnWren();
+    if (cp === 'drive') {
+      const me = this.stairMe || A.stairStep(18); pl.respawn(me, 0); g.cam.yaw = Math.PI; g.cam.pitch = 0.2; this.wrenUp(this.wren);
+      this.carNear(V(A.door.x + 8, 0.03, A.door.z + 6.2), Math.PI / 2);
+    } else if (cp === 'toVan') {
+      const at = this.afterVic; pl.respawn(at, this.afterVicYaw); this.wrenStand(at.clone().add(V(1.2, 0, 0.6)));
+      this.carNear(at.clone().add(V(4, 0.03, 3)), this.afterVicYaw + Math.PI / 2);
+    } else if (cp === 'van') {
+      const out = g.camper.trunkPoint(1.6); pl.respawn(out, g.camper.yaw + Math.PI); this.wrenStand(out.clone().add(V(0, 0, 0))); g.van.wrenLean(this.wren); this.wren.storyLean = true;
+      if (g.drugs.solvent < 1) g.drugs.solvent = 1; if (g.drugs.salts < 1) g.drugs.salts = 1;
+    }
+  }
+  // straight back in at a checkpoint (a loaded save): no failure card
+  resume(cp) {
+    this.phase = 'restarting';
+    this.play([this.call(() => { this.shot = null; this.fade(1); this.resetTo(cp); }), this.wait(0.4), this.fadeS(0, 0.9)]);
+    this.onDone = () => ({ drive: () => this.startDrive(), toVan: () => this.startToVan(), van: () => this.startFirstCook() })[cp]();
+  }
   // a car that still runs, near here (one's put there if not)
-  carNear(at, yaw) { const g = this.g; if (!g.cars.some(c => !c.wrecked && !c.inactive && !c.police && !c.driver && !c.camper && c.pos.distanceTo(at) < 14)) g.cars.push(new Car(g, at, yaw, 0x9b1c1c)); }
+  carNear(at, yaw) { const g = this.g; if (!g.cars.some(c => !c.wrecked && !c.inactive && !c.police && !c.driver && !c.camper && !c.tRec && c.pos.distanceTo(at) < 14)) g.cars.push(new Car(g, g.kerbSnap ? g.kerbSnap(at) : at, yaw, 0x9b1c1c)); }
   // Wren on her feet at a spot, following you
   wrenStand(at) { const W = this.wren; W.script = { pos: at.clone() }; this.wrenUp(W); W.body.setTranslation({ x: at.x, y: at.y + 1.0, z: at.z }, true); W.body.setNextKinematicTranslation({ x: at.x, y: at.y + 1.0, z: at.z }); }
 

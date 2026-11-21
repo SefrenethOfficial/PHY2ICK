@@ -1,4 +1,4 @@
-// Weapons: your fists, the three on the rack in your apartment (a hatchet, a butter knife, a plastic kiddie
+// Weapons: your fists, the butter knife in your drawer (and the old rack: a hatchet, a butter knife, a plastic kiddie
 // knife), and guns (a pistol and a pump shotgun, from the Pawn Shop, or dropped by a cop).
 // You carry what you've picked up and switch with the number keys or the mouse wheel.
 // Right mouse aims (over the shoulder, closer in); left mouse punches, swings or fires.
@@ -87,6 +87,36 @@ export class Weapons {
     this.rackPos = at.clone();
   }
 
+  // a small dresser; its top drawer slides out and holds the one thing you own: a butter knife
+  buildDrawer(at, ry) {
+    const g = this.g, { world, R } = g, wood = std(0x7a5232, 0.7), dark = std(0x4a3020, 0.8), brass = std(0xc9a14a, 0.3, { metalness: 0.9 });
+    const W = 0.9, H = 0.8, D = 0.45;
+    const grp = new THREE.Group(); grp.position.copy(at); grp.rotation.y = ry; g.scene.add(grp);
+    const box = (w, h, d, x, y, z, m, parent = grp) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = b.receiveShadow = true; parent.add(b); return b; };
+    box(W, 0.03, D, 0, H - 0.015, 0, wood); box(0.03, H, D, -W / 2 + 0.015, H / 2, 0, wood); box(0.03, H, D, W / 2 - 0.015, H / 2, 0, wood);
+    box(W, 0.03, D, 0, 0.06, 0, wood); box(W, H, 0.02, 0, H / 2, -D / 2 + 0.01, dark);
+    for (const y of [0.2, 0.43]) { box(W - 0.06, 0.21, 0.02, 0, y, D / 2 - 0.01, wood); box(0.14, 0.02, 0.03, 0, y, D / 2 + 0.01, brass); }
+    // the top drawer: a tray that slides out along +z
+    const dr = new THREE.Group(); dr.position.set(0, 0.66, 0); grp.add(dr);
+    box(W - 0.06, 0.2, 0.02, 0, 0, D / 2 - 0.01, wood, dr); box(0.14, 0.02, 0.03, 0, 0, D / 2 + 0.01, brass, dr);
+    box(W - 0.08, 0.015, D - 0.04, 0, -0.085, 0, dark, dr); box(0.015, 0.12, D - 0.04, -W / 2 + 0.05, -0.03, 0, dark, dr); box(0.015, 0.12, D - 0.04, W / 2 - 0.05, -0.03, 0, dark, dr); box(W - 0.08, 0.12, 0.015, 0, -0.03, -D / 2 + 0.03, dark, dr);
+    const knife = model('butter'); knife.rotation.set(-Math.PI / 2, 0, 0.35); knife.position.set(0.05, -0.07, 0.08); dr.add(knife); knife.visible = false;
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0)), c = V(0, H / 2, 0).applyQuaternion(q).add(at);
+    world.createCollider(R.ColliderDesc.cuboid(W / 2, H / 2, D / 2).setTranslation(c.x, c.y, c.z).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }));
+    const front = V(0, 0.7, D / 2 + 0.05).applyQuaternion(q).add(at);
+    this.drawer = { grp, dr, knife, open: false, t: 0, at: at.clone() };
+    this.slots.push({ id: 'butter', drawer: true, pos: front, home: { pos: knife.position.clone(), rot: knife.rotation.clone() }, model: knife, taken: false });
+    this.rackPos = at.clone();
+  }
+  drawerUpdate(dt) {
+    const d = this.drawer; if (!d) return;
+    d.t += ((d.open ? 1 : 0) - d.t) * Math.min(1, dt * 8);
+    d.dr.position.z = d.t * 0.34;
+    d.knife.visible = !this.slots[0]?.taken && d.t > 0.05;
+    if (d.open && d.closeT != null && (d.closeT -= dt) <= 0) { d.open = false; d.closeT = null; }
+    if (d.open && this.g.player.pos.distanceTo(d.at) > 3.5) d.open = false;
+  }
+
   // a weapon on the rack you're close to and facing
   candidate() {
     const g = this.g, pl = g.player;
@@ -104,6 +134,20 @@ export class Weapons {
   // the rack: take one (it's yours now, and in your hand), or hang it back up
   take(slot) {
     const g = this.g;
+    if (slot.drawer) {
+      const d = this.drawer;
+      if (!d.open) { d.open = true; d.closeT = null; g.sfx?.click?.(g.player.pos); return; }
+      if (!slot.taken && !this.inv.has('butter')) {
+        if (g.props.held) g.props.drop(false);
+        slot.taken = true; this.inv.add('butter'); this.models.butter = this.models.butter && this.models.butter !== slot.model ? this.models.butter : model('butter'); this.equip('butter', true);
+        g.hud.toast('Took the Butter Knife · switch with 1–6 or the mouse wheel', '#ffd23f'); d.closeT = 0.6; return;
+      }
+      if (slot.taken && this.inv.has('butter')) {
+        if (this.cur === 'butter') this.equip('fists', true);
+        slot.taken = false; this.inv.delete('butter'); g.hud.toast('Put the Butter Knife back in the drawer'); d.closeT = 0.6; return;
+      }
+      d.open = false; return;
+    }
     if (slot.taken) {
       if (this.cur === slot.id) this.equip('fists', true);
       slot.taken = false; this.inv.delete(slot.id);
@@ -179,6 +223,7 @@ export class Weapons {
   get punchPhase() { return this.swingT >= 0 && this.cur === 'fists' ? Math.min(1, this.swingT / this.W.swing) : null; }
 
   update(dt) {
+    this.drawerUpdate(dt);
     const g = this.g, pl = g.player;
     this.cool = Math.max(0, this.cool - dt); this.comboT -= dt; this.guardT -= dt;
     if (this.reloadT > 0) {

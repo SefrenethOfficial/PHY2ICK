@@ -151,3 +151,5 @@ body.title #hud, body.title #objective { opacity: 0; pointer-events: none; }
 #garage button small { color: #e8c020; margin-right: 8px; }
 #garage .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 6px 0; } #garage .swatches button { height: 38px; border-radius: 8px; border: 2px solid rgba(255,255,255,.25); cursor: pointer; }
 #garage .hint { margin-top: 8px; font-size: 12px; color: #9aa4b0; text-align: center; }
+#splash .modes button[data-mode=continue] { border-color: #ffb27a; color: #ffd2b0; }
+#splash .modes button.alt { border-color: rgba(255,255,255,.45); color: #fff; font-size: 16px !important; padding: 11px 30px !important; }

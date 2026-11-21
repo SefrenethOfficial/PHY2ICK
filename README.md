@@ -24,6 +24,9 @@ Walk in through the front door of most places: there's a real room behind it, li
 - **The Nightclub**: a dance floor that lights up to the beat, a bar, a DJ booth, booths. **The Indoor Pool**: a deck, lanes, a lifeguard, and water you can swim in.
 - **Lobbies** with a front desk: the **Hospital**, the **Police Station** (a wanted board), **Putin's Ritz** (marble, a chandelier, a red carpet), **Paul Badfella's** (bookshelves, carpet), the **Spa**. Restaurants: **City Wok** and **Albuquerque Boiled Turkey**.
 
+### Saving
+The game saves itself in your browser every 45 seconds or so (and when you close the tab), at steady points in the story: driving Wren to the hospital, heading for the van, the first cook, and any time after she's moved in. It keeps your money, health, look, weapons and ammo, Physick and supplies, what's in your pockets, the van (and its paint), the cars you've registered at Rusty's, the neighbours' friendship, and everything with Wren (trust, cooks, her stock, her ideas, your texts). If there's a save, the title has **Continue** (back where you were) and **New game** (which wipes it).
+
 ### The title screen
 The PHY2ICK logo over a timelapse on the beach by Kit's van: the day runs by in seconds (dusk, a short night, dawn). Wren sits on the sand in a yellow hazmat suit; you come out of the back and hand her the bags; she walks off along the beach, sells to the dealers there, and comes back and sits down again. Now and then a police car pulls up by the dealers and a cop gets out to ask a few questions, and they suddenly find their phones, the sea and a nice tune very interesting. The title theme plays over it (once you've clicked or pressed a key: browsers won't play music before that).
 
@@ -67,7 +70,7 @@ Your room is **1E**, on the first floor of your building at **Fairview Heights**
   Insult them and they'll go off you.
 
 - **Pick things up.** A mug, books, cans, a pillow, the boxes, a basketball, and a traffic cone (don't ask). `Click` to pick something up and carry it, `Click` again to put it down, `Right-click` to throw it.
-- **The weapon rack** ("IN CASE OF EMERGENCY") on your wall: a **Hatchet**, a **Butter Knife** and a **Plastic Kiddie Knife**. Press `E` at the rack to take one (or put it back), `Click` to swing, `X` to put it away. The hatchet drops people; the butter knife makes them bleed and run; the plastic knife bends, and people laugh at you.
+- **The dresser** against your back wall. Press `E` to slide the top drawer open: inside is a **Butter Knife**, and that's all you own to start with. `E` again to take it (the drawer shuts), or to put it back. `Click` to swing, `X` to put it away. It makes people bleed and run. Anything better you buy (a hatchet or guns from Halyard Arms).
 
 ### Moving about
 - **Swimming**: go into the water and you swim (front crawl when moving, treading water when still). `Space` at a low edge pulls you out.
@@ -81,6 +84,7 @@ Your room is **1E**, on the first floor of your building at **Fairview Heights**
 - **You** wear a dark knitted beanie.
 - **Proper hair**: short, side-parted, swept, buzz, curly, a big afro, long, a bob, a bun, a ponytail, or bald.
 - **Animated from a skeleton.** Every person has a joint rig (hips, spine, chest, neck, head, shoulders, elbows, wrists, hips, knees, ankles) and a gait driven by speed: a walk blends into a run, arms swing against the legs, the body bobs and leans, knees bend on the swing. They breathe when standing, gesture when they talk, turn their heads to look at you, sit on benches, point when giving directions, and sit properly in cars with their hands on the wheel. Each person is a single mesh (one draw call).
+- **All over the island.** People who wander too far from you turn up again on a sidewalk somewhere out of sight 60–110 m away, so the north end, the docks and the back streets have people in them too, not just the middle of town.
 - **Citizens** keep to the sidewalks, walking along beside the road; at a corner they turn or cross. Before crossing they stop at the kerb, **look left, right and left again**, and wait until nothing's coming. Now and then they cross over mid-block, stop for a moment, sit on a bench, or **go shopping**: in through the door, along an aisle to look at the shelves, to the till to pay (the shopkeeper says something back), and out again. They step round each other and jump out of the way of cars coming at them. Each has a name, a **mood** and a **memory** of you: how often you've talked, given them money, complimented or insulted them, or run them over.
 
 ### The interaction wheel
@@ -102,6 +106,8 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - `R` puts a flipped car back on its wheels.
 - **Get out at any speed.** Press `F` while moving and you throw yourself out: you tumble along the road (it hurts more the faster you were going) and the car rolls on without you.
 - **Cars float.** Drive off the sea wall and the car bobs on the water; you can still (slowly) motor about and steer like a boat. The bridge over the inlet is solid to drive and walk on.
+- **Traffic.** About a dozen cars drive about the island: **sedans** in all colours, yellow **taxis** (a lit TAXI sign, a chequered stripe), **delivery vans** (Swiftly Parcels, FreshCo, DripFix, Bayside Laundry) and **convertibles**. They keep to the right-hand lane, pick a way at each junction (not down dead ends if they can help it), slow for corners, give way to whoever's already crossing, brake for the car in front, pull out round something stopped in their lane, stop for people in the road, and **honk and shout** if you stand in front of them or bump them. Gunfire, screaming or a police chase nearby and they put their foot down. Wreck one and the driver gets out and runs. Cars too far off come back round somewhere out of sight.
+- **Carjacking.** Press `F` by a car in traffic (stand in front of it and it stops) to pull the driver out and take it. They run off shouting, and it's a crime if anyone sees.
 - **Parked cars** line the kerbs and fill the car parks: press `F` by one to get in. About half are **locked**: you put your elbow through the driver's window (glass everywhere) and climb in.
 - **Doors open and close**: getting in, the driver's door swings open, you climb in and sit down, and it shuts behind you; getting out, it opens again. Cops' doors, passengers' too.
 - **The boot**: hold someone (`G`) and press `F` at the back of a car to bundle them into the boot (it opens and slams). `G` at the boot throws in someone lying on the ground nearby (hurt or dead), or lets out whoever's in there. They thump and shout to be let out.
@@ -151,7 +157,7 @@ The drug the game is named after. It's made up, and the cook is a game, not chem
 | `E` (in a car, in Rusty's bay) | register, respray, new plates |
 | `C` / `Ctrl` | crouch (on foot): sneak, harder to see |
 | `Space` | jump; vault something low; climb out of the water (in a car: handbrake) |
-| Hold `E` | talk to someone (the interaction wheel); at the rack: take / put back a weapon |
+| Hold `E` | talk to someone (the interaction wheel); at your dresser: open the drawer, take / put back the butter knife |
 | `Click` | punch / swing / shoot (pick up / drop a thing) |
 | Hold right mouse | aim (with a thing: throw it) |
 | `1`–`6`, mouse wheel | switch weapon |
@@ -160,7 +166,7 @@ The drug the game is named after. It's made up, and the cook is a game, not chem
 | `G` | grab someone / let them go (from a car: let your captive out) |
 | `Q` | finish off someone who's down |
 | `Y` | give yourself up |
-| `F` | get in / out of a car (at any speed) |
+| `F` | get in / out of a car (at any speed); by a car in traffic: pull the driver out |
 | `C` (in a car) | inside view / chase camera |
 | `Space` / `E` / `Q` (cooking) | heat / stir / give up |
 | `H` | hide the controls |
