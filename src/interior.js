@@ -355,7 +355,7 @@ export function buildInterior(g, room, kind, opts = {}) {
     mesh(new THREE.PlaneGeometry(3.2, 2), std(0xffffff, 0.9, { map: cork }), W / 2 - T - 0.05, F1 + 1.7, -D / 2 - 1, { ry: -Math.PI / 2, shadow: false });
     cbox(0.25, 0.04, 0.3, 1.0, F1 + 0.84, -D + 3.4, 0xe8e2d6); cbox(0.07, 0.3, 0.07, 2.1, F1 + 0.97, -D + 3.3, 0x3a5a2a);
     sofa(-W / 2 + 4.5, -2.5, 2.2, 0, 0x3a2418);
-    worker(1.5, -D + 2.0, 0, ["Door says private. Can't you read?", "You want to know who really blew up those flats? Get in line.", "I've seen your face before. On a wall. Mine.", "Somebody's paying a lot of money to keep things quiet in this town."], 'detective', F1 + 0.04);
+    worker(1.5, -D + 2.0, 0, ["Door says private. Can't you read?", "You want to know who's buying up the pier? Get in line.", "I've seen your face before. On a wall. Mine.", "Somebody's paying a lot of money to keep things quiet in this town."], 'detective', F1 + 0.04);
     g.rooms.push({ kind: 'office', name: 'the Detective Office', ring: roomRec.ring, y0: F1 - 0.3, y1: H2 + 0.2, lights: [toW(0, H2 - 0.5, -D / 2)], tint: 0xffd8a0, power: 10 });
     roomRec.y1 = F1;
   }

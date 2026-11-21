@@ -508,6 +508,7 @@ export class Citizens {
   options(n) {
     const g = this.g;
     const D = g.drugs;
+    if (n.home && g.food?.venue(n) && !n.rival) return g.food.options(n);
     const so = n.home && g.shopping?.options(n); if (so) return so;
     if (n.home && n.shop === "Rusty's") return [{ id: 'talk', label: 'Talk' }, { id: 'rusty', label: 'What do you do?' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' }];
     if (n.rival && g.missions) return g.missions.options(n);
@@ -542,6 +543,7 @@ export class Citizens {
     const stay = () => { if (!n.following && n.state !== 'sit') { n.state = 'talk'; n.stateT = 5; } };
     pl.talkT = 1.4;
     const hostile = n.mood < -30, warm = n.mood >= 40;
+    if (g.food?.act(n, id)) return;
     if (id.startsWith('buy:')) { this.buy(n, id.slice(4)); return; }
     if (id === 'sell1' || id === 'sell5') { g.drugs.sell(n, n, id === 'sell1' ? 1 : 5); return; }
     if (id === 'sellall') { g.drugs.sell(n, n, 999); return; }
@@ -616,7 +618,7 @@ export class Citizens {
     else if (what === 'ammo') { if (W.inv.has('pistol')) W.ammo.pistol += 24; if (W.inv.has('shotgun')) W.ammo.shotgun += 12; this.say(n, 'Try not to use it all at once.', 2.5); g.hud.toast('Bought ammo', '#ffd23f'); }
     else if (what === 'solvent' || what === 'salts') { const D = g.drugs; if (what === 'solvent') D.solvent++; else D.salts++; this.say(n, what === 'solvent' ? pick(['Industrial solvent. For… cleaning?', 'Gloves are aisle three.']) : pick(["Blue Salts. Don't ask where I got them.", 'Bath salts. Sure.']), 2.8); g.hud.toast(`Bought ${what === 'solvent' ? 'Industrial Solvent' : 'Blue Salts'} · you have ${D.solvent} solvent, ${D.salts} salts`, '#5fd0ff'); }
     else if (what === 'sack') { g.player.sacks = (g.player.sacks || 0) + 1; this.say(n, pick(['A sack. Sure. For… potatoes.', "I don't want to know.", 'Here you go.']), 2.8); g.hud.toast(`Bought a sack (you have ${g.player.sacks}) · G behind someone to put it over their head`, '#ffd23f'); }
-    else { g.player.hp = Math.min(100, g.player.hp + 15); this.say(n, pick(['Enjoy.', 'Good choice.', 'Bag? No? Okay.']), 2); g.hud.toast('A snack: +15 health', '#7be08a'); }
+    else { if (!g.food.give('snack')) { g.money += price; g.hud.toast("You can't carry any more"); return; } this.say(n, pick(['Enjoy.', 'Good choice.', 'Bag? No? Okay.']), 2); g.hud.toast('A bag of chips: on your hotbar · pick it and click to eat', '#7be08a'); }
   }
 
   // ---- getting hurt

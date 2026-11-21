@@ -1,5 +1,6 @@
 // Wren, once she's moved in: how much she trusts you, what she says, her phone, her selling, her texts,
 // her moods, and (after the third cook) the new voice and her ideas. The lines live in wrenlines.js.
+import { FOOD } from './food.js';
 import * as THREE from 'three';
 import { LEVELS, TOPICS, ASK, TOPIC_MIN, BEFORE, AFTER, HANG, SMALL, REACT, TEXTS, QUICK, CALL, SHIFT, IDEAS, IDEA_NO, IDEA_SULK } from './wrenlines.js';
 import { canvasTex } from './world.js';
@@ -66,6 +67,7 @@ export class WrenLife {
     const o = [{ id: 'talk', label: 'Talk' }];
     if (this.lv >= 2) o.push({ id: 'hang', label: 'Hang out' });
     if (D.count) o.push({ id: 'give', label: `Give her ${D.count} bag${D.count > 1 ? 's' : ''}` });
+    { const f = this.g.inv?.anyFood(); if (f) o.push({ id: 'share', label: `Share your ${FOOD[f.food].name}` }); }
     o.push(n.following ? { id: 'home', label: 'Head home' } : { id: 'come', label: 'Come with me' });
     if (this.shifted) o.push({ id: 'ideas', label: 'Hear her ideas' });
     o.push(this.dropT > 0 ? { id: 'sorry', label: 'Say sorry' } : { id: 'thanks', label: 'Thank her' });
@@ -75,6 +77,7 @@ export class WrenLife {
   act(n, id) {
     const g = this.g, S = g.story;
     if (id === 'talk') { this.menu = 'talk'; g.wheel.show(n); return; }
+    if (id === 'share') { g.inv.shareWith(); return; }
     if (id.startsWith('t:')) {
       this.menu = null; const k = id.slice(2);
       S.sub('YOU', `<i>${ASK[k]}</i>`, 1.8);

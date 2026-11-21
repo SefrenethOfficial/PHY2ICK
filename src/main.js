@@ -33,6 +33,8 @@ import { Marcos } from './marcos.js';
 import { Missions } from './missions.js';
 import { Bikes } from './bikes.js';
 import { Inventory } from './inventory.js';
+import { Food } from './food.js';
+import { Icons } from './icons.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -58,6 +60,7 @@ class Game {
     this.props = new Props(this);
     this.weapons = new Weapons(this);
     this.inv = new Inventory(this);
+    this.icons = new Icons(); this.food = new Food(this);
     this.blood = new Blood(this);
     this.fx = new Fx(this); this.sfx = new Sfx(this); this.pickups = new Pickups(this);
     const T0 = performance.now();
@@ -137,7 +140,7 @@ class Game {
     canvas.addEventListener('click', () => { if (!document.pointerLockElement && this.started && this.story?.phase !== 'creator') lock(); });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
-      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open || this.inv?.open ? 'none' : 'flex';
+      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open || this.inv?.open || this.food?.open ? 'none' : 'flex';
       if (!this.locked) { this.keys.clear(); if (this.wheel.open) this.wheel.close(); }
     });
     addEventListener('contextmenu', (e) => e.preventDefault());
@@ -148,6 +151,7 @@ class Game {
       if (pl.car || pl.ragdoll) return;
       if (e.button === 2) this.mouseR = true;
       if (e.button === 0) {
+        if (this.inv.holdingFood && !this.props.held) { this.inv.eatHeld(); return; }
         if (this.props.held) this.props.click();
         else if (this.weapons.cur === 'fists' && !this.weapons.aiming && this.props.aimed() && !pl.hostage) this.props.click();
         else this.weapons.attack();
@@ -169,6 +173,7 @@ class Game {
       if (this.chop?.open) { this.chop.key(e.code); this.keys.delete(e.code); return; }
       if (this.marcos?.open) { this.marcos.key(e.code); this.keys.delete(e.code); return; }
       if (this.inv?.open) { this.inv.key(e.code); this.keys.delete(e.code); return; }
+      if (this.food?.open) { this.food.key(e.code); this.keys.delete(e.code); return; }
       if (this.wren?.phoneOpen) { this.wren.phoneKey(e.code); this.keys.delete(e.code); return; }
       if (e.code === 'KeyP' && this.started && !this.story?.cine && this.story?.phase !== 'creator') { this.wren.openPhone(); this.keys.delete(e.code); return; }
       if (this.story?.key(e.code)) { if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) this.keys.delete(e.code); return; } // (a key held through a scene still counts once it's over)
@@ -191,7 +196,7 @@ class Game {
       if ((e.code === 'Tab' || e.code === 'KeyI') && !pl.car && !pl.bike) { this.inv.show(); return; }
       if (e.code === 'KeyE' && pl.car && this.chop.canUse()) { this.chop.show(); return; }
       if (e.code === 'KeyE' && this.marcos?.canOrder() && !this.wheel.open) { this.marcos.show(); return; }
-      if (e.code === 'KeyX') { if (this.props.held) this.props.drop(false); else if (this.weapons.held) this.weapons.putAway(); }
+      if (e.code === 'KeyX') { if (this.props.held) this.props.drop(false); else if (this.inv.holdingFood) this.inv.sel = 0; else if (this.weapons.held) this.weapons.putAway(); }
       if (/^Digit[1-6]$/.test(e.code) && !pl.car) this.inv.select(+e.code.slice(5) - 1);
       if (e.code === 'KeyG' && !pl.car && !pl.hostage) { const tc = this.trunkCar(); if (tc) { if (tc.trunk.length) this.outOfTrunk(tc); else { const b = this.bodyNear(); if (b) this.intoTrunk(tc, b); else { tc.openLid(1.2); this.hud.toast('The boot is empty'); } } return; } }
       if (e.code === 'KeyG') { if (pl.car) { if (pl.car.passenger?.kidnapped) pl.freeKidnapped(pl.car); } else { const k = this.kidnapCar(); if (k && !pl.hostage) pl.freeKidnapped(k); else pl.grab(); } }

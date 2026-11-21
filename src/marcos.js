@@ -8,7 +8,7 @@ import { canvasTex } from './world.js';
 import { MARCOS_LOT } from './desert.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
-const MENU = [['Marco Burger', 6, 30], ['Big Marco', 9, 50], ['Chicken Bites', 5, 25], ['Fries', 3, 12], ['Choc Shake', 4, 15], ['Meal Deal', 12, 100]];
+const MENU = [['Marco Burger', 6], ['Big Marco', 9], ['Chicken Bites', 5], ['Fries', 3], ['Choc Shake', 4], ['Meal Deal', 12]]; // (for the menu boards; what's sold is in food.js)
 const el = (id) => document.getElementById(id);
 
 // the logo: a burger in a yellow ring on red, the name underneath
@@ -153,7 +153,7 @@ export class Marcos {
   // shooting (or worse) near here: the crew run, and it's shut for a while
   onCrime(kind, at) {
     if (!['gunfire', 'murder', 'robbery', 'explosion', 'copMurder'].includes(kind) || at.distanceTo(this.door) > 45) return;
-    this.closedT = 120; if (this.open) this.close();
+    this.closedT = 120; if (this.g.food?.open && this.g.food.menu?.theme === 'marcos') this.g.food.close();
     for (const n of this.staff) if (n.state !== 'dead') { n.state = 'flee'; n.stateT = 15; }
   }
   get working() { return this.closedT <= 0 && this.staff.some(n => n.state === 'post' && n.body.translation().y > this.Y - 2); }
@@ -168,26 +168,10 @@ export class Marcos {
 
   show() {
     if (!this.working) { this.g.hud.toast(this.closedT > 0 ? "They've shut. Somebody's been shooting." : 'Nobody to serve you.'); return; }
-    this.open = true; this.render(); el('marcos').classList.add('on'); document.exitPointerLock?.();
+    const server = this.staff.find(n => n.state === 'post');
+    this.g.food.show(this.g.food.venue(server) || null, server);
   }
-  close() { this.open = false; el('marcos').classList.remove('on'); this.g.renderer.domElement.requestPointerLock?.(); }
-  render() {
-    const g = this.g, e = el('marcos');
-    e.innerHTML = `<h3>MARCOS</h3><div class="lede">"Welcome to MARCOS! What can I get you?"</div>
-      ${MENU.map(([n, p, hp], i) => `<button data-i="${i}" ${g.money >= p ? '' : 'disabled'}><span>${n}</span><b>$${p}</b><i>+${hp} health</i></button>`).join('')}
-      <button data-i="x" class="done">That's all · <kbd>E</kbd></button>`;
-    e.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); if (b.dataset.i === 'x') { this.close(); return; } this.buy(+b.dataset.i); }));
-  }
-  buy(i) {
-    const g = this.g, [n, p, hp] = MENU[i], pl = g.player;
-    if (g.money < p) return;
-    g.money -= p; pl.hp = Math.min(100, pl.hp + hp); g.sfx?.cash?.(pl.pos);
-    g.hud.toast(`${n}. ${['Delicious.', 'Still hot.', 'Extra pickles, nice.', 'That hit the spot.'][Math.floor(Math.random() * 4)]} +${hp} health`, '#7be08a');
-    this.render();
-  }
-  key(code) { if (code === 'Escape' || code === 'KeyE') this.close(); }
   update(dt) {
     if (this.closedT > 0) this.closedT -= dt;
-    if (this.open && !this.canOrder()) this.close();
   }
 }
