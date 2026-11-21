@@ -20,6 +20,7 @@ import { Police } from './police.js';
 import { Pickups } from './pickups.js';
 import { Drugs } from './drugs.js';
 import { Tenants } from './tenants.js';
+import { Story } from './story.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -76,6 +77,7 @@ class Game {
     this.drugs = new Drugs(this);
     this.setupDrugs();
     this.tenants = new Tenants(this, this.apt.tenants);
+    this.story = new Story(this);
     // two lights that follow you indoors (cheaper than a light in every room)
     this.roomLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffe6c4, 0, 16, 1.5); this.scene.add(l); return l; });
     this.loadTimes.all = performance.now() - T0;
@@ -94,11 +96,20 @@ class Game {
   bindInput() {
     const canvas = this.renderer.domElement, splash = document.getElementById('splash');
     const lock = () => { canvas.requestPointerLock?.(); };
-    splash.addEventListener('click', () => { if (!splash.classList.contains('ready')) return; lock(); this.started = true; splash.classList.add('playing'); this.sfx.unlock(); });
-    canvas.addEventListener('click', () => { if (!document.pointerLockElement) lock(); });
+    // the title: Story (the opening, from the ice bath) or Free roam (straight into the city); after that, a click resumes
+    splash.addEventListener('click', (e) => {
+      if (!splash.classList.contains('ready')) return;
+      if (!this.started) {
+        const mode = e.target.closest('[data-mode]')?.dataset.mode; if (!mode) return;
+        this.started = true; splash.classList.add('playing'); this.sfx.unlock();
+        if (mode === 'story') { splash.style.display = 'none'; this.story.begin(); return; }
+      }
+      lock();
+    });
+    canvas.addEventListener('click', () => { if (!document.pointerLockElement && this.started && this.story?.phase !== 'creator') lock(); });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
-      splash.style.display = this.locked ? 'none' : 'flex';
+      splash.style.display = this.locked || this.story?.phase === 'creator' ? 'none' : 'flex';
       if (!this.locked) { this.keys.clear(); if (this.wheel.open) this.wheel.close(); }
     });
     addEventListener('contextmenu', (e) => e.preventDefault());
@@ -127,6 +138,7 @@ class Game {
       if (['Space', 'Tab'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
       this.keys.add(e.code);
+      if (this.story?.key(e.code)) { this.keys.delete(e.code); return; }
       if (!this.locked) return;
       const pl = this.player;
       if (this.wheel.open) {
@@ -435,11 +447,13 @@ class Game {
     this.robbery(dt);
     this.drugs.update(dt);
     this.tenants?.update(dt);
+    this.story?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);
     this.citizens.frame(dt);
     this.blood.update(dt);
     this.cam.update(rdt);
+    this.story?.camera();
     if (this.shake > 0) { this.shake = Math.max(0, this.shake - rdt * 1.5); const k = this.shake * 0.12; this.camera.position.add(V((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k)); }
     // the prompt
     const pl = this.player;
@@ -462,7 +476,7 @@ class Game {
       else if (c) prompt = '<kbd>F</kbd> get in the car';
       else { const p = this.weapons.held ? null : this.props.aimed(); if (p) prompt = `<kbd>Click</kbd> pick up ${p.name}`; else if (this.weapons.W.gun) prompt = `<kbd>Right mouse</kbd> aim · <kbd>Click</kbd> fire · <kbd>R</kbd> reload`; else if (this.weapons.held) prompt = `<kbd>Click</kbd> swing the ${this.weapons.held.name} · <kbd>X</kbd> fists`; else if (this.police.stars) prompt = '<kbd>Y</kbd> give yourself up'; }
     }
-    this.hud.prompt(this.started ? prompt : '');
+    this.hud.prompt(this.started && !this.story?.locked ? prompt : '');
     document.getElementById('crosshair').style.display = !pl.car && this.locked && !(this.weapons.aiming && this.weapons.W.gun) ? 'block' : 'none';
     // the sun's shadows follow you
     const focus = pl.car ? pl.car.pos : pl.pos;

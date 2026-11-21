@@ -159,6 +159,8 @@ export function buildApartment(g) {
   const dC = door(-4.4, -3.45, ZC1, -1, '1C'), dD = door(3.85, 4.8, ZC1, -1, '1D');
   wall('x', ZC0, X0 + T, SX0, F, Y2, [dA, dB, dE], plaster, WT);
   wall('x', ZC1, X0 + T, XB, F, Y2, [dC, dD], plaster, WT);
+  const XW = -8.6; // the shared bathroom, at the end of the corridor
+  wall('z', XW, ZC1, ZC0, F, Y2, [{ a0: -68.95, a1: -68.05, y0: F - 0.1, y1: F + DH }], plaster, WT);
   wall('z', XB, ZB + T, ZC1, F, Y2, [], plaster, WT);                 // 1D | the passage
   wall('z', SX0, ZC0, ZF - T, F, Y2, [], plaster, WT);                // 1E | the stairwell
   wall('z', -3.5, ZC0, ZF - T, F, Y2, [], plaster, WT);               // 1A | 1B
@@ -174,8 +176,25 @@ export function buildApartment(g) {
     const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.11), new THREE.MeshStandardMaterial({ map: tex, metalness: 0.5, roughness: 0.35 }));
     plate.position.set(x1 + 0.22, F + 1.55, z - sd * (WT / 2 + 0.006)); plate.rotation.y = sd > 0 ? Math.PI : 0; scene.add(plate);
   }
+  // the bathroom: white tiles, a bath, a toilet, a basin and a mirror (and its door, open)
+  { const tile = canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#e8ecea'; c.fillRect(0, 0, w, h); c.strokeStyle = '#b8c0c0'; c.lineWidth = 2; for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(i * 32, 0); c.lineTo(i * 32, h); c.moveTo(0, i * 32); c.lineTo(w, i * 32); c.stroke(); } }, [3, 3]);
+    const bf = new THREE.Mesh(new THREE.PlaneGeometry(XW - X0 - T, ZC0 - ZC1), std(0xffffff, 0.3, { map: tile })); bf.rotation.x = -Math.PI / 2; bf.position.set((X0 + T + XW) / 2, F + 0.009, (ZC0 + ZC1) / 2); bf.receiveShadow = true; scene.add(bf);
+    const porc = std(0xf4f4f0, 0.15), tw = 0.07, bx0 = X0 + T + 0.04, bx1 = bx0 + 1.65, bz0 = ZC1 + WT / 2 + 0.02, bz1 = bz0 + 0.78, bh = 0.56, bxc = (bx0 + bx1) / 2, bzc = (bz0 + bz1) / 2;
+    boxM(bx1 - bx0, 0.06, bz1 - bz0, bxc, F + 0.03, bzc, porc);
+    boxM(bx1 - bx0, bh, tw, bxc, F + bh / 2, bz0 + tw / 2, porc); boxM(bx1 - bx0, bh, tw, bxc, F + bh / 2, bz1 - tw / 2, porc);
+    boxM(tw, bh, bz1 - bz0, bx0 + tw / 2, F + bh / 2, bzc, porc); boxM(tw, bh, bz1 - bz0, bx1 - tw / 2, F + bh / 2, bzc, porc);
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(bx1 - bx0 - 2 * tw, bz1 - bz0 - 2 * tw), new THREE.MeshPhysicalMaterial({ color: 0x9fd8e8, roughness: 0.05, transparent: true, opacity: 0.45, depthWrite: false }));
+    water.rotation.x = -Math.PI / 2; water.position.set(bxc, F + bh - 0.12, bzc); scene.add(water);
+    const ice = std(0xf2fbff, 0.1, { transparent: true, opacity: 0.8 });
+    for (let i = 0; i < 26; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.07), ice); c.position.set(bx0 + tw + 0.05 + Math.random() * (bx1 - bx0 - 2 * tw - 0.1), F + bh - 0.12, bz0 + tw + 0.05 + Math.random() * (bz1 - bz0 - 2 * tw - 0.1)); c.rotation.set(Math.random(), Math.random() * 3, Math.random()); scene.add(c); }
+    boxM(0.06, 0.25, 0.06, bx1 - 0.2, F + bh + 0.12, bz0 + 0.03, steel, { collide: false }); // (the tap)
+    boxM(0.4, 0.42, 0.55, X0 + T + 0.3, F + 0.21, ZC0 - 0.45, porc); boxM(0.18, 0.45, 0.5, X0 + T + 0.12, F + 0.6, ZC0 - 0.45, porc); // (the toilet)
+    boxM(0.55, 0.12, 0.42, -9.35, F + 0.85, ZC0 - 0.27, porc); boxM(0.12, 0.8, 0.12, -9.35, F + 0.4, ZC0 - 0.2, porc, { collide: false });
+    { const mir = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.7), new THREE.MeshStandardMaterial({ color: 0xc8d8e0, roughness: 0.02, metalness: 1 })); mir.position.set(-9.35, F + 1.5, ZC0 - WT / 2 - 0.006); mir.rotation.y = Math.PI; scene.add(mir); }
+    { const dl = boxM(XW - (XW - 0.88), DH - 0.05, 0.04, XW - 0.46, F + (DH - 0.05) / 2, -68.09, doorM); }
+  }
   // a runner down the corridor
-  const runner = new THREE.Mesh(new THREE.PlaneGeometry(SX0 - X0 - 1, 1.1), std(0x6a2424, 1)); runner.rotation.x = -Math.PI / 2; runner.position.set((X0 + SX0) / 2, F + 0.008, (ZC0 + ZC1) / 2); runner.receiveShadow = true; scene.add(runner);
+  const runner = new THREE.Mesh(new THREE.PlaneGeometry(SX0 - XW - 0.6, 1.1), std(0x6a2424, 1)); runner.rotation.x = -Math.PI / 2; runner.position.set((XW + SX0) / 2, F + 0.008, (ZC0 + ZC1) / 2); runner.receiveShadow = true; scene.add(runner);
   const rugAt = (w, d, x, z, c1, c2) => { const t = canvasTex(128, 128, (c, W, H) => { c.fillStyle = c1; c.fillRect(0, 0, W, H); c.strokeStyle = c2; c.lineWidth = 6; c.strokeRect(10, 10, W - 20, H - 20); }); const r = new THREE.Mesh(new THREE.PlaneGeometry(w, d), std(0xffffff, 1, { map: t })); r.rotation.x = -Math.PI / 2; r.position.set(x, F + 0.01, z); r.receiveShadow = true; scene.add(r); };
   const plant = (x, z, h = 0.9) => { boxM(0.36, 0.4, 0.36, x, F + 0.2, z, terracotta); for (let i = 0; i < 5; i++) { const l = new THREE.Mesh(new THREE.ConeGeometry(0.1, h, 6), green); l.position.set(x + (Math.random() - 0.5) * 0.16, F + 0.35 + h / 2, z + (Math.random() - 0.5) * 0.16); l.rotation.set((Math.random() - 0.5) * 0.6, 0, (Math.random() - 0.5) * 0.6); add(l); } };
   const bed = (x, z, w, d, sheet, alongX = false) => { const W = alongX ? d : w, D = alongX ? w : d; boxM(W, 0.36, D, x, F + 0.18, z, darkWood); boxM(W - 0.08, 0.16, D - 0.08, x, F + 0.44, z, white); const du = new THREE.Mesh(new THREE.BoxGeometry(W - 0.04, 0.07, D * 0.65), sheet); du.position.set(x, F + 0.55, z + D * 0.17); add(du); };
@@ -229,13 +248,33 @@ export function buildApartment(g) {
   bed(6.65, -61.4, 0.95, 2.0, fabric2);
   boxM(0.45, 0.5, 0.4, 6.75, F + 0.25, -62.75, lightWood);
   boxM(0.6, 0.05, 1.2, 3.9, F + 0.75, -62.0, lightWood); for (const dz of [-0.55, 0.55]) boxM(0.56, 0.73, 0.04, 3.9, F + 0.365, -62.0 + dz, lightWood, { collide: false }); col(0.3, 0.38, 0.6, 3.9, F + 0.38, -62.0);
-  boxM(0.04, 0.4, 0.62, 3.65, F + 1.0, -62.0, black); { const t = canvasTex(128, 80, (c, w, h) => { c.fillStyle = '#1d3b5a'; c.fillRect(0, 0, w, h); c.fillStyle = '#d8312b'; c.fillRect(0, h - 16, w, 16); c.fillStyle = '#fff'; c.font = 'bold 9px Arial'; c.fillText('CHANNEL 6 · HALYARD', 4, h - 5); }); const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.36), new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.9 })); sc.position.set(3.675, F + 1.0, -62.0); sc.rotation.y = Math.PI / 2; scene.add(sc); }
+  const tvC = document.createElement('canvas'); tvC.width = 256; tvC.height = 160;
+  const tvTex = new THREE.CanvasTexture(tvC); tvTex.colorSpace = THREE.SRGBColorSpace;
+  const tvDraw = (news) => { const c = tvC.getContext('2d'), w = tvC.width, h = tvC.height; const gr = c.createLinearGradient(0, 0, w, h); gr.addColorStop(0, news ? '#3a1d1d' : '#1d3b5a'); gr.addColorStop(1, '#0b1520'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    if (news) { c.fillStyle = '#29b6ff'; c.beginPath(); c.arc(70, 66, 30, 0, 7); c.fill(); c.fillStyle = '#fff'; c.font = 'bold 18px Arial'; c.fillText('BREAKING', 120, 50); c.font = '13px Arial'; c.fillText('Blue substance:', 120, 72); c.fillText('second overdose', 120, 90); }
+    c.fillStyle = '#d8312b'; c.fillRect(0, h - 28, w, 28); c.fillStyle = '#fff'; c.font = 'bold 15px Arial'; c.fillText(news ? 'CHANNEL 6 · POLICE APPEAL FOR INFORMATION' : 'CHANNEL 6 · HALYARD', 6, h - 9); tvTex.needsUpdate = true; };
+  tvDraw(false);
+  boxM(0.04, 0.4, 0.62, 3.65, F + 1.0, -62.0, black); { const t = tvTex; const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.36), new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.9 })); sc.position.set(3.675, F + 1.0, -62.0); sc.rotation.y = Math.PI / 2; scene.add(sc); }
   boxM(0.6, 2.0, 1.0, 3.85, F + 1.0, -64.4, darkWood);
   boxM(0.55, 0.85, 0.55, 3.85, F + 0.425, -65.6, steel);
   rugAt(1.6, 2.2, 5.3, -64.2, '#7a3b2e', '#d9c39a');
   lamp(5.3, -64);
-  // the corridor
-  lamp(-6, (ZC0 + ZC1) / 2); lamp(1, (ZC0 + ZC1) / 2); lamp(6, -73.5);
+  // last night: cups, bottles, a pizza box, a lamp knocked over (shown by the story); your clothes on the bed
+  const mess = new THREE.Group(); mess.visible = false; scene.add(mess);
+  { const cupM = std(0xc8202a, 0.5), bottleM = std(0x2d6a3a, 0.15, { transparent: true, opacity: 0.85 }), boxC = std(0xd8c8a0, 0.9);
+    const put = (m, x, y, z, rx = 0, rz = 0) => { m.position.set(x, F + y, z); m.rotation.set(rx, Math.random() * 6, rz); m.castShadow = true; mess.add(m); };
+    for (const [x, z, down] of [[4.4, -63.0, 1], [5.6, -65.4, 0], [6.1, -64.0, 1], [4.2, -61.4, 0], [5.0, -62.2, 1], [6.5, -65.9, 0]]) put(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.035, 0.11, 10), cupM), x, down ? 0.045 : 0.055 + (x < 4.3 ? 0.73 : 0), z, down ? Math.PI / 2 : 0);
+    for (const [x, z, down] of [[4.8, -64.8, 1], [6.8, -62.8, 0], [3.95, -61.7, 0]]) put(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.28, 10), bottleM), x, down ? 0.04 : 0.14 + (x > 6.7 ? 0.5 : x < 4 ? 0.73 : 0), z, down ? Math.PI / 2 : 0);
+    put(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.04, 0.42), boxC), 5.4, 0.02, -63.4);
+    put(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.3), std(0xc8b020, 0.6)), 4.9, 0.01, -61.9);
+    { const shadeM = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 0.26, 14, 1, true), std(0xf2e6c8, 0.8, { side: THREE.DoubleSide })); put(shadeM, 6.0, 0.13, -66.4, 0, Math.PI / 2); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.3, 6), black); put(pole, 6.5, 0.03, -65.8, 0, Math.PI / 2); pole.rotation.y = 0.4; } }
+  const clothes = new THREE.Group(); clothes.visible = false; scene.add(clothes);
+  { const hoodie = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.45), std(0x2b2f36, 1)); hoodie.position.set(6.6, F + 0.62, -61.9); hoodie.rotation.y = 0.3; clothes.add(hoodie);
+    const jeans = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.7), std(0x3a4a5e, 1)); jeans.position.set(6.7, F + 0.6, -61.2); jeans.rotation.y = -0.2; clothes.add(jeans);
+    const hat = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), std(0x2c3036, 1)); hat.position.set(6.45, F + 0.66, -61.55); clothes.add(hat);
+    for (const dx of [-0.08, 0.08]) { const sh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.26), black); sh.position.set(6.0 + dx, F + 0.04, -61.3); clothes.add(sh); } }
+  // the corridor (and the bathroom)
+  lamp(-9.6, (ZC0 + ZC1) / 2); lamp(-6, (ZC0 + ZC1) / 2); lamp(1, (ZC0 + ZC1) / 2); lamp(6, -73.5);
 
   // (the room lights that follow you indoors: one record per flat, the corridor, the lobby)
   const wp = (x, y, z) => V(x + DX, y, z + DZ), ring = [[X0 + DX, ZF + DZ], [X1 + DX, ZF + DZ], [X1 + DX, ZB + DZ], [X0 + DX, ZB + DZ]];
@@ -243,6 +282,7 @@ export function buildApartment(g) {
   g.rooms = g.rooms || [];
   const flat = (name, x0, z0, x1, z1, lx, lz) => g.rooms.push({ kind: 'home', name, ring: rect(x0, z0, x1, z1), y0: Y1 - 0.3, y1: Y2 + 0.2, lights: [wp(lx, Y2 - 0.6, lz)], tint: 0xffd7a8, power: 9 });
   flat('your room', 3.5, ZF, SX0, ZC0, 5.3, -64);
+  flat('the bathroom', X0, ZC0, XW, ZC1, -9.6, (ZC0 + ZC1) / 2);
   flat("Mrs. Okafor's", X0, ZF, -3.5, ZC0, -7, -64);
   flat("Dez's", -3.5, ZF, 3.5, ZC0, 0, -63.5);
   flat("Marco's", X0, ZC1, -2.9, ZB, -7, -72.5);
@@ -269,6 +309,10 @@ export function buildApartment(g) {
   return {
     spawn: V(5.1 + DX, F + 0.05, -65.9 + DZ), spawnYaw: Math.PI, // (in your room, facing the rack)
     door: V(DX, 0, ZF + 1.2 + DZ),
+    // the story's places: the bath (where you wake up), the clothes on your bed, the TV, a step on the stair
+    bath: { pos: V(X0 + T + 0.75 + DX, F + 0.06, ZC1 + WT / 2 + 0.41 + DZ), yaw: Math.PI / 2, out: V(-9.2 + DX, F + 0.05, -68.4 + DZ) },
+    clothes: V(6.4 + DX, F + 0.05, -62.0 + DZ), clothesMesh: clothes, mess, tvDraw, room1E: V(5.3 + DX, F + 0.05, -64 + DZ),
+    stairStep: (i) => V((SX0 + SX1) / 2 + DX, (i + 1) * Y1 / 24, SZ0 - (i + 0.5) * (SZ0 - SZ1) / 24 + DZ),
     // the neighbours: where each of them stands in their flat, and which way they face
     tenants: [
       { id: 'okafor', pos: V(-7.0 + DX, F + 0.05, -62.6 + DZ), yaw: Math.PI },

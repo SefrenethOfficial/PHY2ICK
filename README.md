@@ -24,8 +24,17 @@ Walk in through the front door of most places: there's a real room behind it, li
 - **The Nightclub**: a dance floor that lights up to the beat, a bar, a DJ booth, booths. **The Indoor Pool**: a deck, lanes, a lifeguard, and water you can swim in.
 - **Lobbies** with a front desk: the **Hospital**, the **Police Station** (a wanted board), **Putin's Ritz** (marble, a chandelier, a red carpet), **Paul Badfella's** (bookshelves, carpet), the **Spa**. Restaurants: **City Wok** and **Albuquerque Boiled Turkey**.
 
+### The story
+PHY2ICK is a prequel to PHYSICK: the time before Wren is gone. Pick **Story** on the title screen (or **Free roam** to go straight into the city).
+
+You wake up in an ice bath in the shared bathroom at the end of your corridor, in your boxers, with no memory of the night. Before you open your eyes you choose who you are: skin tone, hair (what shows under the beanie) and hair colour. Then: the cold, the panic, *why am I in ice?* Your clothes are on your bed in 1E, in a room that's had a party in it. Channel 6 is on, talking about a blue substance. Your phone has last night on it.
+
+Wren's on the stairs, on the phone to the hospital. Her younger brother **Kit** put you in that bath. Then he lay down on your floor and didn't get up. She needs a lift to the hospital.
+
+It isn't a run of missions: a few scenes, a line in the corner telling you what's going on, and the rest is the city. (Kit left debts. Pratt wants them paid. Vic, their older brother, is too busy with his midlife crisis to help. That's all still to come.) `Enter`, `Space` or `Escape` skips a scene.
+
 ### Home: Fairview Heights
-You start in your room, **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
+In free roam you start in your room, **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
 
 - **The neighbours.** Each flat is furnished for whoever lives there, and each of them can become a friend. Hold `E` on them to talk, **hang out** (once a minute or so), give them $20 or pay them a compliment (now and then, not over and over). They go from *Stranger* to *Neighbour* to *Friend* to *Close friend*, greet you when you pass, and once you're friends they'll do you a **favour** (every few minutes):
   - **Mrs. Okafor**, 1A, a retired teacher: **dinner**, which heals you fully.
@@ -157,10 +166,11 @@ src/
   parked.js     the parked cars: drawn in bulk, turned into real cars when you get in
   interior.js   rooms behind the front doors: the shell, the furniture for each kind of place, the people working there
   drugs.js      Physick: the cook (a timing game) in the camper, selling
+  story.js      the story: the scenes (camera moves, subtitles, letterbox), choosing your look, the opening
   tenants.js    your neighbours: who they are, making friends, their favours
   water.js      the sea: rolling waves, sliding ripples, the sky reflected
   buildings.js  building facades: windows, shopfronts, awnings, signs, balconies, cornices, rooftops
-  apartment.js  your building at Fairview Heights: the lobby, the stair, the corridor, the neighbours' flats and your room, its things
+  apartment.js  your building at Fairview Heights: the lobby, the stair, the corridor, the neighbours' flats, your room and the shared bathroom, its things
   props.js      loose things: picking up, carrying, dropping, throwing
   weapons.js    fists, the hatchet, the butter knife, the plastic kiddie knife, the pistol, the shotgun: aiming, punching, swinging, shooting
   police.js     wanted stars, crimes, witnesses and their calls, reports, patrols and stop-and-searches, cop cars (A* along the roads), cops on foot, losing them, BUSTED

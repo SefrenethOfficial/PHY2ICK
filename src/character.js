@@ -96,7 +96,7 @@ export class Human {
     add('hips', box((f ? 0.33 : 0.31) * w, 0.17, 0.2 * lw, 0.035), pa, 0, 0.955, 0);
     add('spine', box((f ? 0.265 : 0.3) * w, 0.25, 0.19 * lw, 0.04), sh, 0, 1.15, 0.002);
     add('chest', box((f ? 0.32 : 0.385) * w, 0.24, 0.21 * lw, 0.045), sh, 0, 1.37, 0.004);
-    add('hips', box((f ? 0.335 : 0.315) * w, 0.03, 0.205 * lw, 0.01), 0x1d1a18, 0, 1.03, 0); // (a belt)
+    add('hips', box((f ? 0.335 : 0.315) * w, 0.03, 0.205 * lw, 0.01), L.shorts ? new THREE.Color(pa).multiplyScalar(0.8).getHex() : 0x1d1a18, 0, 1.03, 0); // (a belt; on boxers, the waistband)
     // neck and head
     add('neck', new THREE.CylinderGeometry(0.046, 0.05, 0.11, 10), sk, 0, 1.51, 0.004);
     add('head', ball(HR, 22, 16), sk, 0, HY + HC, 0, { sx: 0.96, sy: 1.08, sz: 1 });
@@ -116,8 +116,8 @@ export class Human {
     for (const s of [-1, 1]) {
       const k = s < 0 ? 'R' : 'L', x = s * hipX;
       add('hip' + k, box(0.155 * lw * (f ? 1.04 : 1), 0.43, 0.165 * lw, 0.04), pa, x, 0.71, 0);
-      add('knee' + k, ball(0.07 * lw), pa, x, 0.49, 0);
-      add('knee' + k, box(0.125 * lw, 0.41, 0.135 * lw, 0.035), pa, x, 0.28, 0);
+      add('knee' + k, ball(0.07 * lw), L.shorts ? sk : pa, x, 0.49, 0);
+      add('knee' + k, box(0.125 * lw, 0.41, 0.135 * lw, 0.035), L.shorts ? sk : pa, x, 0.28, 0);
       add('ankle' + k, box(0.11, 0.085, 0.25, 0.03), L.shoes, x, 0.052, 0.045);
       add('ankle' + k, box(0.116, 0.024, 0.262, 0.01), L.shoes === 0xe8e8e8 ? 0xd8d4cc : 0x26221f, x, 0.012, 0.045);
     }
@@ -177,8 +177,16 @@ export class Human {
         add('head', new THREE.SphereGeometry(r * 1.1, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), knit, 0, cy + 0.008, -0.006, { rx: -0.3, sx: 0.96, sy: 1.12 });
         add('head', new THREE.CylinderGeometry(r * 1.115, r * 1.125, 0.05, 24, 1, true), rib, 0, cy + 0.04, -0.01, { rx: -0.3, sx: 0.97 });
         add('head', new THREE.CylinderGeometry(r * 1.13, r * 1.13, 0.012, 24, 1, true), knit, 0, cy + 0.066, -0.005, { rx: -0.3, sx: 0.97 });
-        for (const sx of [-1, 1]) rb(0.03, 0.06, 0.07, sx * 0.105, 0.0, -0.02); // (hair at the sides)
-        rb(0.17, 0.06, 0.04, 0, -0.03, -0.1);                                       // (and the back)
+        // the hair that shows underneath (look.under: the style you'd see with the beanie off)
+        switch (this.look.under || 'short') {
+          case 'bald': case 'buzz': break;
+          case 'long': for (const sx of [-1, 1]) rb(0.04, 0.22, 0.09, sx * 0.11, -0.07, -0.02); rb(0.22, 0.3, 0.07, 0, -0.12, -0.1); break;
+          case 'curly': for (let i = 0; i < 9; i++) { const a = Math.PI * 0.42 + (i / 8) * Math.PI * 1.16; blob(0.034, Math.sin(a) * 0.112, -0.01 - (i % 2) * 0.02, Math.cos(a) * 0.1 - 0.02); } break;
+          case 'afro': for (let i = 0; i < 11; i++) { const a = Math.PI * 0.4 + (i / 10) * Math.PI * 1.2; blob(0.05, Math.sin(a) * 0.125, -0.02 - (i % 2) * 0.03, Math.cos(a) * 0.115 - 0.025); } break;
+          case 'ponytail': for (const sx of [-1, 1]) rb(0.03, 0.06, 0.07, sx * 0.105, 0.0, -0.02); rb(0.17, 0.06, 0.04, 0, -0.03, -0.1); add('head', new THREE.CapsuleGeometry(0.032, 0.15, 4, 10), col, 0, cy - 0.1, -0.135, { rx: 0.18 }); break;
+          case 'bob': rb(0.25, 0.12, 0.16, 0, -0.05, -0.04); break;
+          default: for (const sx of [-1, 1]) rb(0.03, 0.06, 0.07, sx * 0.105, 0.0, -0.02); rb(0.17, 0.06, 0.04, 0, -0.03, -0.1); // (short: a little at the sides and back)
+        }
         break; }
       case 'cap': { // a police cap: crown, band, peak, badge
         const navy = 0x1b2438; cap(1.05, Math.PI * 0.5, -0.5);
@@ -278,6 +286,22 @@ export class Human {
       set('hips'); set('spine', 0.5); set('chest', 0.25); set('neck', 0.45); set('head', 0.35, 0.3, 0.2);
       for (const k of ['L', 'R']) { set('hip' + k, -1.48, 0, k === 'L' ? 0.12 : -0.12); set('knee' + k, 0.3); set('ankle' + k, 0.9); }
       set('shoulderL', -0.55, 0, -0.05); set('elbowL', -0.5); set('wristL', 0.3); set('shoulderR', -0.6, 0, 0.1); set('elbowR', -0.3); set('wristR', 0.4);
+    } else if (s.pose === 'bath') { // lying back in a bath, knees up a little, arms in the water
+      rootTilt = -1.05; hipsY = 0.2;
+      set('hips'); set('spine', 0.08); set('chest', 0.06); set('neck', 0.45); set('head', 0.3, this.lookYaw, 0);
+      for (const k of ['L', 'R']) { set('hip' + k, -0.8, 0, k === 'L' ? 0.1 : -0.1); set('knee' + k, 0.9); set('ankle' + k, 0.3); }
+      set('shoulderL', 0.1, 0, 0.22); set('elbowL', -0.3); set('wristL'); set('shoulderR', 0.1, 0, -0.22); set('elbowR', -0.3); set('wristR');
+    } else if (s.pose === 'situp') { // sat up in it, gripping the sides
+      rootTilt = -0.12; hipsY = 0.2;
+      set('hips'); set('spine', 0.25); set('chest', 0.1); set('neck', 0.1); set('head', 0.05, this.lookYaw, 0);
+      for (const k of ['L', 'R']) { set('hip' + k, -1.35, 0, k === 'L' ? 0.12 : -0.12); set('knee' + k, 1.1); set('ankle' + k, 0.3); }
+      set('shoulderL', -0.35, 0, 0.55); set('elbowL', -0.5); set('wristL', 0, 0, -0.4); set('shoulderR', -0.35, 0, -0.55); set('elbowR', -0.5); set('wristR', 0, 0, 0.4);
+    } else if (s.pose === 'stairsit') { // sat on a step, feet two steps down, elbows on knees (maybe on the phone)
+      hipsY = 0.95;
+      set('hips'); set('spine', 0.3); set('chest', 0.12); set('neck', 0.2); set('head', 0.25, this.lookYaw, 0);
+      for (const k of ['L', 'R']) { set('hip' + k, -1.57, 0, k === 'L' ? 0.14 : -0.14); set('knee' + k, 1.13); set('ankle' + k, 0.45); }
+      set('shoulderL', -0.95, 0, -0.1); set('elbowL', -0.9); set('wristL'); set('shoulderR', -0.95, 0, 0.1); set('elbowR', -0.9); set('wristR');
+      if (s.phone) { set('shoulderR', -0.95, 0, 0.35); set('elbowR', -2.45, 0, 0); set('wristR', 0, 0, 0.3); set('head', 0.1, this.lookYaw, -0.18); }
     } else if (s.pose === 'drive' || s.pose === 'passenger') {
       hipsY = 0.95; // the seat sets the height
       set('hips'); set('spine', -0.26); set('chest'); set('neck', 0.16); set('head', 0.04, this.lookYaw * 0.6);
@@ -378,6 +402,9 @@ export class Human {
       if (s.crouch) { const m = Math.min(1, spd / 1.4); hipsY = 0.66; set('hips', 0.0, 0, 0); set('spine', 0.42, 0, 0); set('chest', 0.1, 0, 0); set('neck', -0.25); set('head', -0.15, this.lookYaw, 0);
         for (const [k, sg] of [['L', -1], ['R', 1]]) { const q = (sg < 0 ? this.phase : this.phase + Math.PI); set('hip' + k, -1.05 - Math.sin(q) * 0.35 * m, 0, -sg * 0.1); set('knee' + k, 1.75 + Math.max(0, Math.cos(q)) * 0.4 * m, 0, 0); set('ankle' + k, -0.6, 0, 0); }
         if (!s.aim && !s.carry && !s.guard && !s.punch) { set('shoulderL', -0.55, 0, -0.1); set('elbowL', -0.9); set('shoulderR', -0.55, 0, 0.1); set('elbowR', -0.9); } }
+      // freezing: arms wrapped round yourself
+      if (s.shiver && spd < 1.6 && !s.carry && !s.weapon) { const j = () => (Math.random() - 0.5) * 0.06; set('shoulderL', -0.55 + j(), 0, -0.5); set('elbowL', -2.05 + j(), 0, 0); set('wristL', 0, 0, -0.3); set('shoulderR', -0.5 + j(), 0, 0.5); set('elbowR', -2.0 + j(), 0, 0); set('wristR', 0, 0, 0.3); set('chest', 0.08 + j(), j(), 0); set('neck', 0.12); }
+      if (s.shiver) { const j = (Math.random() - 0.5) * 0.05; T.head = [T.head[0] + j, T.head[1] + j, T.head[2]]; }
       // hands up (surrendering, being robbed)
       if (s.handsUp) { set('shoulderL', -0.15, 0, 2.55); set('elbowL', -0.55, 0, 0); set('shoulderR', -0.15, 0, -2.55); set('elbowR', -0.55, 0, 0); set('wristL', 0, 0, 0); set('wristR', 0, 0, 0); }
       // aiming: arms out along the line of sight (e: how far up), a two-handed grip
@@ -397,6 +424,7 @@ export class Human {
       if (s.struggle) { const t = this.t; set('shoulderL', -0.7 + Math.sin(t * 8.1) * 0.6, 0, -0.35 + Math.sin(t * 5) * 0.3); set('elbowL', -1.3 + Math.sin(t * 9.3) * 0.5, 0, 0); set('shoulderR', -0.7 + Math.sin(t * 7.3 + 1) * 0.6, 0, 0.35 + Math.sin(t * 6) * 0.3); set('elbowR', -1.3 + Math.sin(t * 8.7 + 2) * 0.5, 0, 0); set('head', Math.sin(t * 6) * 0.15, Math.sin(t * 4.3) * 0.5, 0); set('spine', -0.12, Math.sin(t * 3.7) * 0.25, 0); }
     }
 
+    if (s.shiver && (s.pose === 'bath' || s.pose === 'situp')) for (const n of ['chest', 'head', 'shoulderL', 'shoulderR']) if (T[n]) T[n] = T[n].map(v => v + (Math.random() - 0.5) * 0.05);
     // ease every joint toward its target
     const k = 1 - Math.exp(-dt * 14);
     for (const name in T) {

@@ -156,7 +156,7 @@ export class Citizens {
     for (let i = 0; i < this.list.length; i++) {
       const n = this.list[i];
       if (n.state === 'trunk') { const tp = n.trunkCar.trunkPoint(-0.6); n.body.setNextKinematicTranslation({ x: tp.x, y: tp.y + 0.6, z: tp.z }); continue; }
-      if (n.state === 'seated' || n.hostage) continue;
+      if (n.state === 'seated' || n.state === 'scripted' || n.hostage) continue;
       // far from you, people think (and move) a quarter as often: the same walk, a quarter of the work
       let h = h0;
       { const t = n.body.translation(), far = Math.hypot(pp.x - t.x, pp.z - t.z) > 55 && n.state !== 'follow' && !n.cop;
@@ -341,7 +341,7 @@ export class Citizens {
   board(n, car) {
     n.state = 'seated'; car.passenger = n; n.col.setEnabled(false);
     car.seatPerson(n.human, 'passenger');
-    this.say(n, pick(["Where are we going?", "Nice car. Is it yours?", "Don't drive like a maniac, okay?"]), 3.5);
+    if (!n.storyNpc) this.say(n, pick(["Where are we going?", "Nice car. Is it yours?", "Don't drive like a maniac, okay?"]), 3.5);
   }
   unboard(n, car) {
     car.passenger = null; car.unseat(n.human); this.g.scene.add(n.human.root);
@@ -374,6 +374,7 @@ export class Citizens {
       } else n.animAcc = (n.animAcc || 0) + dt0;
       const dt = n.animAcc; n.animAcc = 0;
       H.setMood(n.state === 'angry' ? 'angry' : n.state === 'flee' ? 'scared' : n.mood < -40 ? 'annoyed' : n.mood < -15 ? 'sad' : n.mood > 45 ? 'happy' : 'neutral');
+      if (n.state === 'scripted' && n.script) { const S = n.script; H.root.visible = true; H.root.position.copy(S.pos); H.root.rotation.y = S.yaw; H.lookYaw += ((S.look || 0) - H.lookYaw) * Math.min(1, dt * 4); H.update(dt, { speed: 0, grounded: true, talking: n.bubbleT > 0, ...S.pose }); continue; }
       if (n.state === 'seated') { if (n.kidnapped && Math.random() < dt * 0.15) this.say(n, n.hostageBag ? pick(['Mmmph!', 'MMMPH!', '…mmf…']) : pick(['Let me out!', 'Where are you taking me?!', 'Please! I won\'t tell anyone!']), 2); H.update(dt, { pose: 'passenger', struggle: n.kidnapped }); continue; }
       if (H.ragdoll) { H.update(dt, {}); continue; }
       const p = this.pos(n);
@@ -423,6 +424,7 @@ export class Citizens {
       { id: 'buy:sack', label: 'Sack $5' }, { id: 'buy:salts', label: 'Blue Salts $45' }, { id: 'sellall', label: D.count ? `Sell ${D.count} Physick` : 'Sell Physick' },
     ];
     if (n.tenant && g.tenants) return g.tenants.options(n);
+    if (n.storyNpc) return [{ id: 'talk', label: 'Talk' }];
     if (n.role === 'buyer') return [
       { id: 'talk', label: n.outed ? 'Talk (June says: cop!)' : 'Talk' }, { id: 'sell1', label: 'Sell 1 Physick' }, { id: 'sell5', label: 'Sell 5' }, { id: 'insult', label: 'Insult' },
     ];

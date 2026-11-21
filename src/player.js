@@ -20,10 +20,8 @@ export class Player {
     this.cc.setMaxSlopeClimbAngle(50 * Math.PI / 180);
     this.cc.setApplyImpulsesToDynamicBodies(true);
     this.cc.setCharacterMass(80);
-    this.human = new Human({
-      female: false, skin: 0xd2a07a, hair: 0x2a1d14, hairStyle: 'beanie', beanie: 0x2c3036, shirt: 0x2b2f36, pants: 0x3a4a5e, shoes: 0x1a1a1a,
-      longSleeves: true, height: 1.78, build: 1.05,
-    });
+    this.look = { female: false, skin: 0xd2a07a, hair: 0x2a1d14, under: 'short', beanie: 0x2c3036, height: 1.78, build: 1.05 };
+    this.human = new Human(this.outfit('dressed'));
     g.scene.add(this.human.root);
     this.vel = new THREE.Vector3();
     this.vy = 0; this.grounded = true;
@@ -34,6 +32,21 @@ export class Player {
     this.speed = 0;
   }
 
+  // what you're wearing over the look you picked: dressed (the beanie, the hoodie, jeans), or just boxers
+  outfit(kind) {
+    const L = this.look;
+    if (kind === 'bath') return { ...L, hairStyle: L.under === 'short' ? 'short' : L.under, shirt: L.skin, longSleeves: false, pants: 0x34477a, shorts: true, shoes: L.skin };
+    return { ...L, hairStyle: 'beanie', shirt: 0x2b2f36, pants: 0x3a4a5e, shoes: 0x1a1a1a, longSleeves: true };
+  }
+  // put a new body on (a new look, or a change of clothes): the old one goes, the held weapon moves over
+  dress(kind) {
+    const g = this.g, old = this.human, H = new Human(this.outfit(kind));
+    H.root.position.copy(old.root.position); H.root.rotation.copy(old.root.rotation);
+    g.scene.remove(old.root); old.body.geometry.dispose(); g.scene.add(H.root);
+    this.human = H; this.wearing = kind;
+    const W = g.weapons, m = W.models?.[W.cur]; if (m && W.cur !== 'fists' && m.visible) W.mount(H, m, W.cur);
+  }
+
   get pos() {
     if (this.ragdoll) { const p = this.ragdoll.pelvis; return p.setY(p.y - 0.75); }
     const t = this.body.translation(); return new THREE.Vector3(t.x, t.y - CENTRE, t.z);
@@ -41,7 +54,7 @@ export class Player {
   get headPos() { return this.pos.add(new THREE.Vector3(0, 1.62, 0)); }
 
   physics(h) {
-    if (this.car) return;
+    if (this.car || this.scripted) return;
     if (this.ragdoll) {
       this.downT -= h;
       if (this.dead) return;
@@ -57,7 +70,7 @@ export class Player {
       if (this.smashT <= 0 && c) { this.smashCar = null; if (!c.driver && c.pos.distanceTo(this.pos) < 4) this.enterCar(c); }
     }
     if (this.swimming || this.car) this.crouch = false;
-    const stuck = busy || !!g.drugs?.cook || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
+    const stuck = busy || !!g.drugs?.cook || !!g.story?.locked || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
     if (!stuck) {
       if (k.has('KeyW')) want.z -= 1; if (k.has('KeyS')) want.z += 1;
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
@@ -217,6 +230,8 @@ export class Player {
       return;
     }
     if (this.ragdoll) { H.update(dt, {}); return; }
+    if (this.scripted) { const S = this.scripted; H.root.position.copy(S.pos); H.root.rotation.y = S.yaw; H.lookYaw += ((S.look || 0) - H.lookYaw) * Math.min(1, dt * 4); H.update(dt, { speed: 0, grounded: true, ...S.pose }); return; }
+    this.shiverT = Math.max(0, (this.shiverT || 0) - dt);
     const p = this.pos;
     H.root.position.copy(p);
     // face where you're going (or where you're talking)
@@ -245,7 +260,7 @@ export class Player {
       guard: W.cur === 'fists' && (W.aiming || W.guardT > 0) && W.punchPhase == null && !this.hostage && !this.surrender,
       punch: this.smashT > 0 ? { a: 1 - this.smashT / 0.75, side: 'R' } : W.punchPhase != null ? { a: W.punchPhase, side: W.combo % 2 ? 'L' : 'R', hook: W.combo === 2 } : null,
       aim: F && F.kind === 'shoot' ? { e: -0.9, kind: W.cur } : gunOut ? { e, kind: W.cur, recoil: W.recoil } : (W.aiming && W.cur !== 'fists' ? { e, kind: 'melee' } : null),
-      handsUp: this.surrender || !!this.g.police.cops().find(n => n.frisking), crouch: this.crouch && !this.swimming, hold: this.hostage ? (this.hostage.hostage?.bag ? 'bag' : 'mouth') : null,
+      handsUp: this.surrender || !!this.g.police.cops().find(n => n.frisking), crouch: this.crouch && !this.swimming, shiver: this.shiverT > 0 && !this.swimming, hold: this.hostage ? (this.hostage.hostage?.bag ? 'bag' : 'mouth') : null,
       stomp: F && F.kind === 'stomp' ? fa : null, stab: F && F.kind === 'stab' ? fa : null });
     this.talkT = Math.max(0, (this.talkT || 0) - dt);
   }
