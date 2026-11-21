@@ -68,8 +68,8 @@ export class Sfx {
   update(dt) {
     const g = this.g, ctx = this.ctx;
     // the theme (an <audio>, so it streams)
-    const want = this.musicOn ? 0.55 : 0;
-    this.musicVol += (want - this.musicVol) * Math.min(1, dt * (this.musicOn ? 1.5 : 0.6));
+    const want = this.musicOn ? 0.5 : 0;
+    this.musicVol += (want - this.musicVol) * Math.min(1, dt * (this.musicOn ? 1.5 : 0.35));
     if (this.musicOn && this.music.paused && ctx) this.music.play().catch(() => {});
     this.music.volume = Math.max(0, Math.min(1, this.musicVol));
     if (!this.musicOn && this.musicVol < 0.01 && !this.music.paused) { this.music.pause(); this.music.currentTime = 0; }

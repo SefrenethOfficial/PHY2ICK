@@ -76,6 +76,10 @@ export class Hud {
     ctx.fillStyle = '#244a63'; ctx.fillRect(0, 0, S, S);
     ctx.translate(S / 2, S / 2); ctx.rotate(yaw); ctx.scale(zoom, zoom);
     ctx.drawImage(this.mapC, -(p.x - this.mapO[0]) * k, -(p.z - this.mapO[1]) * k);
+    const Pz = g.police; // (while they're searching: the area they're searching, flashing red and blue)
+    if (Pz?.stars && !Pz.seen && Pz.lastKnown) { const r = (70 + Pz.stars * 25) * k, lk = Pz.lastKnown; ctx.fillStyle = Math.floor(performance.now() / 400) % 2 ? 'rgba(220,40,40,.28)' : 'rgba(40,80,230,.28)'; ctx.beginPath(); ctx.arc((lk.x - p.x) * k, (lk.z - p.z) * k, r, 0, 7); ctx.fill(); }
+    if (Pz) for (const c of Pz.cars) { if (c.car.inactive || c.car.wrecked) continue; ctx.fillStyle = Math.floor(performance.now() / 250) % 2 ? '#ff3a3a' : '#3a6aff'; ctx.beginPath(); ctx.arc((c.car.pos.x - p.x) * k, (c.car.pos.z - p.z) * k, 3.2 / zoom * 1.6, 0, 7); ctx.fill(); }
+    if (Pz) for (const n of Pz.cops()) { if (n.state === 'seated') continue; const q = n.body.translation(); ctx.fillStyle = '#7aa0ff'; ctx.beginPath(); ctx.arc((q.x - p.x) * k, (q.z - p.z) * k, 2.2 / zoom * 1.6, 0, 7); ctx.fill(); }
     if (g.waypoint) { const w = g.waypoint.pos; ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc((w.x - p.x) * k, (w.z - p.z) * k, 4 / zoom * 1.6, 0, 7); ctx.fill(); }
     ctx.restore();
     // you: an arrow pointing the way you face (relative to the camera)

@@ -82,7 +82,7 @@ export class Police {
     let s = Math.max(this.stars, base);
     if (this.stars >= base && base >= 2) s = this.stars + 1; // (doing it again, when they're already after you)
     this.stars = Math.min(5, s);
-    if (this.stars > before) { this.seen = true; this.searchT = 0; this.lastKnown = (g.player.car ? g.player.car.pos : g.player.pos).clone(); if (before === 0) g.hud.toast(pick(['The police are on their way.', "Someone's called the cops.", 'You\'re wanted.']), '#ff5a5a'); }
+    if (this.stars > before) { this.seen = true; this.searchT = 0; this.graceT = 18; /* (the call's just gone out: they know where you are for a while) */ this.lastKnown = (g.player.car ? g.player.car.pos : g.player.pos).clone(); if (before === 0) g.hud.toast(pick(['The police are on their way.', "Someone's called the cops.", 'You\'re wanted.']), '#ff5a5a'); }
   }
   clear() {
     this.stars = 0; this.seen = false;
@@ -179,7 +179,7 @@ export class Police {
   // can a cop at `from` see you?
   sees(from, range) {
     const g = this.g, pl = g.player, tp = (pl.car ? pl.car.pos : pl.pos).clone().add(V(0, 1.2, 0));
-    const d = from.distanceTo(tp); if (d > range) return false; if (d < 14) return true;
+    const d = from.distanceTo(tp); if (d > range) return false; if (d < 30) return true; // (close by, they'll find you round a corner)
     const dir = tp.clone().sub(from).normalize();
     const hit = g.world.castRay(new g.R.Ray(from, dir), d - 1, true, undefined, groups(0xffff, G_WORLD));
     return !hit;
@@ -262,13 +262,18 @@ export class Police {
       let seen = false;
       for (const n of this.cops()) { if (n.state === 'seated') continue; if (this.sees(g.citizens.pos(n).add(V(0, 1.5, 0)), 70)) { seen = true; break; } }
       if (!seen) for (const c of this.cars) { if (c.car.wrecked || c.car.inactive || !c.crew.some(n => n.state === 'seated' && n.car === c.car)) continue; if (this.sees(c.car.pos.clone().add(V(0, 1.3, 0)), 95)) { seen = true; break; } }
+      if (this.graceT > 0) seen = true;
       this.seen = seen;
       if (seen) { this.lastKnown = pp.clone(); this.searchT = 0; }
     }
+    if (this.graceT > 0) this.graceT -= dt;
     if (this.stars) {
       if (!this.seen) {
-        this.searchT += dt;
-        if (this.searchT > 9 + this.stars * 5) { g.hud.toast(pick(['You lost them.', 'The heat dies down.', 'They\'ve lost you.']), '#7be08a'); this.clear(); }
+        // they're searching: it only really counts once you're out of the area they last saw you in
+        const zone = 70 + this.stars * 25, out = !this.lastKnown || pp.distanceTo(this.lastKnown) > zone;
+        this.searchT += dt * (out ? 1 : 0.3);
+        this.outOfZone = out;
+        if (this.searchT > 22 + this.stars * 9) { g.hud.toast(pick(['You lost them.', 'The heat dies down.', 'They\'ve lost you.']), '#7be08a'); this.clear(); }
       }
       // keep the right number of cars coming
       const want = this.stars, have = this.cars.filter(c => !c.car.wrecked && !c.leaving).length;

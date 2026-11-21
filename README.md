@@ -67,8 +67,8 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 ### Crime and the police
 - **Wanted stars (five).** Witnessed crimes earn stars: hitting someone or firing a gun (one), killing someone, robbing a shop or kidnapping (two), attacking a cop (three), killing one (four), and doing it again while they're after you adds more. A cop or a passer-by has to see it (a robbery always gets reported: the till has an alarm).
 - **The police come for you**: one black-and-white **police car** per star, lights flashing and siren wailing, finding its way to you along the roads. Near you, two cops jump out. At **one star** they try to arrest you; from **two** they shoot. In a car they chase and ram you; drive off and the cops get back in theirs.
-- **Lose them**: get out of sight. The stars blink while they're searching; stay hidden long enough (longer with more stars) and they give up.
-- **The chase theme** plays while you're wanted (*The Files Were Released*), fading in and out.
+- **Lose them**: get out of sight, then out of the area. For the first few seconds after the call goes out they know where you are. Once they lose sight of you the stars blink and the area they're searching shows on the minimap, flashing red and blue (bigger with more stars). Get out of it and stay out of sight and they give up (about 40 seconds at two stars, longer with more). Hiding inside it works too, but much more slowly. Cop cars and cops on foot show on the minimap.
+- **The chase theme** plays while you're wanted (*Chase on Foot*, the one-to-two-star theme from PHYSICK), fading in and out.
 - **Give up** with `Y`: hands up, and they come and cuff you.
 - **BUSTED / WASTED**: slow motion, the world goes grey, the words come up. Busted, you're released at the Police Station with a fine (they keep your guns). Wasted, you wake up at the Hospital with a bill.
 
