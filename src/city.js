@@ -736,7 +736,7 @@ export function buildCity(g) {
   function abandoned(r) {
     const k = deckLevels(r, 3, { broken: true });
     // graffiti, rubble, a burnt-out car
-    const tags = ['MERIDIAN', 'VIC LIES', 'HOLLOWS', 'NO FUTURE', 'C WAS HERE'];
+    const tags = ['MERIDIAN', 'VIC LIES', 'STAY BLUE', 'NO FUTURE', 'C WAS HERE'];
     tags.forEach((t, i) => { const gt = canvasTex(256, 64, (c, w, h) => { c.clearRect(0, 0, w, h); c.font = 'bold 44px "Comic Sans MS", cursive'; c.fillStyle = ['#d8344a', '#3aa86a', '#f2c23a', '#2e6ac8', '#ff4fd8'][i]; c.textAlign = 'center'; c.fillText(t, w / 2, 46); }); const m = new THREE.Mesh(new THREE.PlaneGeometry(5, 1.25), new THREE.MeshStandardMaterial({ map: gt, transparent: true, roughness: 0.9 })); m.position.set(k.rx0 + 6 + i * 9, 1.3 + (i % 2) * 3.4, k.rz0 + k.D + 0.14); scene.add(m); });
     for (let i = 0; i < 14; i++) { const rb = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3 + rand() * 0.5, 0), std(0x8a867c, 1, { flatShading: true })); rb.position.set(k.rx0 + rand() * k.W, 0.2, k.rz0 + rand() * k.D); add(rb); }
     const burnt = std(0x2a2522, 1);

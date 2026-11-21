@@ -302,7 +302,8 @@ export class WrenLife {
       if ((this.sellT -= dt * mul) <= 0) {
         this.sellT = 40 + Math.random() * 20;
         const p = this.stock.shift(), cash = Math.round(85 * (0.45 + p * 0.9) * (this.lv >= 4 ? 1.25 : this.lv >= 3 ? 1.1 : 1) * (I.price ? 1.2 : 1));
-        g.money += cash; this.batchCash += cash; this.batchSold++;
+        const keep = Math.round(cash * (1 - (g.missions?.cut || 0))); // (the Saltline crew's quarter, if you agreed to it)
+        g.money += keep; this.batchCash += keep; this.batchSold++;
         if (I.clubT > 0 && Math.random() < 0.2 && !I.clubReported) { I.clubReported = true; g.police.reported(1, this.spot('club'), 'tip'); this.text('Wren', 'cops at the club. someone talked. i got out the back. dont come here for a bit'); }
         if (!this.stock.length) { this.text('Wren', this.pv(TEXTS.sold) + this.batchCash); setTimeout(() => { if (!this.stock.length) this.text('Wren', this.pv(TEXTS.out)); }, 90000); this.batchCash = 0; this.batchSold = 0; I.clubReported = false; }
         else if (this.batchSold % 3 === 0) this.text('Wren', `${pick(TEXTS.some[this.v])}${this.batchSold}. $${this.batchCash}`);

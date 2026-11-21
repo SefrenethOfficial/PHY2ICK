@@ -1,6 +1,6 @@
 # PHY2ICK
 
-The in-between chapter of [Physick](https://github.com/SefrenethOfficial/Physick): after the lockdown, before whatever comes next. Less story-driven than Physick, but the city's on edge, and people talk.
+The prequel to [Physick](https://github.com/SefrenethOfficial/Physick): before the Verian Central bombing, before Wren is gone. Less story-driven than Physick, but the city's on edge, and people talk.
 
 Play it at **https://sefrenethofficial.github.io/PHY2ICK/**
 
@@ -18,6 +18,8 @@ It's a **dense** city, not an open one: every gap between the places on the map 
 
 ### The Dry (the desert)
 North of the island, over a causeway at the top of the main north–south road: a desert about 2 km long with the sea on three sides. Red and tan flats with low dunes, sagebrush, saguaro cacti and boulders; flat-topped **mesas** in bands of red, orange and cream, a few out in the middle and a long line of them down each side and along the top, with the sea behind; a two-lane **highway** up the middle with telegraph poles and sagging wires beside it, two side roads (east towards the big mesas, west into the flats) and a few dirt tracks. A sign at the end of the causeway: *THE DRY · NO SERVICES NEXT 60 MILES · CARRY WATER*.
+
+**MARCOS**, by the junction where the east road leaves the highway: the burger chain from Verian, the last feed before the desert. Red brick and big windows under a red mansard roof, a tall pole sign with the burger logo, a patio with umbrellas, a drive-thru lane and a car park; inside, booths, a ball pit and slide, the kitchen and the crew under the menu boards. `E` at the counter (or at the drive-thru window in a car) to order: Marco Burger ($6, +30 health), Big Marco ($9, +50), Chicken Bites ($5, +25), Fries ($3, +12), a Choc Shake ($4, +15) or the Meal Deal ($12, full health). Start shooting near it and the crew run, and it's shut for a couple of minutes.
 
 **North Quay**, where the highway ends: a concrete dockside on the north shore. Stacks of shipping containers, a yellow gantry crane with its boom out over the water, a rust-red freighter tied up alongside (no name on her, no flag), the **North Quay Freight** warehouse, floodlights, bollards and tyre fenders. At its east end, the **Saltline Apartments**: a small three-storey walk-up with open walkways along the front, a stair up the end, a parking area and a *VACANCY* sign by the road.
 
@@ -53,9 +55,9 @@ You wake up in an ice bath in the shared bathroom at the end of your corridor, i
 
 Wren's on the stairs, on the phone to the hospital. Her younger brother **Kit** put you in that bath. Then he lay down on your floor and didn't get up. She needs a lift to the hospital.
 
-At the hospital she goes in alone. An hour later she comes out, and you put a hand on her shoulder. Then **Vic** turns up: their older brother, in a red convertible and sunglasses, back from a "retreat", too busy *investing in himself* to help with the funeral. Wren walks off. Vic asks you to help her, however you can, and tells you about **Kit's van**: an old camper parked up on the beach. He hands you Kit's keys. *"And whatever he was doing in that thing… don't."*
+At the hospital she goes in alone. An hour later she comes out, and you put a hand on her shoulder. Then **Vic** turns up: their cousin (who's always acted like their dad), in a red convertible and sunglasses, back from a "retreat", too busy *investing in himself* to help with the funeral. Wren walks off. Vic asks you to help her, however you can, and tells you about **Kit's van**: an old camper parked up on the beach. He hands you Kit's keys. *"And whatever he was doing in that thing… don't."*
 
-In the van: Kit's hoodie, a burnt pan, a notebook that says **MERIDIAN**. Kit was making it. He made what you two took. His phone won't stop buzzing with people who want more, the funeral needs paying for, and a man called **Pratt** has left four voicemails about what Kit owed him. The deal: **you cook, Wren sells**, and Vic never finds out. There's enough under the sink for one batch. Wren waits outside, leaning on the van, talking to you through the wall. Give her the bags and she moves in with you (a mattress on your floor in 1E) and sells them to Kit's buyers, a bag at a time, while you're out. Bring her more at home, or take her along (hold `E` on her).
+In the van: Kit's hoodie, a burnt pan, a notebook that says **MERIDIAN**. Kit was making it. He made what you two took. His phone won't stop buzzing with people who want more, the funeral needs paying for, and a man called **Pratt** has left four voicemails about what Kit owed him. The deal: **you cook, Wren sells**, and Vic never finds out. There's enough under the sink for one batch, but not here: people walk their dogs on this beach. Drive the van out to **the Dry** with Wren (cook in town and someone smells it and calls the police), and cook there while Wren leans on the van and talks to you through the wall. Give her the bags and she moves in with you (a mattress on your floor in 1E) and sells them to Kit's buyers, a bag at a time, while you're out. Bring her more at home, or take her along (hold `E` on her).
 
 ### Wren
 Once she's moved in, Wren is your partner, not a passer-by: she never calls the police on you, doesn't run off or put her hands up, and can't be mugged, grabbed or put in a boot. She reacts in her own words instead: to fights, guns, stolen cars, chases, frisks, your driving, your cooking.
@@ -64,7 +66,12 @@ Once she's moved in, Wren is your partner, not a passer-by: she never calls the 
 - **Your phone (`P`)**, after the first cook: text her to *come and get* the bags (she turns up where you are), or say you'll *bring them to her* (she tells you where she is: home, the pier, outside the nightclub, the beach by the van). Quick texts, a call, and her texts to you: sales, worries, Pratt, Vic. Leave her on read too long and she notices.
 - **After the third cook** she changes: louder, faster, prouder, and she calls you **Chef** (*"Yeah, Chef! Blue magic!"*). She has **ideas**, and you can say yes or no: a night at the nightclub, a buyer at the construction site who pays double, bigger batches, higher prices, *KIT'S KITCHEN* painted on the van, riding along with you for the day. Each one has a catch. Her mood changes through the day (buzzing, flat, wrecked) and with it how she talks and how fast she sells.
 
-It isn't a run of missions: a few scenes, a line in the corner telling you what's going on, and the rest is the city. (Kit left debts. Pratt wants them paid. Vic, their older brother, is too busy with his midlife crisis to help. That's all still to come.) If the car blows up with Wren in it (or she dies) before she's moved in, that part starts again from the last checkpoint: the stairs, the hospital, or the van. (Once she's living with you, she's patched up at the hospital and back home a minute later.) People who follow you follow the way you went: through doors, down stairs, round corners, and they catch up if they get stuck. `Enter`, `Space` or `Escape` skips a scene.
+### The jobs after the first cook
+Still not a mission list: one thing at a time on the line in the corner.
+- **Three More:** cook three more batches. **One cook a day**: sleep in your bed in 1E (`E`) and it's the next morning (*Day 2*, full health, and Wren texts). Cook out in the Dry; anywhere else the smell gets reported.
+- **Saltline:** Wren rings. A crew from the **Saltline Apartments**, out by North Quay, took her bags off a buyer at the pier: the island's theirs, and you pay or you stop. Go and see **Royce** and his three. Hold `E` on him: ask what he wants, **give them a quarter** of everything Wren makes from now on, **buy them off** for $1,500, or **tell them where to go**, and it's a shootout (pulling a gun near them, or hitting one, starts it too). They keep their distance, spread round you and shoot when they can see you.
+
+(Kit left debts. Pratt wants them paid. Vic is too busy with his midlife crisis to help. That's all still to come.) If the car blows up with Wren in it (or she dies) before she's moved in, that part starts again from the last checkpoint: the stairs, the hospital, or the van. (Once she's living with you, she's patched up at the hospital and back home a minute later.) People who follow you follow the way you went: through doors, down stairs, round corners, and they catch up if they get stuck. `Enter`, `Space` or `Escape` skips a scene.
 
 ### Home: Fairview Heights
 Your room is **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
@@ -98,7 +105,7 @@ Your room is **1E**, on the first floor of your building at **Fairview Heights**
 ### The interaction wheel
 Walk up to someone and **hold `E`**. Time slows down and a wheel opens with their name (once you've met) and how they feel about you:
 
-- **Talk:** they introduce themselves, then gossip (the Hollows bombing, the army at the naval base, a ship with no flag, Pratt out on bail…), or small talk. They remember you ("You again!", "It's the twenty-dollar guy!").
+- **Talk:** they introduce themselves, then gossip (blue stuff putting people in hospital, army trucks at the naval base, night shipments at the docks, Pratt Developments buying up the island, a sister who moved to Verian…), or small talk. They remember you ("You again!", "It's the twenty-dollar guy!").
 - **Follow me / Stop following:** if they like you enough, they come along. Get in a car and they'll get in the passenger seat; get out and they get out too.
 - **Give $20:** makes their day.
 - **Directions:** they point the way and set a waypoint (a beam of light and a marker on screen) to somewhere on the island.
@@ -223,6 +230,8 @@ src/
   desert.js     the Dry: the desert north over the causeway (ground, mesas, scrub, highway and tracks, poles), North Quay and the Saltline Apartments
   traffic.js    cars driving about (sedans, taxis, delivery vans, convertibles), carjacking
   save.js       saving to the browser, Continue
+  marcos.js     MARCOS, the burger place on the desert road: the building, the crew, ordering
+  missions.js   the jobs after the first cook (Three More, Saltline), the day and sleeping, the rival crew's gunmen
   fx.js         fire, smoke, sparks, muzzle flashes, tracers, explosions, debris
   sfx.js        the chase theme, and synthesized gunshots, punches, crashes, explosions, fire and sirens
   pickups.js    cash and guns on the ground

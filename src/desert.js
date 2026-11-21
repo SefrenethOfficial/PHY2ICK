@@ -12,6 +12,8 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 export const DRY = { x0: -1000, x1: 1300, z0: -2450, z1: -392, shore: -470, north: -2330, west: -880, east: 1180 };
 // the dock: a concrete apron along the north shore (and the apartments' plot at its east end)
 export const DOCK = { x0: 30, x1: 700, z0: -2333, z1: -2250 };
+// MARCOS's lot, by the junction where the east road leaves the highway (the building's centre: bx, bz)
+export const MARCOS_LOT = { x0: 62, x1: 124, z0: -750, z1: -696, bx: 95, bz: -722 };
 const STEP = 10;
 const RW = 11; // (same width as the island's roads, so the traffic's lanes line up)
 
@@ -82,6 +84,7 @@ export function buildDesert(g, islandSegs) {
     return m;
   };
   const roadY = (x, z) => { const y = Math.max(0.05, base(x, z)); return z > DOCK.z0 ? y + (0.02 - y) * ss(40, 0, dockD(x, z)) : y; };
+  const padY = Math.max(0.05, base(MARCOS_LOT.x1, (MARCOS_LOT.z0 + MARCOS_LOT.z1) / 2));
   const mesaAt = (x, z) => mesas.find(([mx, mz, r]) => Math.hypot(x - mx, z - mz) < r * 1.5);
   const height = (x, z) => {
     let h = base(x, z);
@@ -90,6 +93,7 @@ export function buildDesert(g, islandSegs) {
     const m = roadMask(x, z); if (m > 0) h = h + (roadY(x, z) - h) * m;
     if (z > DOCK.z0) { const k = ss(40, 0, dockD(x, z)); if (k > 0) h = h + (-0.05 - h) * k; }
     else if (x > DOCK.x0 - 30 && x < DOCK.x1 + 30) h = Math.min(h, -8); // (deep water off the quay, for the ship)
+    { const L = MARCOS_LOT, d = Math.hypot(Math.max(L.x0 - x, 0, x - L.x1), Math.max(L.z0 - z, 0, z - L.z1)), k = ss(18, 0, d); if (k > 0) h = h + (padY - h) * k; }
     return h;
   };
 
@@ -186,7 +190,7 @@ export function buildDesert(g, islandSegs) {
 
   // ---- scrub, cacti, rocks (instanced; nothing to bump into but the big rocks)
   const rnd = (() => { let s = 12345; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
-  const spots = (n, ok) => { const out = []; for (let t = 0; t < n * 6 && out.length < n; t++) { const x = DRY.west + 20 + rnd() * (DRY.east - DRY.west - 40), z = DRY.north + 20 + rnd() * (DRY.shore - 30 - DRY.north - 20), y = groundY(x, z); if (y < 0.3 || y > 30 || inland(x, z) < 15 || dockD(x, z) < 30 || roadMask(x, z) > 0.02 || mesaAt(x, z) || !ok(x, z)) continue; out.push([x, y, z]); } return out; };
+  const spots = (n, ok) => { const out = []; for (let t = 0; t < n * 6 && out.length < n; t++) { const x = DRY.west + 20 + rnd() * (DRY.east - DRY.west - 40), z = DRY.north + 20 + rnd() * (DRY.shore - 30 - DRY.north - 20), y = groundY(x, z); if (y < 0.3 || y > 30 || inland(x, z) < 15 || dockD(x, z) < 30 || (x > MARCOS_LOT.x0 - 20 && x < MARCOS_LOT.x1 + 10 && z > MARCOS_LOT.z0 - 20 && z < MARCOS_LOT.z1 + 20) || roadMask(x, z) > 0.02 || mesaAt(x, z) || !ok(x, z)) continue; out.push([x, y, z]); } return out; };
   const scatter = (geo, mat, list, scale, shadow = false) => {
     const im = new THREE.InstancedMesh(geo, mat, list.length), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S3 = new THREE.Vector3();
     list.forEach(([x, y, z], k) => { Q.setFromEuler(new THREE.Euler(0, rnd() * 6.28, 0)); const s = scale(); S3.set(s, s * (0.8 + rnd() * 0.4), s); M.compose(V(x, y, z), Q, S3); im.setMatrixAt(k, M); });
@@ -273,6 +277,8 @@ export function buildDesert(g, islandSegs) {
       }
       ctx.fillStyle = '#a8a49c'; ctx.fillRect(tx(DOCK.x0), tz(DOCK.z0), (DOCK.x1 - DOCK.x0) * k, (DOCK.z1 - DOCK.z0) * k);
       ctx.fillStyle = '#8d8a84'; for (const [x0, z0, x1, z1] of DOCK_FOOT) ctx.fillRect(tx(x0), tz(z0), (x1 - x0) * k, (z1 - z0) * k);
+      ctx.fillStyle = '#6a6c70'; ctx.fillRect(tx(MARCOS_LOT.x0), tz(MARCOS_LOT.z0), (MARCOS_LOT.x1 - MARCOS_LOT.x0) * k, (MARCOS_LOT.z1 - MARCOS_LOT.z0) * k);
+      ctx.fillStyle = '#c8102e'; ctx.fillRect(tx(MARCOS_LOT.bx - 8), tz(MARCOS_LOT.bz - 12), 16 * k, 24 * k);
       ctx.fillStyle = '#9a5a3a';
       for (const [mx, mz, r] of mesas) { ctx.beginPath(); ctx.arc(tx(mx), tz(mz), r * k, 0, 7); ctx.fill(); }
       ctx.lineCap = 'round';

@@ -62,7 +62,7 @@ export const AFTER = {
     L(3, "People keep saying 'Kit's stuff.' It's not his. It's ours. I don't know why that makes me so angry."), L(4, "Sometimes I'm having fun and I feel like I'm cheating on him."),
   ]),
   vic: [
-    L(1, 'Vic who? Never heard of him.'), L(2, "Vic asked if I'm 'okay for money.' I said I'm thriving, Vic. Thriving."),
+    L(1, 'Vic who? Never heard of him.'), L(1, "He's our cousin. He acts like our dad. He's neither, most weeks."), L(2, "Vic asked if I'm 'okay for money.' I said I'm thriving, Vic. Thriving."),
     L(3, "He saw my new shoes. Did the face. The disappointed-dad face. He's not my dad, Chef."), L(4, "If he finds out, I want it to be from me. I want to see his face. Is that bad?"),
   ],
   business: [

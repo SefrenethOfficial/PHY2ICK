@@ -85,7 +85,7 @@ export class Police {
   witnessesOf(at, loud) {
     const g = this.g, C = g.citizens, crouch = g.player.crouch, R = loud ? 40 : crouch ? 13 : 30, to = at.clone().add(V(0, 1.1, 0)), out = [];
     for (const n of C.list) {
-      if (n.cop || n.companion || n.storyNpc || n.state === 'dead' || n.state === 'seated' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
+      if (n.cop || n.rival || n.companion || n.storyNpc || n.state === 'dead' || n.state === 'seated' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
       const q = C.pos(n), d = q.distanceTo(at); if (d > R || d < 0.3) continue;
       const f = V(Math.sin(n.yaw), 0, Math.cos(n.yaw)), dir = at.clone().sub(q).setY(0).normalize();
       if (!loud && d > 5 && f.dot(dir) < -0.25) continue; // (behind them, and quiet)
@@ -97,7 +97,7 @@ export class Police {
   crime(kind, at, always = false, known = false) {
     const g = this.g, base = CRIMES[kind] ?? 1, C = g.citizens;
     if (g.player.dead || g.busted) return;
-    g.wren?.onCrime(kind, at);
+    g.wren?.onCrime(kind, at); g.marcos?.onCrime(kind, at);
     // a crime from a car: they'll remember the car (Rusty can fix that)
     const car = g.player.car; if (car && !['drugs', 'theft'].includes(kind)) { const was = car.heat || 0; car.heat = Math.min(3, was + 1); if (was < 2 && car.heat >= 2) g.hud.toast(`The police will know this car now (${car.plate})`, '#ff9a5a'); }
     // a cop saw it (or they're already after you and watching): straight to stars
@@ -128,7 +128,7 @@ export class Police {
   reported(level, at, why = 'witness', who = null, kind = null) {
     const g = this.g;
     if (g.player.dead || g.busted) return;
-    const what = CRIME_NAME[kind] || { dealing: 'dealing Physick', alarm: 'robbery', tip: 'dealing Physick' }[why] || 'a crime';
+    const what = CRIME_NAME[kind] || { dealing: 'dealing Physick', alarm: 'robbery', tip: 'dealing Physick', fumes: 'a stink of chemicals from a van' }[why] || 'a crime';
     // (a tip about somewhere, not someone: they come and look round, but nobody's described you)
     const describes = why !== 'tip';
     if (!this.stars && describes) g.wren?.react('reported', -1, 20);

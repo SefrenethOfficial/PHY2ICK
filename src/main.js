@@ -29,6 +29,8 @@ import { Title } from './title.js';
 import { WrenLife } from './wren.js';
 import { Shops } from './shops.js';
 import { ChopShop } from './chopshop.js';
+import { Marcos } from './marcos.js';
+import { Missions } from './missions.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -92,6 +94,9 @@ class Game {
     this.wren = new WrenLife(this);
     this.shopping = new Shops(this);
     this.chop = new ChopShop(this);
+    this.marcos = new Marcos(this);
+    this.missions = new Missions(this);
+    this.spots.push({ pos: this.apt.clothes, r: 1.6, label: () => this.missions.canSleep() ? `<kbd>E</kbd> sleep till morning (it's day ${this.missions.day}${this.missions.cookedToday ? ', and you\'ve cooked' : ''})` : 'Your bed', act: () => this.missions.sleep(), when: () => this.story?.phase === 'free' });
     // two lights that follow you indoors (cheaper than a light in every room)
     this.roomLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffe6c4, 0, 16, 1.5); this.scene.add(l); return l; });
     this.loadTimes.all = performance.now() - T0;
@@ -126,7 +131,7 @@ class Game {
     canvas.addEventListener('click', () => { if (!document.pointerLockElement && this.started && this.story?.phase !== 'creator') lock(); });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
-      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open ? 'none' : 'flex';
+      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open ? 'none' : 'flex';
       if (!this.locked) { this.keys.clear(); if (this.wheel.open) this.wheel.close(); }
     });
     addEventListener('contextmenu', (e) => e.preventDefault());
@@ -156,6 +161,7 @@ class Game {
       if (e.repeat) return;
       this.keys.add(e.code);
       if (this.chop?.open) { this.chop.key(e.code); this.keys.delete(e.code); return; }
+      if (this.marcos?.open) { this.marcos.key(e.code); this.keys.delete(e.code); return; }
       if (this.wren?.phoneOpen) { this.wren.phoneKey(e.code); this.keys.delete(e.code); return; }
       if (e.code === 'KeyP' && this.started && !this.story?.cine && this.story?.phase !== 'creator') { this.wren.openPhone(); this.keys.delete(e.code); return; }
       if (this.story?.key(e.code)) { if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) this.keys.delete(e.code); return; } // (a key held through a scene still counts once it's over)
@@ -176,6 +182,7 @@ class Game {
       }
       if (e.code === 'KeyV' && !pl.car) this.shopping.pocket();
       if (e.code === 'KeyE' && pl.car && this.chop.canUse()) { this.chop.show(); return; }
+      if (e.code === 'KeyE' && this.marcos?.canOrder() && !this.wheel.open) { this.marcos.show(); return; }
       if (e.code === 'KeyX') { if (this.props.held) this.props.drop(false); else if (this.weapons.held) this.weapons.putAway(); }
       if (/^Digit[1-6]$/.test(e.code) && !pl.car) this.weapons.select(+e.code.slice(5) - 1);
       if (e.code === 'KeyG' && !pl.car && !pl.hostage) { const tc = this.trunkCar(); if (tc) { if (tc.trunk.length) this.outOfTrunk(tc); else { const b = this.bodyNear(); if (b) this.intoTrunk(tc, b); else { tc.openLid(1.2); this.hud.toast('The boot is empty'); } } return; } }
@@ -493,6 +500,8 @@ class Game {
     this.wren?.update(rdt);
     this.shopping?.update(rdt);
     this.chop?.update(rdt);
+    this.marcos?.update(rdt);
+    this.missions?.update(rdt);
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);
@@ -506,6 +515,7 @@ class Game {
     const pl = this.player;
     let prompt = '';
     if (this.wheel.open) prompt = 'Move the mouse to pick · release <kbd>E</kbd> (or click, or <kbd>1</kbd>–<kbd>6</kbd>) · <kbd>Q</kbd> cancel';
+    else if (this.marcos?.canOrder() && !pl.ragdoll) prompt = this.marcos.label() + (pl.car ? ' · <kbd>F</kbd> get out' : '');
     else if (pl.car && this.chop?.canUse()) prompt = `<kbd>E</kbd> Rusty's: register, respray, new plates · <kbd>F</kbd> get out`;
     else if (pl.car) prompt = (pl.car.passenger?.kidnapped ? '<kbd>G</kbd> let them go · ' : '') + `<kbd>F</kbd> get out · <kbd>C</kbd> ${this.cam.mode === 'chase' ? 'inside view' : 'chase camera'} · <kbd>Space</kbd> handbrake`;
     else if (!pl.ragdoll) {

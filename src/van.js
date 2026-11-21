@@ -78,6 +78,8 @@ export class VanInterior {
     this.go(out, c.yaw + Math.PI, quick);
     const W = this.leaning; if (W) { this.leaning = null; const p = W.script.pos; W.body.setTranslation({ x: p.x, y: p.y + 1.0, z: p.z }, true); W.body.setNextKinematicTranslation({ x: p.x, y: p.y + 1.0, z: p.z }); W.script = null; W.human.resetPose(); W.state = 'follow'; W.following = true; }
   }
+  // Wren stops leaning and comes along
+  release() { const W = this.leaning; if (!W) return; this.leaning = null; const p = W.script.pos; W.body.setTranslation({ x: p.x, y: p.y + 1.0, z: p.z }, true); W.body.setNextKinematicTranslation({ x: p.x, y: p.y + 1.0, z: p.z }); W.script = null; W.human.resetPose(); W.state = 'follow'; W.following = true; }
   wrenLean(W) {
     const c = this.van, side = c.localPoint(-1.14, 0, -1.3), out = c.localPoint(-3, 0, -1.3);
     W.body.setTranslation({ x: side.x, y: side.y + 1.0, z: side.z }, true); W.body.setNextKinematicTranslation({ x: side.x, y: side.y + 1.0, z: side.z });

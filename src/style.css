@@ -154,3 +154,12 @@ body.title #hud, body.title #objective { opacity: 0; pointer-events: none; }
 #splash .modes button[data-mode=continue] { border-color: #ffb27a; color: #ffd2b0; }
 #splash .modes button.alt { border-color: rgba(255,255,255,.45); color: #fff; font-size: 16px !important; padding: 11px 30px !important; }
 #endtext small { display: block; margin-top: 14px; font: 700 24px Arial, sans-serif; letter-spacing: 1px; -webkit-text-stroke: 0; color: #fff; text-shadow: 0 2px 6px #000; }
+#marcos { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 340px; padding: 18px 18px 14px; background: rgba(26,10,12,.95); border: 3px solid #ffc72c; border-radius: 12px; color: #fff; font: 14px Arial; display: none; z-index: 6; }
+#marcos.on { display: block; }
+#marcos h3 { margin: 0 0 4px; font: 900 26px "Arial Black", Arial; letter-spacing: 2px; color: #ffc72c; text-shadow: 0 2px 0 #c8102e; }
+#marcos .lede { color: #f0d8d0; font-style: italic; margin-bottom: 10px; }
+#marcos button { display: flex; width: 100%; align-items: baseline; gap: 8px; margin: 4px 0; padding: 8px 10px; background: #c8102e; color: #fff; border: 0; border-radius: 6px; font: 600 14px Arial; cursor: pointer; }
+#marcos button:hover:not(:disabled) { background: #e02040; }
+#marcos button:disabled { opacity: .45; cursor: default; }
+#marcos button span { flex: 1; text-align: left; } #marcos button b { color: #ffc72c; } #marcos button i { font-size: 12px; color: #ffd8c8; font-style: normal; }
+#marcos button.done { background: #333; justify-content: center; }

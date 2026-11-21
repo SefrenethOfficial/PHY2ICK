@@ -485,9 +485,12 @@ export class Story {
     this.onDone = () => { this.startFirstCook(); g.hud.toast("Under the sink: a bottle of solvent and a bag of blue salts. Enough for one batch.", '#5fd0ff'); };
   }
   startFirstCook() {
-    this.phase = 'firstCook'; this.checkpoint = 'van'; this.chatT = 6;
-    this.objective('Cook a batch at the <b>stove</b> · Wren\'s waiting outside');
+    const g = this.g, W = this.wren;
+    this.phase = 'firstCook'; this.checkpoint = 'van'; this.chatT = 6; this.fcIn = null;
+    if (W) { W.storyLean = false; if (!g.van.inside) g.van.release(); }
+    if (!this.inDry()) setTimeout(() => { if (this.phase === 'firstCook' && !this.inDry()) this.sub('WREN', "Not here. People walk their dogs here. Kit always took it out to the Dry: north, over the causeway. Nobody out there.", 5.5); }, 2500);
   }
+  inDry() { const c = this.g.camper; return !!c && this.g.desert.inDesert(c.pos.x, c.pos.z); }
   // talking to Wren (and Vic): the story's own options
   options(n) {
     if (n !== this.wren) return [{ id: 'talk', label: 'Talk' }];
@@ -531,7 +534,7 @@ export class Story {
       this.phase = 'free'; W.storyLean = false;
       g.apt.wrenBed.visible = true; this.wrenHome(true); g.wren.unlock();
       g.hud.toast("Wren's selling for you. Bring her more bags at home (1E), or take her along.", '#5fd0ff');
-      setTimeout(() => g.hud.toast('The story continues soon.', '#ffb27a'), 4000);
+      setTimeout(() => g.missions?.start('cooks'), 4500);
     };
   }
   // Wren goes back to 1E (out of sight, she's just there)
@@ -560,7 +563,7 @@ export class Story {
       if (pl.car) this.ride = pl.car; else if (W.state === 'seated') this.ride = g.cars.find(c => c.passenger === W) || this.ride;
       if (this.ride?.wrecked && (W.state === 'seated' || this.phase === 'hospital')) { this.fail('car'); return; }
       if (W.state === 'dead' || W.hp <= 0 || !g.citizens.list.includes(W)) { this.fail('wren'); return; }
-      if (!W.storyLean && W.state !== 'seated' && W.state !== 'dead') { W.following = true; if (W.state !== 'follow') W.state = 'follow'; }
+      if (!W.storyLean && g.van?.leaning !== W && W.state !== 'seated' && W.state !== 'dead') { W.following = true; if (W.state !== 'follow') W.state = 'follow'; }
     }
     if (this.phase === 'hospital' && W) {
       const H = g.places['the hospital'], at = pl.car ? pl.car.pos : pl.pos;
@@ -572,6 +575,12 @@ export class Story {
     }
     // the first cook: Wren talks through the wall; if it goes wrong there's more under the sink
     if (this.phase === 'firstCook') {
+      const inD = this.inDry();
+      if (inD !== this.fcIn) {
+        this.fcIn = inD;
+        if (inD) { this.objective('Cook a batch at the <b>stove</b> (the back of the van) · Wren keeps watch'); this.waypoint(null); }
+        else { this.objective('Drive the <b>van</b> out to <b>the Dry</b> with Wren (north, over the causeway) · cook in town and someone will smell it'); this.waypoint(V(130, 0, -900), 'the Dry'); }
+      }
       if (D.cook && (this.chatT -= dt) <= 0) { this.chatT = 9 + Math.random() * 4; this.sub('WREN', ["(outside) You okay in there?", "(outside) It smells like a science class out here.", "(outside) Don't blow yourself up. I can't do two of these.", "(outside) Someone just walked past. Act normal. Wait, you can't see me."][Math.floor(Math.random() * 4)], 3.2); }
       if (!D.cook && D.count > 0) { this.phase = 'giveBags'; this.objective('Give <b>Wren</b> the bags · she\'s outside, by the van'); g.hud.toast('Hold E on Wren to give her the bags', '#5fd0ff'); }
       else if (!D.cook && D.solvent < 1 && D.salts < 1 && D.count === 0) { D.solvent = 1; D.salts = 1; g.hud.toast("There's one more lot under the sink. Try again.", '#5fd0ff'); }

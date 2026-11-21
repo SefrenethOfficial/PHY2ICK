@@ -32,6 +32,7 @@ export class Drugs {
     const g = this.g;
     if (this.cook) return;
     const big = this.big && this.solvent >= 2 && this.salts >= 2;
+    if (g.missions && !g.missions.canCook()) return;
     if (this.solvent < 1 || this.salts < 1) { g.hud.toast(`You need Industrial Solvent (Home Improvements) and Blue Salts (the Pawn Shop) · you have ${this.solvent} and ${this.salts}`, '#ffd23f'); return; }
     this.solvent -= big ? 2 : 1; this.salts -= big ? 2 : 1;
     const L = big ? { ...LAB[kind], batch: LAB[kind].batch * 2, time: LAB[kind].time + 6 } : LAB[kind];
@@ -49,6 +50,8 @@ export class Drugs {
     const g = this.g;
     const c = this.cook; if (!c) return;
     c.t += dt;
+    // cooking anywhere but out in the Dry: somebody smells it and calls it in
+    if (!c.smelt && c.t > 10 && c.where && g.desert && !g.desert.inDesert(c.where.pos.x, c.where.pos.z)) { c.smelt = true; g.police.reported(1, c.where.pos.clone(), 'fumes'); g.wren?.n && g.story?.sub?.('WREN', '(outside) Chef. Someone just walked past holding their nose. And now they\'re on the phone.', 4); }
     const hold = g.keys.has('Space') || g.mouseL;
     c.heat = THREE.MathUtils.clamp(c.heat + (hold ? 0.32 : -0.22) * dt, 0, 1);
     // the green zone drifts about
@@ -74,7 +77,7 @@ export class Drugs {
     if (quit) { g.hud.toast('You gave up on the batch. The supplies are wasted.'); return; }
     const n = Math.max(1, Math.round(c.L.batch * (0.6 + p * 0.4)));
     for (let i = 0; i < n; i++) this.bags.push(THREE.MathUtils.clamp(p + (Math.random() - 0.5) * 0.02, 0.2, 0.99));
-    g.wren?.onCook(p, n);
+    g.wren?.onCook(p, n); g.missions?.onCook();
     g.hud.toast(`${n} bags of Physick, ${Math.round(p * 100)}% pure${p > 0.9 ? '. Beautiful. Blue as the sea.' : p > 0.75 ? '. Good stuff.' : p > 0.55 ? '. It\'ll do.' : '. Cloudy. Nobody will pay much.'}`, '#5fd0ff');
   }
   fire() {

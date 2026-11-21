@@ -10,16 +10,17 @@ const HALF = 0.5, RAD = 0.28, CENTRE = HALF + RAD;
 const NAMES = ['Dana', 'Marcus', 'Priya', 'Tomás', 'Hannah', 'Kofi', 'Lena', 'Jun', 'Rosa', 'Eli', 'Nadia', 'Owen', 'Ines', 'Theo', 'Mara', 'Sam', 'Yusuf', 'Clara', 'Dev', 'Ruth'];
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
-// what people talk about: the city's on edge after the lockdown
+// what people talk about: blue stuff in the hospital, Pratt's money, the base, Verian over the water.
+// (PHY2ICK comes before PHYSICK: none of what happens in that game has happened yet)
 const GOSSIP = [
-  "Did you see the news? They still haven't said who really blew up those flats in the Hollows.",
+  "Did you see the news? Two people in hospital from some blue stuff. Blue!",
   'Army trucks went past the naval base again last night. Nobody will say why.',
-  "My cousin works the docks. Says a ship came in with no flag. Next morning it was just… gone.",
-  "Pratt's out on bail, they reckon. Money talks in this town.",
-  "They lifted the lockdown, but it doesn't feel lifted, you know?",
+  "My cousin works the docks. Says they unload things at night that aren't on any manifest.",
+  "Pratt Developments bought the whole block by the pier. Again. Where does a builder get that kind of money?",
+  "My sister moved over to Verian. Says it's lovely. Says the new square's going to be lovely. Everything's lovely over there.",
   'Someone painted MERIDIAN on the underpass. Council had it scrubbed off by lunch.',
-  "Hey… you look familiar. Were you on Channel 6?",
-  "There's more police around than before the lockdown, not fewer. Funny, that.",
+  "Have you tried the MARCOS out on the desert road? Truckers swear by it. Truckers will swear by anything.",
+  "There's more police around than last year, not fewer. Funny, that.",
 ];
 const SMALL = [
   'Nice day for it, at least.', "I'm just on my lunch break.", 'Have you tried the coffee at Café Noir? Burnt. Every time.',
@@ -357,6 +358,7 @@ export class Citizens {
           if (n.stateT <= 0) { n.state = 'flee'; n.stateT = 9; n.robT = 0; this.say(n, pick(['Psycho!', 'Help! Police!', 'Somebody help!']), 2.5); }
           break;
         case 'cop': { const r = g.police.copThink(n, p, h); goal = r.goal; spd = r.spd; n.faceAt = r.face || null; break; }
+        case 'gunman': { const r = g.missions.think(n, p, h); goal = r.goal; spd = r.spd; n.faceAt = r.face || null; break; }
         case 'down': this.wander(n); break;
       }
       if (n.state === 'sit' || n.state === 'seated') { n.speed = 0; n.vel.set(0, 0, 0); if (n.state === 'sit') this.move(n, p, V(), h); continue; }
@@ -472,7 +474,7 @@ export class Citizens {
       if (n.state === 'post' && n.speed < 0.3 && !(g.wheel.open && g.wheel.target === n)) face = n.homeYaw;
       if (n.state === 'crossLook') face = n.crossYaw;
       if (n.state === 'handsUp') face = Math.atan2(pl.pos.x - p.x, pl.pos.z - p.z);
-      if (n.cop && n.faceAt) face = Math.atan2(n.faceAt.x - p.x, n.faceAt.z - p.z);
+      if ((n.cop || n.gunman) && n.faceAt) face = Math.atan2(n.faceAt.x - p.x, n.faceAt.z - p.z);
       if (n.hostage) face = n.yaw;
       if (n.state === 'shop' && n.waitT > 0 && n.faceYaw != null) face = n.faceYaw;
       if (face !== null) { let d = face - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 8); }
@@ -486,14 +488,14 @@ export class Citizens {
       H.lookYaw += (ly - H.lookYaw) * Math.min(1, dt * 5);
       if (n.hostage && Math.random() < dt * 0.4) this.say(n, n.hostage.bag ? pick(['Mmmph!', 'MMMPH!', 'Mmf mmf!']) : pick(['Mmmph!', 'Mmmmh!']), 1.4);
       let aim = null;
-      if (n.cop && n.aimAt) { const hd = p.clone().add(V(0, 1.45, 0)), dd = n.aimAt.clone().sub(hd); aim = { e: Math.atan2(dd.y, Math.hypot(dd.x, dd.z)), kind: 'pistol', recoil: Math.max(0, (n.shootT ?? 1) > 0.4 ? 0 : 0) }; }
+      if ((n.cop || n.gunman) && n.aimAt) { const hd = p.clone().add(V(0, 1.45, 0)), dd = n.aimAt.clone().sub(hd); aim = { e: Math.atan2(dd.y, Math.hypot(dd.x, dd.z)), kind: 'pistol', recoil: Math.max(0, (n.shootT ?? 1) > 0.4 ? 0 : 0) }; }
       H.update(dt, {
         speed: n.speed, grounded: true, vy: 0,
         pose: n.state === 'sit' ? 'passenger' : 'stand',
         talking: n.bubbleT > 0 && n.speed < 0.3, point: n.pointT > 0, wave: n.waveT > 0,
         handsUp: n.state === 'handsUp' || n.robbing, guard: n.state === 'angry' && dP < 5 && n.punchT == null,
         punch: n.punchT != null ? { a: Math.min(1, n.punchT / 0.45), side: n.punchSide ? 'R' : 'L' } : null,
-        aim, weapon: n.cop && !aim, struggle: !!n.hostage, phone: !!n.witness,
+        aim, weapon: (n.cop || n.rival) && !aim, struggle: !!n.hostage, phone: !!n.witness,
       });
       n.pointT = Math.max(0, (n.pointT || 0) - dt); n.waveT = Math.max(0, (n.waveT || 0) - dt);
     }
@@ -507,6 +509,7 @@ export class Citizens {
     const D = g.drugs;
     const so = n.home && g.shopping?.options(n); if (so) return so;
     if (n.home && n.shop === "Rusty's") return [{ id: 'talk', label: 'Talk' }, { id: 'rusty', label: 'What do you do?' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' }];
+    if (n.rival && g.missions) return g.missions.options(n);
     if (n.tenant && g.tenants) return g.tenants.options(n);
     if (n.storyNpc && g.story) return g.story.options(n);
     if (n.role === 'buyer') return [
@@ -546,6 +549,7 @@ export class Citizens {
     if (id === 'pickpocket') { g.shopping.pickpocket(n); return; }
     if (id === 'rusty') { this.say(n, "Drive it in, stop in the bay, press E. Register it, respray it, new plates. Cash.", 4); return; }
     if (n.storyNpc && g.story?.act(n, id)) return;
+    if (n.rival && g.missions?.act(n, id)) return;
     const mood0 = n.mood;
     if (n.tenant && g.tenants?.act(n, id)) { n.mood = THREE.MathUtils.clamp(n.mood, -100, 100); g.tenants.levelCheck(n, mood0); return; }
     switch (id) {
@@ -730,7 +734,7 @@ export class Citizens {
   }
 
   die(n) {
-    if (n.cop && !n.dropped) { n.dropped = true; const q = n.human.ragdoll ? n.human.ragdoll.pelvis : this.pos(n); this.g.pickups?.gun('pistol', q.clone().setY(q.y - 0.5), 12); }
+    if ((n.cop || n.gunman) && !n.dropped) { n.dropped = true; const q = n.human.ragdoll ? n.human.ragdoll.pelvis : this.pos(n); this.g.pickups?.gun('pistol', q.clone().setY(q.y - 0.5), 12); }
     if (n.hostage) this.g.player.releaseHostage(false);
     n.downed = false;
     n.human.dead = true; n.state = 'dead'; n.deadT = 0; n.pooled = false; n.following = false; n.bubbleT = 0;
