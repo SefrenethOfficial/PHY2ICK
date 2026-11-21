@@ -6,6 +6,7 @@ import { canvasTex, noise, rng, texPair, drawAsphalt, drawPave } from './world.j
 import { CityBuilder, worldUV } from './buildings.js';
 import { makeWater } from './water.js';
 import { buildInterior } from './interior.js';
+import { buildDesert } from './desert.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 export const RW = 11, SW = 3.5, KERB = 0.15, WATER = -0.75;
@@ -677,7 +678,9 @@ export function buildCity(g) {
     }
     return near ? near.clone() : V(toX(430), KERB, toZ(472));
   };
-  return { places, segs, inLand, inRoad, built, sidewalkPoint, parked, kerbside, landMP, footprints };
+  // the desert, north over the causeway
+  const desert = g.desert = buildDesert(g, segs);
+  return { places, segs, graphSegs: segs.concat(desert.segs), desert, inLand: (x, z) => inLand(x, z) || desert.inLand(x, z), inRoad: (x, z) => inRoad(x, z) || desert.inRoad(x, z), built, sidewalkPoint, parked, kerbside, landMP, footprints };
 
   // ---------- the two car parks
   function deckLevels(r, levels, { broken = false } = {}) {

@@ -54,13 +54,14 @@ export class Hud {
 
   // the minimap: the whole island drawn once (2 px a metre), then the bit round you, every frame
   buildMap() {
-    const m = this.g.map, PX = 2, X0 = -560, Z0 = -620, W = 1300, H = 960;
+    const m = this.g.map, PX = 2, X0 = -1000, Z0 = -2400, W = 2300, H = 2740;
     const c = document.createElement('canvas'); c.width = W * PX / 2; c.height = H * PX / 2; // (1 px per metre)
     const x = c.getContext('2d'), k = c.width / W;
     const tx = (X) => (X - X0) * k, tz = (Z) => (Z - Z0) * k;
     x.fillStyle = '#244a63'; x.fillRect(0, 0, c.width, c.height);
     const poly = (ring, fill) => { x.beginPath(); ring.forEach(([X, Z], i) => (i ? x.lineTo(tx(X), tz(Z)) : x.moveTo(tx(X), tz(Z)))); x.closePath(); x.fillStyle = fill; x.fill('evenodd'); };
     for (const p of m.landMP) { x.beginPath(); for (const ring of p) ring.forEach(([X, Z], i) => (i ? x.lineTo(tx(X), tz(Z)) : x.moveTo(tx(X), tz(Z)))); x.fillStyle = '#5d6b55'; x.fill('evenodd'); }
+    m.desert?.draw(x, tx, tz, k);
     for (const f of m.footprints) poly(f, '#8d8a84');
     x.strokeStyle = '#d8d4cc'; x.lineCap = 'round';
     for (const s of m.segs) { x.lineWidth = 11 * k; x.beginPath(); x.moveTo(tx(s.a[0]), tz(s.a[1])); x.lineTo(tx(s.b[0]), tz(s.b[1])); x.stroke(); }

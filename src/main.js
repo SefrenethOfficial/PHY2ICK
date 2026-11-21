@@ -43,7 +43,7 @@ class Game {
     r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.62;
     document.getElementById('app').appendChild(r.domElement);
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 2500);
+    this.camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 4400);
     this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
     this.keys = new Set();
     this.money = 500;

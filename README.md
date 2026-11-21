@@ -16,6 +16,9 @@ It's a **dense** city, not an open one: every gap between the places on the map 
 - **Downtown**: A Rival Mini Mart, the Indoor Pool, a row of shops, Mini Mart, Visitor Info, **Town Square** (a stone plaza with a statue, trees, benches and lamps), the Pawn Shop and the Grocery (with an alley between them), the **Diner** (long, red, chrome, a neon sign) and its car park.
 - **The south**: the Spa, **Fairview Heights** (where you live), the Convenience Store, the **construction site** (a half-built multi-storey car park you can drive or climb up, a crane, scaffolding, site hoarding), the **abandoned car park** (broken, graffitied, a burnt-out car), **Albuquerque Boiled Turkey** (with a drive-thru window and menu board on the loop road round it), its car park, the hedge, and the beach's washrooms, reception and car park.
 
+### The Dry (the desert)
+North of the island, over a causeway at the top of the main north–south road: a desert about 2 km across. Red and tan flats with low dunes, sagebrush, saguaro cacti and boulders; flat-topped **mesas** in bands of red, orange and cream; a two-lane **highway** up the middle with telegraph poles and sagging wires beside it, two side roads (east towards the big mesas, west into the flats) and a few dirt tracks. A sign at the end of the causeway (*THE DRY · NO SERVICES NEXT 60 MILES · CARRY WATER*), and *ROAD CLOSED* where the highway runs into the mountains. All round it a wall of **mountains** you can see from the city; for now you can't cross them. Traffic and the police can use its roads. Nobody lives out here.
+
 ### Inside
 Walk in through the front door of most places: there's a real room behind it, lit, furnished, with someone working there you can talk to.
 - **Shops** (both Mini Marts, the Convenience Store, the Grocery, the Game Shop, both Home Improvements, Cheap House): proper gondola shelving (plinths, end panels, price strips, hanging aisle signs) stocked with rows of products (cereal boxes, cans, bottles, bags, game cases, paint tins, depending on the shop); glass-door **fridges and freezers** along the back with lit shelves of drinks and frozen food; an open **chest freezer** by the window; the till with a scratchies stand, and a back counter behind the shopkeeper (tobacco and lotto, pre-orders, key cutting…). **The Pawn Shop**: glass cases, guitars on the wall, a man who's seen it all.
@@ -212,6 +215,9 @@ src/
   props.js      loose things: picking up, carrying, dropping, throwing
   weapons.js    fists, the hatchet, the butter knife, the plastic kiddie knife, the pistol, the shotgun: aiming, punching, swinging, shooting
   police.js     wanted stars, crimes, witnesses and their calls, reports, patrols and stop-and-searches, cop cars (A* along the roads), cops on foot, losing them, BUSTED
+  desert.js     the Dry: the desert north over the causeway (ground, mesas, scrub, highway and tracks, poles, the mountains round it)
+  traffic.js    cars driving about (sedans, taxis, delivery vans, convertibles), carjacking
+  save.js       saving to the browser, Continue
   fx.js         fire, smoke, sparks, muzzle flashes, tracers, explosions, debris
   sfx.js        the chase theme, and synthesized gunshots, punches, crashes, explosions, fire and sirens
   pickups.js    cash and guns on the ground

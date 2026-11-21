@@ -64,7 +64,7 @@ export function buildWorld(g) {
     envScene.remove(sky);
   }
   scene.add(sky); g.sky = sky;
-  scene.fog = new THREE.Fog(0xb7c6d2, 220, 1300);
+  scene.fog = new THREE.Fog(0xb7c6d2, 240, 3400); // (far enough to see the mountains over the desert)
   scene.add(g.hemi = new THREE.HemisphereLight(0xc4d8f0, 0x6a5a46, 0.35));
   const sun = new THREE.DirectionalLight(0xffeedd, 3.4);
   sun.castShadow = true;

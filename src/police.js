@@ -66,7 +66,7 @@ export class Police {
     this.cars = []; // cop cars in play: { car, crew: [npc], route, wpI, routeT, stuckT, revT }
     this.pool = [];
     this.spawnT = 0;
-    this.graph = buildGraph(g.map.segs);
+    this.graph = buildGraph(g.map.graphSegs || g.map.segs);
   }
 
   // ---- crimes: the police only come for you if a cop sees it, or a witness calls it in (and lives to)
