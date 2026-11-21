@@ -25,16 +25,20 @@ Walk in through the front door of most places: there's a real room behind it, li
 - **Lobbies** with a front desk: the **Hospital**, the **Police Station** (a wanted board), **Putin's Ritz** (marble, a chandelier, a red carpet), **Paul Badfella's** (bookshelves, carpet), the **Spa**. Restaurants: **City Wok** and **Albuquerque Boiled Turkey**.
 
 ### The story
-PHY2ICK is a prequel to PHYSICK: the time before Wren is gone. Pick **Story** on the title screen (or **Free roam** to go straight into the city).
+PHY2ICK is a prequel to PHYSICK: the time before Wren is gone. Press **Play** and it starts at the beginning.
 
 You wake up in an ice bath in the shared bathroom at the end of your corridor, in your boxers, with no memory of the night. Before you open your eyes you choose who you are: skin tone, hair (what shows under the beanie) and hair colour. Then: the cold, the panic, *why am I in ice?* Your clothes are on your bed in 1E, in a room that's had a party in it. Channel 6 is on, talking about a blue substance. Your phone has last night on it.
 
 Wren's on the stairs, on the phone to the hospital. Her younger brother **Kit** put you in that bath. Then he lay down on your floor and didn't get up. She needs a lift to the hospital.
 
-It isn't a run of missions: a few scenes, a line in the corner telling you what's going on, and the rest is the city. (Kit left debts. Pratt wants them paid. Vic, their older brother, is too busy with his midlife crisis to help. That's all still to come.) If the car blows up on the way to the hospital (or Wren dies), that part starts again: back on the stairs with her, a car out the front. `Enter`, `Space` or `Escape` skips a scene.
+At the hospital she goes in alone. An hour later she comes out, and you put a hand on her shoulder. Then **Vic** turns up: their older brother, in a red convertible and sunglasses, back from a "retreat", too busy *investing in himself* to help with the funeral. Wren walks off. Vic asks you to help her, however you can, and tells you about **Kit's van**: an old camper in the abandoned car park. He hands you Kit's keys. *"And whatever he was doing in that thing… don't."*
+
+In the van: Kit's hoodie, a burnt pan, a notebook that says **MERIDIAN**. Kit was making it. He made what you two took. His phone won't stop buzzing with people who want more, the funeral needs paying for, and a man called **Pratt** has left four voicemails about what Kit owed him. The deal: **you cook, Wren sells**, and Vic never finds out. There's enough under the sink for one batch. Wren waits outside, leaning on the van, talking to you through the wall. Give her the bags and she moves in with you (a mattress on your floor in 1E) and sells them to Kit's buyers, a bag at a time, while you're out. Bring her more at home, or take her along (hold `E` on her).
+
+It isn't a run of missions: a few scenes, a line in the corner telling you what's going on, and the rest is the city. (Kit left debts. Pratt wants them paid. Vic, their older brother, is too busy with his midlife crisis to help. That's all still to come.) If the car blows up with Wren in it (or she dies) before she's moved in, that part starts again from the last checkpoint: the stairs, the hospital, or the van. (Once she's living with you, she's patched up at the hospital and back home a minute later.) People who follow you follow the way you went: through doors, down stairs, round corners, and they catch up if they get stuck. `Enter`, `Space` or `Escape` skips a scene.
 
 ### Home: Fairview Heights
-In free roam you start in your room, **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
+Your room is **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
 
 - **The neighbours.** Each flat is furnished for whoever lives there, and each of them can become a friend. Hold `E` on them to talk, **hang out** (once a minute or so), give them $20 or pay them a compliment (now and then, not over and over). They go from *Stranger* to *Neighbour* to *Friend* to *Close friend*, greet you when you pass, and once you're friends they'll do you a **favour** (every few minutes):
   - **Mrs. Okafor**, 1A, a retired teacher: **dinner**, which heals you fully.
@@ -107,7 +111,7 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 The drug the game is named after. It's made up, and the cook is a game, not chemistry.
 - **Supplies**: *Industrial Solvent* from the Home Improvements clerk ($30) and *Blue Salts* from the Pawn Shop ($45). One of each makes a batch.
 - **The cook**: hold `Space` to raise the heat and keep the needle in the green zone (which drifts about). When it flashes **STIR!**, hit `E`. Too hot for too long and it **boils over and blows up**. `Q` gives up (the supplies are wasted). The better you keep it in the green, the bluer it gets: **purity** is your score, and it sets the price.
-- **Where to cook**: **the camper**, rusting in the abandoned car park (locked: smash a window). Cook at its back door anywhere you like: 8 bags a batch, a little smoke out of the vent. Boil over in there and the van goes up.
+- **Where to cook**: **Kit's camper**, in the abandoned car park (you get the keys in the story). Go in the back door and there's a whole room in there: a little stove, a sink, a bench bed, the notebook, the curtains drawn. Cook at the stove: 8 bags a batch, a little smoke out of the vent. Drive it anywhere you like. Boil over in there and the van goes up. If Wren's with you, she waits outside, leaning on the van.
 - **Selling**: buyers hang about the **skatepark**, **the park**, the **beach washrooms** and outside the **nightclub** (the best price, but the bouncer takes 20%). Talk to them (`E`) and sell one or five. Or dump the lot on the **Pawn Shop** for a low price. Some buyers are **undercover cops** (June can tell you which). Dealing in one spot too often gets you reported. Your bags show under your weapon.
 
 ### Blood
@@ -166,6 +170,7 @@ src/
   parked.js     the parked cars: drawn in bulk, turned into real cars when you get in
   interior.js   rooms behind the front doors: the shell, the furniture for each kind of place, the people working there
   drugs.js      Physick: the cook (a timing game) in the camper, selling
+  van.js        inside Kit's camper: the room, getting in and out, Wren waiting outside
   story.js      the story: the scenes (camera moves, subtitles, letterbox), choosing your look, the opening
   tenants.js    your neighbours: who they are, making friends, their favours
   water.js      the sea: rolling waves, sliding ripples, the sky reflected

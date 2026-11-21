@@ -34,7 +34,7 @@ export class Drugs {
     if (this.solvent < 1 || this.salts < 1) { g.hud.toast(`You need Industrial Solvent (Home Improvements) and Blue Salts (the Pawn Shop) · you have ${this.solvent} and ${this.salts}`, '#ffd23f'); return; }
     this.solvent--; this.salts--;
     const L = LAB[kind];
-    this.cook = { kind, L, where, t: 0, heat: 0.2, zone: 0.45, zoneV: 0.05, good: 0, total: 0, stirAt: 3 + Math.random() * 2, stirWin: 0, stirMiss: 0, stirs: 0, fumes: 0, boil: 0, done: false, color: 0 };
+    this.cook = { kind, L, where, start: true, t: 0, heat: 0.2, zone: 0.45, zoneV: 0.05, good: 0, total: 0, stirAt: 3 + Math.random() * 2, stirWin: 0, stirMiss: 0, stirs: 0, fumes: 0, boil: 0, done: false, color: 0 };
     this.el.style.display = 'block';
     g.hud.toast(`Cooking at ${L.name} · hold Space for heat, keep it in the green · E when it says STIR · Q to give up`, '#5fd0ff');
   }
@@ -77,6 +77,7 @@ export class Drugs {
   }
   fire() {
     const g = this.g, c = this.cook; this.cook = null; this.el.style.display = 'none';
+    if (c.kind === 'van' && g.van?.inside) g.van.exit(true); // (out of the back as it goes up)
     const at = c.kind === 'van' && c.where ? c.where.pos.clone() : g.player.pos.clone().add(V(Math.sin(g.player.yaw) * 0.7, 1, Math.cos(g.player.yaw) * 0.7));
     g.fx.explosion(at); g.sfx.explosion(at);
     g.player.hurt(28, V(-Math.sin(g.player.yaw), 0, -Math.cos(g.player.yaw)), 'explosion', true);

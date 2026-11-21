@@ -268,6 +268,11 @@ export function buildApartment(g) {
     put(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.04, 0.42), boxC), 5.4, 0.02, -63.4);
     put(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.3), std(0xc8b020, 0.6)), 4.9, 0.01, -61.9);
     { const shadeM = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 0.26, 14, 1, true), std(0xf2e6c8, 0.8, { side: THREE.DoubleSide })); put(shadeM, 6.0, 0.13, -66.4, 0, Math.PI / 2); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.3, 6), black); put(pole, 6.5, 0.03, -65.8, 0, Math.PI / 2); pole.rotation.y = 0.4; } }
+  // Wren's mattress on your floor (once she's moved in)
+  const wrenBed = new THREE.Group(); wrenBed.visible = false; scene.add(wrenBed);
+  { const m = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.16, 1.9), white); m.position.set(5.15, F + 0.08, -61.45); m.castShadow = m.receiveShadow = true; wrenBed.add(m);
+    const d = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.05, 1.2), std(0x6a7a4a, 0.95)); d.position.set(5.15, F + 0.18, -61.2); wrenBed.add(d);
+    const pw = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.3), std(0xe8e0d0, 1)); pw.position.set(5.15, F + 0.21, -62.2); wrenBed.add(pw); }
   const clothes = new THREE.Group(); clothes.visible = false; scene.add(clothes);
   { const hoodie = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.45), std(0x2b2f36, 1)); hoodie.position.set(6.6, F + 0.62, -61.9); hoodie.rotation.y = 0.3; clothes.add(hoodie);
     const jeans = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.7), std(0x3a4a5e, 1)); jeans.position.set(6.7, F + 0.6, -61.2); jeans.rotation.y = -0.2; clothes.add(jeans);
@@ -311,7 +316,7 @@ export function buildApartment(g) {
     door: V(DX, 0, ZF + 1.2 + DZ),
     // the story's places: the bath (where you wake up), the clothes on your bed, the TV, a step on the stair
     bath: { pos: V(X0 + T + 0.75 + DX, F + 0.06, ZC1 + WT / 2 + 0.41 + DZ), yaw: Math.PI / 2, out: V(-9.2 + DX, F + 0.05, -68.4 + DZ) },
-    clothes: V(6.4 + DX, F + 0.05, -62.0 + DZ), clothesMesh: clothes, mess, tvDraw, room1E: V(5.3 + DX, F + 0.05, -64 + DZ),
+    clothes: V(6.4 + DX, F + 0.05, -62.0 + DZ), clothesMesh: clothes, wrenBed, wrenSpot: V(5.0 + DX, F + 0.05, -63.6 + DZ), wrenYaw: 0, mess, tvDraw, room1E: V(5.3 + DX, F + 0.05, -64 + DZ),
     stairStep: (i) => V((SX0 + SX1) / 2 + DX, (i + 1) * Y1 / 24, SZ0 - (i + 0.5) * (SZ0 - SZ1) / 24 + DZ),
     // the neighbours: where each of them stands in their flat, and which way they face
     tenants: [

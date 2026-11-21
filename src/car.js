@@ -31,7 +31,7 @@ const arch = (c, r, yc, n = 10) => { const out = []; for (let i = 0; i <= n; i++
 
 export class Car {
   constructor(g, pos, yaw = 0, color = 0x9b1c1c, name = 'Sedan', opts = {}) {
-    this.g = g; this.name = name; this.police = !!opts.police; this.camper = !!opts.camper;
+    this.g = g; this.name = name; this.police = !!opts.police; this.camper = !!opts.camper; this.convertible = !!opts.convertible;
     this.hp = 1000; this.burning = false; this.wrecked = false; this.siren = false; this.ai = null; this.crew = []; this.flipT = 0; this.wreckFireT = 0; this.smokeT = 0;
     const { world, R } = g;
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
@@ -102,7 +102,7 @@ export class Car {
       dp(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.5), leather), s * 0.77, 0.72, -0.2);
       dp(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.18), chrome), s * 0.91, 0.84, -0.6); // (the handle)
       const dg = new THREE.Mesh(quad([s * 0.83, 0.92, BZ0 - 0.03], [s * 0.715, RY0 - 0.03, TZ0], [s * 0.722, RY0 - 0.03, -0.86], [s * 0.834, 0.925, -0.86]), glass);
-      dg.geometry.translate(-s * 0.9, 0, -0.93); hinge.add(dg); this.doorGlass[side] = dg;
+      dg.geometry.translate(-s * 0.9, 0, -0.93); hinge.add(dg); this.doorGlass[side] = dg; if (this.convertible) dg.visible = false; // (the windows wound down)
       // door seams, outside
       const seam = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.5, 0.01), trim); seam.position.set(s * 0.906, 0.66, -0.86); add(seam);
       // side mirrors
@@ -111,17 +111,23 @@ export class Car {
     }
     // the greenhouse: pillars, roof, glass
     const RY = RY0, BZ = BZ0, TZ = TZ0, RZ = -1.16, CZ = -1.76;
+    const vert = !this.convertible; // (a convertible: the windscreen and its pillars, the roof down)
+    const WY = vert ? RY : 1.18, WZ = vert ? TZ : BZ - (BZ - TZ) * (1.18 - 0.9) / (RY - 0.9);
     for (const s of [-1, 1]) {
-      add(beam([s * 0.8, 0.9, BZ], [s * 0.71, RY, TZ], 0.07, 0.07, trim));
-      add(beam([s * 0.82, 0.93, CZ + 0.08], [s * 0.72, RY, RZ], 0.08, 0.2, paint));
-      add(beam([s * 0.8, 0.92, -0.86], [s * 0.725, RY, -0.86], 0.05, 0.08, trim));
-      add(new THREE.Mesh(quad([s * 0.834, 0.925, -0.86], [s * 0.722, RY - 0.03, -0.86], [s * 0.725, RY - 0.03, RZ], [s * 0.835, 0.92, CZ + 0.05]), glass)); // (the rear side window; the front one's in the door)
+      add(beam([s * 0.8, 0.9, BZ], [s * (vert ? 0.71 : 0.75), WY, WZ], 0.07, 0.07, trim));
+      if (vert) {
+        add(beam([s * 0.82, 0.93, CZ + 0.08], [s * 0.72, RY, RZ], 0.08, 0.2, paint));
+        add(beam([s * 0.8, 0.92, -0.86], [s * 0.725, RY, -0.86], 0.05, 0.08, trim));
+        add(new THREE.Mesh(quad([s * 0.834, 0.925, -0.86], [s * 0.722, RY - 0.03, -0.86], [s * 0.725, RY - 0.03, RZ], [s * 0.835, 0.92, CZ + 0.05]), glass)); // (the rear side window; the front one's in the door)
+      }
     }
-    add(new THREE.Mesh(quad([-0.8, 0.9, BZ], [0.8, 0.9, BZ], [0.7, RY, TZ], [-0.7, RY, TZ]), glass));
-    add(new THREE.Mesh(quad([0.8, 0.93, CZ], [-0.8, 0.93, CZ], [-0.7, RY, RZ], [0.7, RY, RZ]), glass));
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, TZ - RZ + 0.12), paint); roof.position.set(0, RY + 0.015, (TZ + RZ) / 2); roof.castShadow = true; add(roof);
-    const liner = new THREE.Mesh(new THREE.PlaneGeometry(1.42, TZ - RZ), new THREE.MeshStandardMaterial({ color: 0x8c877e, roughness: 1, side: THREE.DoubleSide }));
-    liner.rotation.x = Math.PI / 2; liner.position.set(0, RY - 0.02, (TZ + RZ) / 2); add(liner);
+    add(new THREE.Mesh(quad([-0.8, 0.9, BZ], [0.8, 0.9, BZ], [vert ? 0.7 : 0.75, WY, WZ], [vert ? -0.7 : -0.75, WY, WZ]), glass));
+    if (vert) {
+      add(new THREE.Mesh(quad([0.8, 0.93, CZ], [-0.8, 0.93, CZ], [-0.7, RY, RZ], [0.7, RY, RZ]), glass));
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, TZ - RZ + 0.12), paint); roof.position.set(0, RY + 0.015, (TZ + RZ) / 2); roof.castShadow = true; add(roof);
+      const liner = new THREE.Mesh(new THREE.PlaneGeometry(1.42, TZ - RZ), new THREE.MeshStandardMaterial({ color: 0x8c877e, roughness: 1, side: THREE.DoubleSide }));
+      liner.rotation.x = Math.PI / 2; liner.position.set(0, RY - 0.02, (TZ + RZ) / 2); add(liner);
+    } else { const top = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.16, 0.36), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 })); top.position.set(0, 0.98, CZ + 0.3); add(top); } // (the folded roof)
 
     // the boot lid (hinged at the front, by the back window)
     const lidP = this.lidP = new THREE.Group(); lidP.position.set(0, 0.935, -1.8); add(lidP); this.lidA = 0; this.lidHold = 0;
@@ -309,6 +315,7 @@ export class Car {
   board(h, seat, dur = 1.05) { this.boarding = { h, seat, t: 0, dur }; this.openDoor(seat, dur * 0.72); }
   get boardingK() { return this.boarding ? this.boarding.t / this.boarding.dur : 1; }
   // a point behind the car (for the boot)
+  localPoint(x, y, z) { return V(x, GY + y, z).applyMatrix4(this.group.matrixWorld); } // (a point on the car, from the ground under it)
   trunkPoint(out = 1) { return V(0, GY + 0.05, -2.4 - out).applyMatrix4(this.group.matrixWorld); }
   animateParts(dt) {
     for (const seat of ['driver', 'passenger']) {

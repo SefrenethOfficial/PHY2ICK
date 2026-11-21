@@ -128,6 +128,8 @@ export class Human {
       add('eye' + k, ball(0.0062, 6, 5), 0xffffff, e.x + 0.006, HY + e.y + 0.009, e.z + 0.008);
       add('brow' + k, box(0.052, 0.014, 0.016, 0.006), new THREE.Color(L.hair).multiplyScalar(0.55), b.x, HY + b.y, b.z, { rz: s * -0.06, ry: s * 0.25 });
     }
+    // sunglasses (Vic)
+    if (L.shades) { const dark = 0x0b0c0e; for (const sx of [-1, 1]) add('head', box(0.07, 0.042, 0.02, 0.008), dark, sx * 0.044, HY + HC + 0.006, 0.113); add('head', box(0.03, 0.012, 0.012, 0.004), dark, 0, HY + HC + 0.016, 0.118); for (const sx of [-1, 1]) add('head', box(0.008, 0.012, 0.11, 0.003), dark, sx * 0.083, HY + HC + 0.014, 0.06); }
     // hair
     this.buildHair(L.hairStyle, L.hair, add, HY + HC, HR);
 
@@ -402,6 +404,10 @@ export class Human {
       if (s.crouch) { const m = Math.min(1, spd / 1.4); hipsY = 0.66; set('hips', 0.0, 0, 0); set('spine', 0.42, 0, 0); set('chest', 0.1, 0, 0); set('neck', -0.25); set('head', -0.15, this.lookYaw, 0);
         for (const [k, sg] of [['L', -1], ['R', 1]]) { const q = (sg < 0 ? this.phase : this.phase + Math.PI); set('hip' + k, -1.05 - Math.sin(q) * 0.35 * m, 0, -sg * 0.1); set('knee' + k, 1.75 + Math.max(0, Math.cos(q)) * 0.4 * m, 0, 0); set('ankle' + k, -0.6, 0, 0); }
         if (!s.aim && !s.carry && !s.guard && !s.punch) { set('shoulderL', -0.55, 0, -0.1); set('elbowL', -0.9); set('shoulderR', -0.55, 0, 0.1); set('elbowR', -0.9); } }
+      // leaning back on a wall: arms folded, one foot up against it, looking at the ground
+      if (s.lean) { rootTilt = -0.1; set('spine', -0.06); set('chest', 0); set('neck', 0.2); set('head', 0.2, this.lookYaw * 0.5, 0.05); set('shoulderL', -0.62, 0, -0.5); set('elbowL', -2.0); set('wristL', 0, 0, -0.3); set('shoulderR', -0.55, 0, 0.5); set('elbowR', -1.95); set('wristR', 0, 0, 0.3); set('hipR', -0.25, 0, -0.06); set('kneeR', 1.35); set('ankleR', -0.25); set('hipL', 0.04, 0, 0.04); set('kneeL', 0.04); set('ankleL', -0.06); }
+      // a hand on someone's shoulder
+      if (s.comfort) { set('shoulderR', -1.2, 0, -0.18); set('elbowR', -0.35, 0, 0); set('wristR', 0.3, 0, 0.2); set('head', 0.12, this.lookYaw, 0); }
       // freezing: arms wrapped round yourself
       if (s.shiver && spd < 1.6 && !s.carry && !s.weapon) { const j = () => (Math.random() - 0.5) * 0.06; set('shoulderL', -0.55 + j(), 0, -0.5); set('elbowL', -2.05 + j(), 0, 0); set('wristL', 0, 0, -0.3); set('shoulderR', -0.5 + j(), 0, 0.5); set('elbowR', -2.0 + j(), 0, 0); set('wristR', 0, 0, 0.3); set('chest', 0.08 + j(), j(), 0); set('neck', 0.12); }
       if (s.shiver) { const j = (Math.random() - 0.5) * 0.05; T.head = [T.head[0] + j, T.head[1] + j, T.head[2]]; }

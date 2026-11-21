@@ -21,6 +21,7 @@ import { Pickups } from './pickups.js';
 import { Drugs } from './drugs.js';
 import { Tenants } from './tenants.js';
 import { Story } from './story.js';
+import { VanInterior } from './van.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -214,7 +215,13 @@ class Game {
     const spot = (pos, r, label, act, when = () => true) => this.spots.push({ pos, r, label, act, when });
     // a camper, rusting in the abandoned car park (locked)
     const ab = P('the abandoned car park');
-    if (ab) { const q = ab.pos.clone().add(V(6, 0, 4)); this.camper = new Car(this, V(q.x, 0.03, q.z), 0.4, 0xe6dcc0, 'Camper', { camper: true }); this.camper.locked = true; this.cars.push(this.camper); }
+    if (ab) {
+      const q = ab.pos.clone().add(V(6, 0, 4)); this.camper = new Car(this, V(q.x, 0.03, q.z), 0.4, 0xe6dcc0, 'Camper', { camper: true }); this.camper.locked = true; this.cars.push(this.camper);
+      // inside it (a room of its own, out of sight under the car park)
+      const van = this.van = new VanInterior(this, V(ab.pos.x, -40, ab.pos.z));
+      spot(van.stove, 0.9, () => '<kbd>E</kbd> cook Physick', () => { this.player.yaw = van.stoveYaw; D.start('van', this.camper); }, () => van.inside);
+      spot(van.door, 0.8, () => '<kbd>E</kbd> get out', () => van.exit(), () => van.inside && !D.cook);
+    }
     // buyers
     const buyerSpots = [['the skatepark', 'skatepark'], ['the park', 'bushes'], ['the beach washrooms', 'washrooms'], ['the nightclub', 'nightclub']];
     const lines = ['You holding?', "I'm not a cop. Why would you ask that?", 'Got any of the blue?', 'Physick? You got Physick?', 'Keep it down, man.'];
@@ -231,7 +238,7 @@ class Game {
     const p = this.player.pos; if (this.player.car) return null;
     for (const s of this.spots || []) if (s.pos.distanceTo(p) < s.r && s.when()) return s;
     // the back of the camper
-    const c = this.camper; if (c && !c.wrecked && !c.driver && Math.abs(c.speed) < 0.5 && c.trunkPoint(0.2).distanceTo(p) < 1.6) return { label: () => '<kbd>E</kbd> cook Physick in the camper', act: () => this.drugs.start('van', c) };
+    const c = this.camper; if (c && !c.wrecked && !c.driver && Math.abs(c.speed) < 0.5 && c.trunkPoint(0.2).distanceTo(p) < 1.6 && !this.story?.cine) return this.drugs.vanKeys ? { label: () => '<kbd>E</kbd> get in the van', act: () => this.story?.vanDoor?.() || this.van.enter() } : { label: () => "The back of the van's locked", act: () => this.hud.toast("It's locked. Whose van is this?") };
     return null;
   }
   teleport(at, yaw) {

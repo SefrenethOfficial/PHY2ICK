@@ -107,7 +107,7 @@ export class Player {
     const t = this.body.translation();
     this.body.setNextKinematicTranslation({ x: t.x + m.x, y: t.y + m.y, z: t.z + m.z });
     this.speed = Math.hypot(m.x, m.z) / h;
-    if (t.y < -20) this.body.setNextKinematicTranslation({ x: 0, y: 2, z: 8 }); // (fell out of the world)
+    if (t.y < -20 && !this.g.van?.contains(t)) this.body.setNextKinematicTranslation({ x: 0, y: 2, z: 8 }); // (fell out of the world: not in the van, which is down there)
     this.lastSafe = this.lastSafe || new THREE.Vector3(); if (this.grounded) this.lastSafe.set(t.x, t.y - CENTRE, t.z);
     // a hostage walks where you walk, just in front of you
     if (this.hostage) {

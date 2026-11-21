@@ -150,9 +150,39 @@ export class Citizens {
     const r = shop.route(); n.route = r.pts; n.stops = r.stops; n.routeI = 0; n.shop = shop; n.state = 'shop'; n.stuckT = 0;
   }
 
+  // ---- following you: the way you went (a trail of where you've walked), not a straight line through walls
+  trailUpdate() {
+    const pl = this.g.player; if (pl.car || pl.scripted) return;
+    const p = pl.pos, T = this.trail || (this.trail = []), last = T[T.length - 1];
+    if (!last || last.distanceTo(p) > 0.7 || Math.abs(last.y - p.y) > 0.4) { T.push(p.clone()); if (T.length > 120) T.shift(); }
+  }
+  clear(a, b) { // nothing solid between two points (at chest height)
+    const g = this.g, o = a.clone().add(V(0, 1.1, 0)), d = b.clone().add(V(0, 1.1, 0)).sub(o), L = d.length(); if (L < 0.05) return true;
+    d.divideScalar(L);
+    const hit = g.world.castRay(new g.R.Ray(o, d), L, true, g.R.QueryFilterFlags.ONLY_FIXED);
+    return !hit;
+  }
+  followGoal(n, p, pp, h) {
+    n.navT = (n.navT || 0) - h;
+    if (n.navT > 0 && n.navGoal) return n.navGoal;
+    n.navT = 0.35;
+    const T = this.trail || [];
+    // straight to you, if nothing's in the way (and you're on the same level)
+    if (Math.abs(pp.y - p.y) < 1.2 && this.clear(p, pp)) return (n.navGoal = pp.clone());
+    // otherwise along your trail: from the bit of it nearest them, as far ahead as they can see
+    let ni = -1, nd = Infinity;
+    for (let i = T.length - 1; i >= 0; i--) { const d = T[i].distanceTo(p); if (d < nd) { nd = d; ni = i; } }
+    if (ni < 0) return (n.navGoal = pp.clone());
+    let goal = T[ni];
+    for (let j = Math.min(T.length - 1, ni + 12); j > ni; j--) if (Math.abs(T[j].y - p.y) < 1.5 && this.clear(p, T[j])) { goal = T[j]; break; }
+    if (goal === T[ni] && nd < 0.6 && ni + 1 < T.length) goal = T[ni + 1];
+    return (n.navGoal = goal.clone());
+  }
+
   physics(h0) {
     const g = this.g, pl = g.player, pp = pl.car ? pl.car.pos.clone() : pl.pos;
     this.stepN = (this.stepN || 0) + 1;
+    this.trailUpdate();
     for (let i = 0; i < this.list.length; i++) {
       const n = this.list[i];
       if (n.state === 'trunk') { const tp = n.trunkCar.trunkPoint(-0.6); n.body.setNextKinematicTranslation({ x: tp.x, y: tp.y + 0.6, z: tp.z }); continue; }
@@ -261,8 +291,17 @@ export class Citizens {
             goal = door; spd = Math.hypot(door.x - p.x, door.z - p.z) > 4 ? 4.6 : 1.6;
             if (Math.hypot(door.x - p.x, door.z - p.z) < 0.9 && Math.abs(pl.car.speed) < 1.5 && !pl.car.passenger) { this.board(n, pl.car); continue; }
             if (Math.abs(pl.car.speed) > 4 && dP > 25) { n.following = false; this.say(n, "Hey! Wait for me!", 3); this.wander(n); }
-          } else if (dP > 2.4) { goal = pp; spd = dP > 7 ? 4.8 : dP > 4 ? 2.6 : 1.6; }
-          if (dP > 90) { n.following = false; this.wander(n); }
+          } else if (dP > 2.4) {
+            goal = this.followGoal(n, p, pp, h); spd = dP > 7 ? 4.8 : dP > 4 ? 2.6 : 1.6;
+            // stuck (on a corner, a kerb, a crowd): after a while, and if you're not looking, they catch up
+            if (n.speed < 0.25) n.stuckT = (n.stuckT || 0) + h; else n.stuckT = 0;
+            const T = this.trail || [];
+            if ((n.stuckT > 2.5 || dP > 45) && T.length > 4) {
+              const back = T[Math.max(0, T.length - 4)], seen = g.camera.position.distanceTo(p) < 40 && this._fr?.containsPoint(p.clone().add(V(0, 1, 0)));
+              if (!seen || n.stuckT > 6) { n.body.setTranslation({ x: back.x, y: back.y + CENTRE + 0.05, z: back.z }, true); n.body.setNextKinematicTranslation({ x: back.x, y: back.y + CENTRE + 0.05, z: back.z }); n.vy = 0; n.stuckT = 0; n.navT = 0; }
+            }
+          } else n.stuckT = 0;
+          if (dP > 140 && !n.storyNpc) { n.following = false; this.wander(n); }
           break;
         case 'flee': {
           const away = V(p.x - pp.x, 0, p.z - pp.z).normalize();
@@ -331,7 +370,7 @@ export class Citizens {
     const m = this.cc.computedMovement();
     if (this.cc.computedGrounded()) n.vy = 0;
     const t = n.body.translation();
-    if (t.y < -20) { const q = this.randomPoint(); n.body.setTranslation({ x: q.x, y: q.y + CENTRE + 0.1, z: q.z }, true); return; } // (fell out of the world)
+    if (t.y < -20 && !this.g.van?.contains(t)) { const q = this.randomPoint(); n.body.setTranslation({ x: q.x, y: q.y + CENTRE + 0.1, z: q.z }, true); return; } // (fell out of the world)
     n.body.setNextKinematicTranslation({ x: t.x + m.x, y: t.y + m.y, z: t.z + m.z });
     n.speed = Math.hypot(m.x, m.z) / h;
   }
@@ -424,7 +463,7 @@ export class Citizens {
       { id: 'buy:sack', label: 'Sack $5' }, { id: 'buy:salts', label: 'Blue Salts $45' }, { id: 'sellall', label: D.count ? `Sell ${D.count} Physick` : 'Sell Physick' },
     ];
     if (n.tenant && g.tenants) return g.tenants.options(n);
-    if (n.storyNpc) return [{ id: 'talk', label: 'Talk' }];
+    if (n.storyNpc && g.story) return g.story.options(n);
     if (n.role === 'buyer') return [
       { id: 'talk', label: n.outed ? 'Talk (June says: cop!)' : 'Talk' }, { id: 'sell1', label: 'Sell 1 Physick' }, { id: 'sell5', label: 'Sell 5' }, { id: 'insult', label: 'Insult' },
     ];
@@ -455,6 +494,7 @@ export class Citizens {
     if (id.startsWith('buy:')) { this.buy(n, id.slice(4)); return; }
     if (id === 'sell1' || id === 'sell5') { g.drugs.sell(n, n, id === 'sell1' ? 1 : 5); return; }
     if (id === 'sellall') { g.drugs.sell(n, n, 999); return; }
+    if (n.storyNpc && g.story?.act(n, id)) return;
     const mood0 = n.mood;
     if (n.tenant && g.tenants?.act(n, id)) { n.mood = THREE.MathUtils.clamp(n.mood, -100, 100); g.tenants.levelCheck(n, mood0); return; }
     switch (id) {
