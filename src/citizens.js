@@ -327,10 +327,12 @@ export class Citizens {
             // stuck (on a corner, a kerb, a crowd): after a while, and if you're not looking, they catch up
             if (n.speed < 0.25) n.stuckT = (n.stuckT || 0) + h; else n.stuckT = 0;
             const T = this.trail || [];
-            if ((n.stuckT > 2.5 || dP > 45) && T.length > 4) {
-              const back = T[Math.max(0, T.length - 4)], seen = g.camera.position.distanceTo(p) < 40 && this._fr?.containsPoint(p.clone().add(V(0, 1, 0)));
+            if ((n.stuckT > 2.5 || dP > 45) && T.length > 4 && !n.shoreT) {
+              const back = T[Math.max(0, T.length - 4)];
+              if (this.wet(back.x, back.z)) { n.stuckT = 0; } else {
+              const seen = g.camera.position.distanceTo(p) < 40 && this._fr?.containsPoint(p.clone().add(V(0, 1, 0)));
               if (!seen || n.stuckT > 6) { n.body.setTranslation({ x: back.x, y: back.y + CENTRE + 0.05, z: back.z }, true); n.body.setNextKinematicTranslation({ x: back.x, y: back.y + CENTRE + 0.05, z: back.z }); n.vy = 0; n.stuckT = 0; n.navT = 0; }
-            }
+            } }
           } else n.stuckT = 0;
           if (dP > 140 && !n.storyNpc) { n.following = false; this.wander(n); }
           break;
@@ -397,6 +399,16 @@ export class Citizens {
   move(n, p, vel, h) {
     if (n.state === 'sit') { n.body.setNextKinematicTranslation({ x: p.x + vel.x * h, y: p.y + CENTRE, z: p.z + vel.z * h }); n.speed = 0; return; }
     n.vy = (n.vy || 0) - 18 * h;
+    // nobody walks into the sea (or a pool): at the water's edge they slide along it, or stop
+    const sp = Math.hypot(vel.x, vel.z);
+    if (sp > 0.05 && !this.wet(p.x, p.z)) {
+      const k = 0.8 / sp, wa = (dx, dz) => this.wet(p.x + dx * k, p.z + dz * k);
+      if (wa(vel.x, vel.z)) {
+        if (!wa(vel.x, 0)) vel = V(vel.x, vel.y, 0); else if (!wa(0, vel.z)) vel = V(0, vel.y, vel.z); else vel = V(0, vel.y, 0); n.vel.copy(vel);
+        n.shoreT = (n.shoreT || 0) + h;
+        if (n.following && n.shoreT > 1.5 && n.bubbleT <= 0 && !n.saidShore) { n.saidShore = true; this.say(n, n.companion ? "I'm not swimming. I'll wait here." : pick(["I'm not going in there.", "Uh, I can't swim.", "I'll wait on the beach."]), 2.6); }
+      } else { n.shoreT = 0; n.saidShore = false; }
+    }
     this.cc.computeColliderMovement(n.col, { x: vel.x * h, y: n.vy * h, z: vel.z * h }, undefined, groups(G_PED, G_WORLD | G_CAR | G_PED | G_PROP));
     const m = this.cc.computedMovement();
     if (this.cc.computedGrounded()) n.vy = 0;
@@ -405,6 +417,9 @@ export class Citizens {
     n.body.setNextKinematicTranslation({ x: t.x + m.x, y: t.y + m.y, z: t.z + m.z });
     n.speed = Math.hypot(m.x, m.z) / h;
   }
+
+  // deep enough to have to swim (sea, pool): water here, and the ground under it well below the surface
+  wet(x, z) { const w = this.g.waterAt?.(x, z); if (w == null || w < -5) return false; const g = this.g, hit = g.world.castRay(new g.R.Ray({ x, y: w + 2, z }, { x: 0, y: -1, z: 0 }), 2.45, true, g.R.QueryFilterFlags.ONLY_FIXED); return !hit; }
 
   wander(n) { if (n.home && !n.following) { n.state = 'post'; return; } n.state = n.following ? 'follow' : 'wander'; const p = this.pos(n); n.target = this.randomPoint(p); n.stateT = 0; n.faceYaw = null; if (n.state === 'wander') this.setLane(n, p, n.vel.lengthSq() > 0.1 ? n.vel : null); }
 

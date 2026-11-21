@@ -71,7 +71,7 @@ export function buildDesert(g, islandSegs) {
   const inland = (x, z) => Math.min(DRY.shore - z, z - DRY.north, x - DRY.west, DRY.east - x);
   const base = (x, z) => {
     const inl = inland(x, z);
-    return inl < 0 ? -4 + 4 * ss(-40, 0, inl) : 0.35 + Math.min(5, inl * 0.004) + ss(0, 30, inl) * 0.2;
+    return inl < 0 ? -8 + 8 * ss(-70, 0, inl) : 0.35 + Math.min(5, inl * 0.004) + ss(0, 30, inl) * 0.2;
   };
   // the dock's apron is flat, level with the island (the ground round it eases down to it)
   const dockD = (x, z) => Math.hypot(Math.max(DOCK.x0 - x, 0, x - DOCK.x1), Math.max(0, z - DOCK.z1));
@@ -89,14 +89,14 @@ export function buildDesert(g, islandSegs) {
     if (inl > 0) h += Math.max(0, fbm(x * 0.011, z * 0.011, 4) - 0.4) * 9 * ss(0, 60, inl); // (low dunes and swells)
     const m = roadMask(x, z); if (m > 0) h = h + (roadY(x, z) - h) * m;
     if (z > DOCK.z0) { const k = ss(40, 0, dockD(x, z)); if (k > 0) h = h + (-0.05 - h) * k; }
-    else if (x > DOCK.x0 - 30 && x < DOCK.x1 + 30) h = Math.min(h, -7); // (deep water off the quay, for the ship)
+    else if (x > DOCK.x0 - 30 && x < DOCK.x1 + 30) h = Math.min(h, -8); // (deep water off the quay, for the ship)
     return h;
   };
 
   const NX = Math.round((DRY.x1 - DRY.x0) / STEP), NZ = Math.round((DRY.z1 - DRY.z0) / STEP);
   const pos = new Float32Array((NX + 1) * (NZ + 1) * 3), colr = new Float32Array(pos.length), uv = new Float32Array((NX + 1) * (NZ + 1) * 2);
   const H = new Float32Array((NX + 1) * (NZ + 1));
-  const sand = new THREE.Color(0xc88e5c), red = new THREE.Color(0xa24e2a), rock = new THREE.Color(0x7a4632), dark = new THREE.Color(0x553528), pale = new THREE.Color(0xd8b88a), tmp = new THREE.Color();
+  const sand = new THREE.Color(0xc88e5c), red = new THREE.Color(0xa24e2a), rock = new THREE.Color(0x7a4632), dark = new THREE.Color(0x553528), pale = new THREE.Color(0xd8b88a), bed = new THREE.Color(0x6f6650), tmp = new THREE.Color();
   for (let j = 0; j <= NZ; j++) for (let i = 0; i <= NX; i++) {
     const x = DRY.x0 + i * STEP, z = DRY.z0 + j * STEP, h = height(x, z), k = j * (NX + 1) + i;
     H[k] = h; pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z; uv[k * 2] = x / 7; uv[k * 2 + 1] = z / 7;
@@ -104,6 +104,7 @@ export function buildDesert(g, islandSegs) {
     tmp.copy(sand).lerp(red, ss(0.35, 0.7, n));
     if (h > 12) tmp.lerp(rock, ss(12, 60, h)); if (h > 120) tmp.lerp(dark, ss(120, 300, h) * 0.8);
     { const inl = inland(x, z); if (inl < 25) tmp.lerp(pale, 0.6 * ss(25, 0, inl)); }
+    if (h < -0.6) tmp.lerp(bed, ss(-0.6, -4, h)); // (wet sand going down to the sea bed's colour)
     colr[k * 3] = tmp.r; colr[k * 3 + 1] = tmp.g; colr[k * 3 + 2] = tmp.b;
   }
   const idx = new Uint32Array(NX * NZ * 6); let q = 0;

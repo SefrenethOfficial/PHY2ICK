@@ -11,7 +11,7 @@ export function makeWater(g, level) {
   x.putImageData(img, 0, 0);
   const norm = new THREE.CanvasTexture(c); norm.wrapS = norm.wrapT = THREE.RepeatWrapping;
   const time = { value: 0 };
-  const mat = new THREE.MeshStandardMaterial({ color: 0x0f5068, roughness: 0.07, metalness: 0.0, transparent: true, opacity: 0.93, envMapIntensity: 0.65 });
+  const mat = new THREE.MeshStandardMaterial({ color: 0x0f5068, roughness: 0.07, metalness: 0.0, transparent: true, opacity: 0.93, envMapIntensity: 0.65, side: THREE.DoubleSide }); // (two-sided: it's the ceiling when you're under it)
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = time; sh.uniforms.uNorm = { value: norm };
     sh.vertexShader = 'uniform float uTime;\nvarying vec3 vWPos;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -32,7 +32,7 @@ export function makeWater(g, level) {
   water.position.y = level; water.receiveShadow = true; water.userData.dynamic = true; water.frustumCulled = false;
   g.scene.add(water);
   // beyond it, out to the horizon: flat
-  const far = new THREE.Mesh(new THREE.RingGeometry(590, 6000, 48, 1), new THREE.MeshStandardMaterial({ color: 0x1a6680, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.92 }));
+  const far = new THREE.Mesh(new THREE.RingGeometry(590, 6000, 48, 1), new THREE.MeshStandardMaterial({ color: 0x1a6680, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.92, side: THREE.DoubleSide }));
   far.rotation.x = -Math.PI / 2; far.position.y = level - 0.02; far.userData.dynamic = true; g.scene.add(far);
   return {
     mesh: water,

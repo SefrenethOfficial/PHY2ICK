@@ -538,6 +538,13 @@ class Game {
     const envT = inside ? 0.3 : 0.75;
     this.scene.environmentIntensity += (envT - this.scene.environmentIntensity) * Math.min(1, rdt * 3);
     if (this.water) this.water.update(rdt, this.camera);
+    // under the water: everything goes murky green-blue, close in
+    { const c = this.camera.position, wl = this.waterAt(c.x, c.z), under = wl != null && c.y < wl - 0.05, f = this.scene.fog;
+      if (under !== !!this.underwater) {
+        this.underwater = under;
+        if (under) { this._fog = [f.color.getHex(), f.near, f.far]; f.color.set(0x1d5866); f.near = 0.5; f.far = 24; }
+        else if (this._fog) { f.color.set(this._fog[0]); f.near = this._fog[1]; f.far = this._fog[2]; }
+      } }
     if (this.sky) this.sky.position.copy(this.camera.position); // (the sky goes where you go: out at the docks too)
     if (this.fountainWater) this.fountainWater.position.y = 0.45 + Math.sin(performance.now() / 600) * 0.01;
     this.hud.frame(rdt);

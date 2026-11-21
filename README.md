@@ -80,7 +80,7 @@ Your room is **1E**, on the first floor of your building at **Fairview Heights**
 - **The dresser** against your back wall. Press `E` to slide the top drawer open: inside is a **Butter Knife**, and that's all you own to start with. `E` again to take it (the drawer shuts), or to put it back. `Click` to swing, `X` to put it away. It makes people bleed and run. Anything better you buy (a hatchet or guns from Halyard Arms).
 
 ### Moving about
-- **Swimming**: go into the water and you swim (front crawl when moving, treading water when still). `Space` at a low edge pulls you out.
+- **Swimming**: go into the water and you swim (front crawl when moving, treading water when still). `Space` at a low edge pulls you out. Under the surface everything goes murky green-blue, and the sea floor is sand all the way round (shelving down gently off the desert's beaches, deep off North Quay).
 - **Vaulting**: `Space` in front of something low (a fence, a wall, a bench) and you vault it.
 - **The walk**: a long, loose stride: the heel lands on a nearly straight knee, the knee folds through the swing, the foot rolls off the toes; the hips sway and turn, the shoulders turn against them, the arms swing a little across the body. Running leans in, drives the knees and pumps the arms.
 - **Carrying**: small things (a mug, a bottle) in your right hand; big things against your chest in both hands.
@@ -92,6 +92,7 @@ Your room is **1E**, on the first floor of your building at **Fairview Heights**
 - **Proper hair**: short, side-parted, swept, buzz, curly, a big afro, long, a bob, a bun, a ponytail, or bald.
 - **Animated from a skeleton.** Every person has a joint rig (hips, spine, chest, neck, head, shoulders, elbows, wrists, hips, knees, ankles) and a gait driven by speed: a walk blends into a run, arms swing against the legs, the body bobs and leans, knees bend on the swing. They breathe when standing, gesture when they talk, turn their heads to look at you, sit on benches, point when giving directions, and sit properly in cars with their hands on the wheel. Each person is a single mesh (one draw call).
 - **All over the island.** People who wander too far from you turn up again on a sidewalk somewhere out of sight 60–110 m away, so the north end, the docks and the back streets have people in them too, not just the middle of town.
+- **Nobody goes in the water** but you. People stop at the water's edge (or walk along it); someone following you waits on the beach ("I'm not going in there.", Wren: "I'm not swimming. I'll wait here."), and cops won't swim after you.
 - **Citizens** keep to the sidewalks, walking along beside the road; at a corner they turn or cross. Before crossing they stop at the kerb, **look left, right and left again**, and wait until nothing's coming. Now and then they cross over mid-block, stop for a moment, sit on a bench, or **go shopping**: in through the door, along an aisle to look at the shelves, to the till to pay (the shopkeeper says something back), and out again. They step round each other and jump out of the way of cars coming at them. Each has a name, a **mood** and a **memory** of you: how often you've talked, given them money, complimented or insulted them, or run them over.
 
 ### The interaction wheel

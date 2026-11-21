@@ -94,7 +94,8 @@ export function buildCity(g) {
     add(new THREE.Mesh(bg, std(0xffffff, 1, { map: sandT, side: THREE.DoubleSide })), false);
     trimesh(g, world, R, bg);
     // the sea bed and the sea
-    const bed = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), std(0x6b6550, 1)); bed.rotation.x = -Math.PI / 2; bed.position.y = -8; scene.add(bed);
+    const bedT = canvasTex(256, 256, (c, w, h) => { noise(c, w, h, '#7a705a', 0.18, 20000, 2); for (let i = 0; i < 400; i++) { c.fillStyle = `rgba(${Math.random() < 0.5 ? '40,50,40' : '150,140,110'},.12)`; c.beginPath(); c.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 4, 0, 7); c.fill(); } }, [600, 600]);
+    const bed = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), std(0xffffff, 1, { map: bedT })); bed.rotation.x = -Math.PI / 2; bed.position.y = -8; scene.add(bed);
     world.createCollider(R.ColliderDesc.cuboid(3000, 0.5, 3000).setTranslation(0, -8.5, 0));
     g.water = makeWater(g, WATER);
     g.waterLevel = WATER;
