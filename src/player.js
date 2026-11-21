@@ -4,6 +4,8 @@ import { Human } from './character.js';
 import { G_WORLD, G_CAR, G_PED, G_PROP, groups } from './world.js';
 import { Ragdoll } from './ragdoll.js';
 
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
 const HALF = 0.55, RAD = 0.3, CENTRE = HALF + RAD; // capsule: feet to centre
 
 export class Player {
@@ -49,14 +51,15 @@ export class Player {
     const g = this.g, k = g.keys;
     const want = new THREE.Vector3();
     const busy = g.wheel.open;
-    if (!busy) {
+    const stuck = busy || this.surrender || this.finishT > 0 || this.dead || g.ending;
+    if (!stuck) {
       if (k.has('KeyW')) want.z -= 1; if (k.has('KeyS')) want.z += 1;
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
     }
-    const run = k.has('ShiftLeft') || k.has('ShiftRight');
+    const run = (k.has('ShiftLeft') || k.has('ShiftRight')) && !this.hostage && !g.weapons.aiming;
     const t0 = this.body.translation(), feet = t0.y - CENTRE, wl = g.waterAt?.(t0.x, t0.z) ?? -99; this.wl = wl;
     this.swimming = feet < wl - 1.05;
-    if (want.lengthSq() > 0) want.normalize().multiplyScalar(this.swimming ? (run ? 3.4 : 2.2) : run ? 6.2 : 1.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.cam.yaw);
+    if (want.lengthSq() > 0) want.normalize().multiplyScalar(this.swimming ? (run ? 3.4 : 2.2) : run ? 6.2 : this.hostage ? 1.5 : 1.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.cam.yaw);
     // ease toward the wanted velocity (a little weight to it)
     const acc = this.grounded ? (want.lengthSq() > 0 ? 9 : 12) : 2;
     this.vel.x += (want.x - this.vel.x) * Math.min(1, acc * h);
@@ -67,7 +70,7 @@ export class Player {
       this.vy += ((wl - 1.3 - feet) * 10 - this.vy * 4) * h;
       if (this.jumpQ && !busy) this.climbOut(fwd, wl);
     } else {
-      if (this.grounded && !busy && this.jumpQ) {
+      if (this.grounded && !stuck && !this.hostage && this.jumpQ) {
         const v = this.vaultHeight(fwd, feet);
         if (v) { this.vy = Math.sqrt(2 * 18 * (v + 0.45)); this.vaultT = 0.55; } else this.vy = 5.2;
         this.grounded = false;
@@ -87,6 +90,116 @@ export class Player {
     this.speed = Math.hypot(m.x, m.z) / h;
     if (t.y < -20) this.body.setNextKinematicTranslation({ x: 0, y: 2, z: 8 }); // (fell out of the world)
     this.lastSafe = this.lastSafe || new THREE.Vector3(); if (this.grounded) this.lastSafe.set(t.x, t.y - CENTRE, t.z);
+    // a hostage walks where you walk, just in front of you
+    if (this.hostage) {
+      const n = this.hostage, f = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
+      const at = { x: t.x + m.x + f.x * 0.5, y: t.y + m.y + 0.02, z: t.z + m.z + f.z * 0.5 };
+      n.body.setNextKinematicTranslation(at); n.yaw = this.yaw; n.speed = this.speed; n.vel.set(this.vel.x, 0, this.vel.z);
+    }
+    // finishing someone off
+    if (this.finishT > 0) {
+      this.finishT -= h;
+      const F = this.finish;
+      if (!F.done && this.finishT < F.dur * 0.45) {
+        F.done = true; const n = F.n, c = g.citizens, q = n.human.ragdoll ? n.human.ragdoll.pelvis : c.pos(n);
+        if (F.kind === 'shoot') { const W = g.weapons; W.clip[W.cur] = Math.max(0, W.clip[W.cur] - 1); const m = W.models[W.cur]; m.updateMatrixWorld(true); const mz = (m.userData.muzzle || new THREE.Vector3()).clone().applyMatrix4(m.matrixWorld); g.fx.muzzle(mz, q.clone().sub(mz).normalize()); g.sfx.shot(mz, W.cur === 'shotgun'); g.fx.tracer(mz, q); }
+        else g.sfx.punch(q);
+        g.blood.spray(q.clone().add(new THREE.Vector3(0, 0.2, 0)), new THREE.Vector3(0, 1, 0), 26, 2.5); g.blood.pool(q, 1.4);
+        if (n.human.ragdoll) n.human.ragdoll.push(new THREE.Vector3(0, -2, 0));
+        n.hp = 0; c.die(n); c.crimeAt(n, true);
+      }
+      if (this.finishT <= 0) this.finish = null;
+    }
+  }
+
+  // ---- hurt, shot, punched
+  hurt(dmg, dir, cause = 'hit', knock = false) {
+    const g = this.g;
+    if (this.dead || g.ending) return;
+    this.hp = Math.max(0, this.hp - dmg);
+    g.hud.hurt();
+    if (cause === 'shot' && !this.car) g.blood.spray(this.pos.add(new THREE.Vector3(0, 1.25, 0)), dir.clone().setY(0.2).normalize(), 10, 2);
+    if (this.hp <= 0) {
+      if (!this.car && !this.ragdoll) { const v = dir.clone().setY(0).normalize().multiplyScalar(cause === 'explosion' ? 9 : 2.5); v.y = cause === 'explosion' ? 6 : 1; this.ragdoll = this.human.ragdoll = new Ragdoll(g, this.human, v, 4); this.col.setEnabled(false); }
+      this.die(cause); return;
+    }
+    if (knock && !this.car) this.knockDown(dir, 3.5, 0);
+  }
+
+  // ---- give up (when the police are after you): hands up, stand still
+  toggleSurrender() {
+    const g = this.g;
+    if (this.car || this.ragdoll || this.dead) return;
+    if (!this.surrender && !g.police.stars) return;
+    this.surrender = !this.surrender;
+    if (this.surrender) { if (this.hostage) this.releaseHostage(true); if (this.g.props.held) this.g.props.drop(false); g.hud.toast('You put your hands up. The police will come and arrest you.', '#9ad0ff'); }
+  }
+
+  // ---- grab someone: a sack over their head if you have one, a hand over their mouth if not
+  grab() {
+    const g = this.g;
+    if (this.car || this.ragdoll || this.dead || this.surrender) return;
+    if (this.hostage) { this.releaseHostage(true); return; }
+    const p = this.pos, f = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)), cf = g.cam.forward;
+    let best = null, bd = 1.9;
+    for (const n of g.citizens.list) {
+      if (['dead', 'seated'].includes(n.state) || n.human.ragdoll || n.cop) continue;
+      const q = g.citizens.pos(n), d = q.distanceTo(p); if (d > bd) continue;
+      const dir = q.clone().sub(p).setY(0).normalize(); if (dir.dot(cf) < 0.2 && dir.dot(f) < 0.2) continue;
+      bd = d; best = n;
+    }
+    if (!best) { g.hud.toast('Nobody close enough to grab'); return; }
+    const n = best, bag = (this.sacks || 0) > 0;
+    if (bag) { this.sacks--; n.human.addBag(); }
+    if (g.weapons.cur !== 'fists') g.weapons.equip('fists', true);
+    if (g.props.held) g.props.drop(false);
+    n.hostage = { bag }; n.hostageBag = bag; n.state = 'held'; n.following = false; n.col.setEnabled(false);
+    if (n.bench) { n.bench.taken = null; n.bench = null; }
+    this.hostage = n;
+    n.human.express('scared', 999);
+    g.hud.toast(bag ? `You pulled a sack over ${n.mem.met ? n.name : 'their'}${n.mem.met ? "'s" : ''} head · F by a car to bundle them in · G to let go` : 'You grabbed them, hand over their mouth · F by a car to bundle them in · G to let go', '#ff9a5a');
+    g.police.crime('kidnap', p);
+  }
+  releaseHostage(push = true) {
+    const g = this.g, n = this.hostage; if (!n) return;
+    this.hostage = null; n.hostage = null; n.col.setEnabled(true);
+    const p = g.citizens.pos(n); n.body.setTranslation({ x: p.x, y: p.y + CENTRE + 0.05, z: p.z }, true);
+    n.human.express('scared', 4);
+    if (n.state !== 'dead') { n.state = 'flee'; n.stateT = 12; if (push) g.citizens.say(n, n.hostageBag ? pick(['Get this thing off me!', 'Help! Somebody!']) : pick(['Psycho!', 'HELP!', 'Get away from me!']), 2.5); }
+    if (n.hostageBag) setTimeout(() => n.human.removeBag(), 2500);
+    n.hostageBag = false;
+  }
+  // into the car with them (they go in the passenger seat, and stay there)
+  bundle(car) {
+    const g = this.g, n = this.hostage; if (!n) return false;
+    this.hostage = null; n.hostage = null; n.kidnapped = true;
+    n.state = 'seated'; car.passenger = n; n.car = car; car.seatPerson(n.human, 'passenger');
+    g.citizens.say(n, n.hostageBag ? 'Mmmph!!' : pick(['Where are you taking me?!', 'Let me go!']), 2);
+    return true;
+  }
+  // let them out of the car
+  freeKidnapped(car) {
+    const g = this.g, n = car.passenger; if (!n || !n.kidnapped) return;
+    n.kidnapped = false; g.citizens.unboard(n, car); n.car = null;
+    n.state = 'flee'; n.stateT = 12; g.citizens.say(n, pick(['Thank god!', 'HELP!', "I'm calling the police!"]), 2.5);
+    if (n.hostageBag) setTimeout(() => n.human.removeBag(), 2000); n.hostageBag = false;
+    g.police.crime('kidnap', g.citizens.pos(n), true);
+  }
+
+  // ---- finish off someone who's down: a stamp, a stab, or a shot
+  finishTarget() {
+    const g = this.g; if (this.car || this.ragdoll || this.hostage || this.finishT > 0) return null;
+    const p = this.pos;
+    let best = null, bd = 2.4;
+    for (const n of g.citizens.list) { if (!n.downed || n.state === 'dead' || !n.human.ragdoll) continue; const d = n.human.ragdoll.pelvis.distanceTo(p.clone().setY(n.human.ragdoll.pelvis.y)); if (d < bd) { bd = d; best = n; } }
+    return best;
+  }
+  finishOff() {
+    const n = this.finishTarget(); if (!n) return;
+    const W = this.g.weapons, gun = W.W.gun && W.clip[W.cur] > 0, blade = !W.W.gun && W.cur !== 'fists' && W.cur !== 'kiddie';
+    const kind = gun ? 'shoot' : blade ? 'stab' : 'stomp', dur = kind === 'shoot' ? 0.7 : kind === 'stab' ? 1.1 : 0.9;
+    this.finish = { n, kind, dur, done: false }; this.finishT = dur;
+    const q = n.human.ragdoll.pelvis, p = this.pos; this.yaw = Math.atan2(q.x - p.x, q.z - p.z);
   }
 
   frame(dt) {
@@ -101,7 +214,9 @@ export class Player {
     // face where you're going (or where you're talking)
     let face = null;
     if (this.speed > 0.4) face = Math.atan2(this.vel.x, this.vel.z);
-    if (this.g.weapons.attackPhase != null) face = this.g.cam.yaw + Math.PI; // (swing where you're looking)
+    const Wp = this.g.weapons;
+    if (Wp.attackPhase != null || Wp.punchPhase != null || Wp.aiming || (Wp.W.gun && Wp.cool > 0)) face = this.g.cam.yaw + Math.PI; // (swing, punch and shoot where you're looking)
+    if (this.finish) { const q = this.finish.n.human.ragdoll?.pelvis; if (q) face = Math.atan2(q.x - p.x, q.z - p.z); }
     if (this.g.wheel.open && this.g.wheel.target) { const q = this.g.citizens.pos(this.g.wheel.target); face = Math.atan2(q.x - p.x, q.z - p.z); }
     if (face !== null) {
       let d = face - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -114,7 +229,16 @@ export class Player {
       H.root.position.y = wl - 1.45 + mv * 1.05;
       H.root.position.x -= Math.sin(this.yaw) * mv * 0.9; H.root.position.z -= Math.cos(this.yaw) * mv * 0.9;
     }
-    H.update(dt, { speed: this.speed, grounded: this.grounded || this.swimming, vy: this.vy, pose: this.swimming ? 'swim' : 'stand', talking: this.talkT > 0, weapon: !!W.held, attack: W.attackPhase, carry: this.g.props.held ? (this.g.props.small ? 'small' : 'big') : null });
+    const cd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.g.camera.quaternion), e = Math.asin(THREE.MathUtils.clamp(cd.y, -1, 1));
+    const F = this.finish, fa = F ? 1 - this.finishT / F.dur : 0;
+    const gunOut = W.W.gun && (W.aiming || W.cool > 0 || (F && F.kind === 'shoot'));
+    H.update(dt, { speed: this.speed, grounded: this.grounded || this.swimming, vy: this.vy, pose: this.swimming ? 'swim' : 'stand', talking: this.talkT > 0,
+      weapon: !!W.held && !gunOut, attack: W.attackPhase, carry: this.g.props.held ? (this.g.props.small ? 'small' : 'big') : null,
+      guard: W.cur === 'fists' && (W.aiming || W.guardT > 0) && W.punchPhase == null && !this.hostage && !this.surrender,
+      punch: W.punchPhase != null ? { a: W.punchPhase, side: W.combo % 2 ? 'L' : 'R', hook: W.combo === 2 } : null,
+      aim: F && F.kind === 'shoot' ? { e: -0.9, kind: W.cur } : gunOut ? { e, kind: W.cur, recoil: W.recoil } : (W.aiming && W.cur !== 'fists' ? { e, kind: 'melee' } : null),
+      handsUp: this.surrender, hold: this.hostage ? (this.hostage.hostage?.bag ? 'bag' : 'mouth') : null,
+      stomp: F && F.kind === 'stomp' ? fa : null, stab: F && F.kind === 'stab' ? fa : null });
     this.talkT = Math.max(0, (this.talkT || 0) - dt);
   }
 
@@ -175,21 +299,23 @@ export class Player {
     this.vel.set(0, 0, 0); this.vy = 0;
   }
 
-  die() {
+  die(cause = 'hit') {
     const g = this.g;
+    if (this.dead) return;
     this.dead = true;
-    g.hud.blackout(true);
-    if (g.weapons.held) g.weapons.putAway(true);
-    setTimeout(() => { // you come round at the Hospital
-      if (this.ragdoll) { this.ragdoll.dispose(); this.ragdoll = this.human.ragdoll = null; }
-      this.human.resetPose();
-      const s = g.hospitalSpawn || g.apt.spawn; if (g.hospitalYaw != null) { this.yaw = g.hospitalYaw; g.cam.yaw = g.hospitalYaw + Math.PI; }
-      this.body.setTranslation({ x: s.x, y: s.y + CENTRE + 0.1, z: s.z }, true); this.body.setNextKinematicTranslation({ x: s.x, y: s.y + CENTRE + 0.1, z: s.z });
-      this.col.setEnabled(true); this.dead = false; this.hp = 100; this.vel.set(0, 0, 0); this.vy = 0;
-      g.money = Math.max(0, g.money - 100);
-      g.hud.blackout(false);
-      g.hud.toast('You wake up outside the Hospital, aching. The bill: $100');
-    }, 5000);
+    if (this.hostage) this.releaseHostage(false);
+    g.endScreen('wasted');
+  }
+
+  // back on your feet somewhere (after WASTED or BUSTED)
+  respawn(at, yaw) {
+    const g = this.g;
+    if (this.car) this.exitCar();
+    if (this.ragdoll) { this.ragdoll.dispose(); this.ragdoll = this.human.ragdoll = null; }
+    this.human.resetPose(); this.human.dead = false;
+    if (yaw != null) { this.yaw = yaw; g.cam.yaw = yaw + Math.PI; }
+    this.body.setTranslation({ x: at.x, y: at.y + CENTRE + 0.1, z: at.z }, true); this.body.setNextKinematicTranslation({ x: at.x, y: at.y + CENTRE + 0.1, z: at.z });
+    this.col.setEnabled(true); this.dead = false; this.surrender = false; this.hp = 100; this.vel.set(0, 0, 0); this.vy = 0; this.finish = null; this.finishT = 0;
   }
 
   enterCar(car, seat = 'driver') {
@@ -201,7 +327,7 @@ export class Player {
   }
 
   // getting out at speed: you throw the door open and go, and the road does the rest
-  bailOut() {
+  bailOut(through = false) {
     const car = this.car; if (!car) return;
     const g = this.g, lv = car.body.linvel(), spd = Math.hypot(lv.x, lv.z);
     this.exitCar();
@@ -209,15 +335,16 @@ export class Player {
     const H = this.human;
     H.resetPose(); H.root.position.copy(p); H.root.rotation.set(0, this.yaw, 0);
     H.update(1 / 60, { speed: 0, grounded: false, vy: -1, pose: 'stand' }); H.root.updateMatrixWorld(true);
-    const v = new THREE.Vector3(lv.x * 0.92 + side.x * 2.4, 1.6, lv.z * 0.92 + side.z * 2.4);
+    if (through) { const f = car.forward, at = car.pos.clone().addScaledVector(f, 2.7).add(new THREE.Vector3(0, 0.6, 0)); H.root.position.copy(at); H.root.updateMatrixWorld(true); }
+    const v = through ? new THREE.Vector3(lv.x * 1.05, 2.6, lv.z * 1.05).addScaledVector(car.forward, 2) : new THREE.Vector3(lv.x * 0.92 + side.x * 2.4, 1.6, lv.z * 0.92 + side.z * 2.4);
     this.ragdoll = H.ragdoll = new Ragdoll(g, H, v, 3 + spd * 0.35);
     this.col.setEnabled(false);
     this.downT = 1.8 + Math.min(2.5, spd * 0.08);
-    const dmg = Math.max(0, spd - 7) * 2.2;
+    const dmg = Math.max(0, spd - 7) * (through ? 2.8 : 2.2);
     this.hp = Math.max(0, this.hp - dmg);
     if (spd > 9) g.blood.spray(this.ragdoll.pelvis.add(new THREE.Vector3(0, 0.3, 0)), v.clone().normalize(), 14, 2);
     if (this.hp <= 0) this.die();
-    else g.hud.toast(spd > 14 ? 'You threw yourself out of a moving car. Bold.' : 'You bailed out!');
+    else if (!through) g.hud.toast(spd > 14 ? 'You threw yourself out of a moving car. Bold.' : 'You bailed out!');
   }
 
   exitCar() {

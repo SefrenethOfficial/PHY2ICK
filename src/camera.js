@@ -81,12 +81,13 @@ export class CameraRig {
     const t = this.smoothTarget;
     const dir = V(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
     const right = V(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
-    const pivot = t.clone().addScaledVector(right, 0.45); // (over the right shoulder)
-    const want = pivot.clone().addScaledVector(dir, this.dist);
+    const aim = !!g.weapons?.aiming; this.aimK = (this.aimK || 0) + ((aim ? 1 : 0) - (this.aimK || 0)) * Math.min(1, dt * 10);
+    const pivot = t.clone().addScaledVector(right, 0.45 + this.aimK * 0.35).add(V(0, -this.aimK * 0.08, 0)); // (over the right shoulder; closer in when aiming)
+    const want = pivot.clone().addScaledVector(dir, this.dist - this.aimK * 1.9);
     const at = this.clip(pivot, want, [p.col.handle]);
     cam.position.copy(at);
     cam.lookAt(pivot.clone().addScaledVector(dir, -10));
-    cam.fov = 70; cam.updateProjectionMatrix();
+    cam.fov = 70 - this.aimK * 16; cam.updateProjectionMatrix();
   }
 
   // which way "forward" is on foot (the way the camera faces, flattened)

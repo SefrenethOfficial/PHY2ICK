@@ -172,6 +172,13 @@ export class Human {
       case 'bob': cap(1.09, Math.PI * 0.56, -0.55); rb(0.26, 0.15, 0.17, 0, 0.0, -0.035); rb(0.17, 0.04, 0.05, 0, 0.1, 0.07, { rx: 0.5 }); break;
       case 'bun': cap(1.06, Math.PI * 0.56, -0.5); blob(0.05, 0, 0.1, -0.1); break;
       case 'ponytail': cap(1.06, Math.PI * 0.56, -0.5); blob(0.024, 0, 0.05, -0.118); add('head', new THREE.CapsuleGeometry(0.034, 0.16, 4, 10), col, 0, cy - 0.06, -0.14, { rx: 0.22 }); break;
+      case 'cap': { // a police cap: crown, band, peak, badge
+        const navy = 0x1b2438; cap(1.05, Math.PI * 0.5, -0.5);
+        add('head', new THREE.CylinderGeometry(r * 1.1, r * 1.04, 0.07, 18), navy, 0, cy + 0.075, -0.005, { rx: -0.12 });
+        add('head', new THREE.CylinderGeometry(r * 1.16, r * 1.1, 0.035, 18), navy, 0, cy + 0.125, -0.012, { rx: -0.12 });
+        add('head', new THREE.BoxGeometry(0.17, 0.012, 0.075), 0x0e1220, 0, cy + 0.052, r * 0.98, { rx: 0.25 });
+        add('head', new THREE.BoxGeometry(0.026, 0.03, 0.01), 0xd8b44a, 0, cy + 0.095, r * 1.06, { rx: -0.15 });
+        break; }
       default: cap(1.07, Math.PI * 0.56, -0.55);
     }
   }
@@ -181,6 +188,25 @@ export class Human {
   setMood(name) { this.base = name; }
 
   setHeadVisible(v) { this.headHidden = !v; }
+
+  // a sack over the head (kidnapping)
+  addBag() {
+    if (this.bag) return;
+    if (!Human.bagMat) {
+      const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+      x.fillStyle = '#9a7a4e'; x.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 128; i += 4) { x.fillStyle = i % 8 ? '#8a6c44' : '#a88a5a'; x.fillRect(i, 0, 2, 128); x.fillRect(0, i, 128, 1); }
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 2);
+      Human.bagMat = new THREE.MeshStandardMaterial({ map: t, roughness: 1 });
+    }
+    const g = new THREE.Group();
+    const sack = new THREE.Mesh(new THREE.SphereGeometry(0.145, 14, 10), Human.bagMat); sack.scale.set(1, 1.18, 1.05); sack.position.y = 0.11; g.add(sack);
+    const top = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.08, 8), Human.bagMat); top.position.set(0.02, 0.29, -0.01); top.rotation.z = -0.4; g.add(top);
+    const cord = new THREE.Mesh(new THREE.TorusGeometry(0.068, 0.009, 6, 16), new THREE.MeshStandardMaterial({ color: 0x5a4a30, roughness: 1 })); cord.rotation.x = Math.PI / 2; cord.position.y = -0.03; g.add(cord);
+    g.traverse(o => { o.castShadow = true; });
+    this.b.head.add(g); this.bag = g;
+  }
+  removeBag() { if (this.bag) { this.bag.removeFromParent(); this.bag = null; } }
 
   // back from a ragdoll: the bones go back to their own lengths, the animation takes over again
   resetPose() {
@@ -299,6 +325,33 @@ export class Human {
       }
       if (s.wave) { set('shoulderR', -0.3, 0, -2.5); set('elbowR', -0.3 + Math.sin(this.t * 9) * 0.4, 0, 0); }
       if (s.point) { set('shoulderR', -1.45, 0, -0.05); set('elbowR', -0.05); }
+      // fists up: a boxer's guard
+      if (s.guard) { set('shoulderL', -0.95, 0, -0.28); set('elbowL', -2.05, 0, 0); set('shoulderR', -0.85, 0, 0.28); set('elbowR', -2.15, 0, 0); set('wristL', 0, 0, -0.3); set('wristR', 0, 0, 0.3); set('spine', 0.12, -0.15, 0); set('chest', 0.02, -0.12, 0); }
+      // a punch: out from the guard and back, the body turning into it
+      if (s.punch) {
+        const a = s.punch.a, e = a < 0.45 ? a / 0.45 : Math.max(0, 1 - (a - 0.45) / 0.55), R = s.punch.side === 'R', hook = s.punch.hook;
+        const k = R ? 'R' : 'L', sg = R ? 1 : -1;
+        set('shoulder' + k, -0.95 - e * (hook ? 0.55 : 0.65), hook ? -sg * e * 0.6 : 0, sg * (0.28 - e * (hook ? -0.5 : 0.18)));
+        set('elbow' + k, -2.1 + e * (hook ? 0.6 : 1.95), 0, 0);
+        set('spine', 0.14, sg * (-0.15 + e * 0.5), 0); set('chest', 0.04, sg * e * 0.4, 0);
+      }
+      // hands up (surrendering, being robbed)
+      if (s.handsUp) { set('shoulderL', -0.15, 0, 2.55); set('elbowL', -0.55, 0, 0); set('shoulderR', -0.15, 0, -2.55); set('elbowR', -0.55, 0, 0); set('wristL', 0, 0, 0); set('wristR', 0, 0, 0); }
+      // aiming: arms out along the line of sight (e: how far up), a two-handed grip
+      if (s.aim) {
+        const e = s.aim.e || 0, sg = s.aim.kind;
+        if (sg === 'shotgun') { set('shoulderR', -(Math.PI / 2 + e) + 0.75, 0, 0.3); set('elbowR', -1.55, 0, 0); set('wristR', 0.1, 0, 0); set('shoulderL', -(Math.PI / 2 + e) + 0.08, 0, -0.42); set('elbowL', -0.4, 0, 0); set('chest', 0, -0.32, 0); set('spine', 0.04, -0.12, 0); set('head', 0, 0.38, 0); }
+        else if (sg === 'melee') { set('shoulderR', -1.25 - e, 0, 0.1); set('elbowR', -0.5, 0, 0); set('wristR', 0.5, 0, 0); set('shoulderL', -0.5, 0, -0.2); set('elbowL', -0.8, 0, 0); }
+        else { const r = s.aim.recoil || 0; set('shoulderR', -(Math.PI / 2 + e) - r * 0.25, 0, 0.02); set('elbowR', -0.05 - r * 0.2, 0, 0); set('wristR', -r * 0.3, 0, 0); set('shoulderL', -(Math.PI / 2 + e) + 0.12, 0, -0.38); set('elbowL', -0.45, 0, 0); set('wristL', 0, 0, 0.4); set('chest', 0, 0.06, 0); }
+      }
+      // a stamp (finishing someone off with your feet)
+      if (s.stomp != null) { const a = s.stomp, up = a < 0.55 ? a / 0.55 : Math.max(0, 1 - (a - 0.55) / 0.15); set('hipR', -1.05 * up, 0, 0); set('kneeR', 1.6 * up, 0, 0); set('ankleR', -0.2 * up + 0.3, 0, 0); set('spine', 0.1 + up * 0.15, 0, 0); set('shoulderL', -0.4, 0, 0.3); set('shoulderR', -0.4, 0, -0.3); }
+      // a downward stab (kneeling over someone)
+      if (s.stab != null) { const a = s.stab, up = a < 0.5 ? a / 0.5 : Math.max(0, 1 - (a - 0.5) / 0.2); hipsY = 0.62; set('hipL', -1.5, 0, 0); set('kneeL', 1.45, 0, 0); set('hipR', -0.2, 0, 0); set('kneeR', 1.9, 0, 0); set('ankleL', 0.1, 0, 0); set('ankleR', 0.8, 0, 0); set('spine', 0.55, 0, 0); set('chest', 0.25, 0, 0); set('shoulderR', -0.6 - up * 2.2, 0, 0.1); set('elbowR', -0.2 - up * 0.6, 0, 0); set('shoulderL', -0.6, 0, -0.2); set('elbowL', -0.5, 0, 0); }
+      // holding someone: an arm round them; the other hand over their mouth (or on their shoulder)
+      if (s.hold) { set('shoulderL', -1.15, 0, -0.62); set('elbowL', -1.55, 0, 0); set('wristL', 0, 0, -0.4); if (s.hold === 'mouth') { set('shoulderR', -1.85, 0, 0.72); set('elbowR', -1.95, 0, 0); set('wristR', 0, 0, 0.3); } else { set('shoulderR', -0.95, 0, 0.42); set('elbowR', -0.9, 0, 0); } }
+      // being held: struggling
+      if (s.struggle) { const t = this.t; set('shoulderL', -0.7 + Math.sin(t * 8.1) * 0.6, 0, -0.35 + Math.sin(t * 5) * 0.3); set('elbowL', -1.3 + Math.sin(t * 9.3) * 0.5, 0, 0); set('shoulderR', -0.7 + Math.sin(t * 7.3 + 1) * 0.6, 0, 0.35 + Math.sin(t * 6) * 0.3); set('elbowR', -1.3 + Math.sin(t * 8.7 + 2) * 0.5, 0, 0); set('head', Math.sin(t * 6) * 0.15, Math.sin(t * 4.3) * 0.5, 0); set('spine', -0.12, Math.sin(t * 3.7) * 0.25, 0); }
     }
 
     // ease every joint toward its target

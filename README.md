@@ -64,6 +64,26 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - **Cars float.** Drive off the sea wall and the car bobs on the water; you can still (slowly) motor about and steer like a boat. The bridge over the inlet is solid to drive and walk on.
 - **Parked cars** line the kerbs and fill the car parks: press `F` by one to get in.
 
+### Crime and the police
+- **Wanted stars (five).** Witnessed crimes earn stars: hitting someone or firing a gun (one), killing someone, robbing a shop or kidnapping (two), attacking a cop (three), killing one (four), and doing it again while they're after you adds more. A cop or a passer-by has to see it (a robbery always gets reported: the till has an alarm).
+- **The police come for you**: one black-and-white **police car** per star, lights flashing and siren wailing, finding its way to you along the roads. Near you, two cops jump out. At **one star** they try to arrest you; from **two** they shoot. In a car they chase and ram you; drive off and the cops get back in theirs.
+- **Lose them**: get out of sight. The stars blink while they're searching; stay hidden long enough (longer with more stars) and they give up.
+- **The chase theme** plays while you're wanted (*The Files Were Released*), fading in and out.
+- **Give up** with `Y`: hands up, and they come and cuff you.
+- **BUSTED / WASTED**: slow motion, the world goes grey, the words come up. Busted, you're released at the Police Station with a fine (they keep your guns). Wasted, you wake up at the Hospital with a bill.
+
+### Fighting
+- **Fists**: click to punch (jab, jab, hook: the third can knock them down). Hold right mouse for a guard. Brave people put their fists up and fight back; the rest run.
+- **Guns**: a **pistol** and a **pump shotgun**, from the Pawn Shop (ammo too), or picked up where a cop fell. Hold right mouse to aim over the shoulder, click to fire, `R` to reload. Head shots count triple. Bullets hit people, cars (they smoke, burn and blow up) and loose things.
+- Switch weapons with `1`–`6` or the mouse wheel: fists, the kiddie knife, the butter knife, the hatchet, the pistol, the shotgun (the ones you've got).
+- **Robberies**: aim at a shopkeeper with anything from a **butter knife** up (not your fists, not the plastic knife) and they empty the till while you keep it on them. Aim at anyone else and they put their hands up and drop their wallet.
+- **Kidnapping**: `G` grabs someone in front of you: a **sack** over their head if you've bought one (shops sell them), a hand over their mouth if not. They struggle along with you; `F` by a car bundles them into the passenger seat, where they stay. `G` lets them go.
+- **Finishing people off**: someone badly hurt lies on the ground moaning for help. `Q` near them: a stamp, a stab, or a shot.
+
+### Crashes and explosions
+- **Crashes** dent the body where you hit, throw sparks, and knock the car's health down. A badly damaged car smokes; one that's had enough (or is left upside down) catches fire and **explodes**, throwing the wreck into the air and knocking down (or killing) anyone near. The burnt-out wreck smoulders.
+- Hit something hard enough head-on and you go **through the windscreen**.
+
 ## Controls
 
 | | |
@@ -72,12 +92,16 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 | `Shift` | run |
 | `Space` | jump; vault something low; climb out of the water (in a car: handbrake) |
 | Hold `E` | talk to someone (the interaction wheel); at the rack: take / put back a weapon |
-| `Click` | pick up / drop; with a weapon: swing |
-| `Right-click` | throw what you're carrying |
-| `X` | put the weapon away (or drop what you're carrying) |
-| `F` | get in / out of a car |
+| `Click` | punch / swing / shoot (pick up / drop a thing) |
+| Hold right mouse | aim (with a thing: throw it) |
+| `1`–`6`, mouse wheel | switch weapon |
+| `R` | reload (in a car: flip it back over) |
+| `X` | fists (or drop what you're carrying) |
+| `G` | grab someone / let them go (from a car: let your captive out) |
+| `Q` | finish off someone who's down |
+| `Y` | give yourself up |
+| `F` | get in / out of a car (at any speed) |
 | `C` | inside view / chase camera |
-| `R` | flip the car back over |
 | `H` | hide the controls |
 | Mouse | look |
 
@@ -110,7 +134,11 @@ src/
   buildings.js  building facades: windows, shopfronts, awnings, signs, balconies, cornices, rooftops
   apartment.js  your building at Fairview Heights: the lobby, the stair, your apartment, its things
   props.js      loose things: picking up, carrying, dropping, throwing
-  weapons.js    the hatchet, the butter knife, the plastic kiddie knife, the rack, swinging
+  weapons.js    fists, the hatchet, the butter knife, the plastic kiddie knife, the pistol, the shotgun: aiming, punching, swinging, shooting
+  police.js     wanted stars, crimes and witnesses, cop cars (A* along the roads), cops on foot, losing them, BUSTED
+  fx.js         fire, smoke, sparks, muzzle flashes, tracers, explosions, debris
+  sfx.js        the chase theme, and synthesized gunshots, punches, crashes, explosions, fire and sirens
+  pickups.js    cash and guns on the ground
   ragdoll.js    ragdolls: physics bodies and joints that pose the skeleton
   blood.js      droplets, splats and pools
   character.js  people: the skeleton, the block body, hair, eyes and brows with expressions, the procedural animation

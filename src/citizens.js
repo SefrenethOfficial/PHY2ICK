@@ -45,12 +45,12 @@ export class Citizens {
     return m.sidewalkPoint(hubs[Math.floor(Math.random() * hubs.length)], 70);
   }
 
-  spawn(name) {
+  spawn(name, opts = {}) {
     const g = this.g, { world, R } = g;
-    const p = this.randomPoint();
+    const p = opts.at ? opts.at.clone() : this.randomPoint();
     const body = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(p.x, CENTRE + 0.1, p.z));
     const col = world.createCollider(R.ColliderDesc.capsule(HALF, RAD).setSolverGroups(groups(G_PED, G_WORLD | G_PED)).setCollisionGroups(groups(G_PED, 0xffff)), body);
-    const human = new Human(randomLook());
+    const human = new Human(opts.look || randomLook());
     g.scene.add(human.root);
     const npc = {
       name, human, body, col,
@@ -62,15 +62,18 @@ export class Citizens {
       mem: { met: false, talks: 0, gifts: 0, insults: 0, compliments: 0, hitBy: 0 },
       following: false, bubbleT: 0, blockedT: 0, gossip: [...GOSSIP].sort(() => Math.random() - 0.5),
     };
+    human.owner = npc;
     npc.target = this.randomPoint(p); npc.laneOff = RW / 2 + SW * (0.32 + Math.random() * 0.36); npc.eventT = 3 + Math.random() * 18;
     this.list.push(npc);
+    if (opts.cop) { npc.cop = true; npc.state = 'cop'; npc.copMode = 'chase'; npc.hp = 120; npc.brave = 1; npc.mood = 0; return npc; }
     this.setLane(npc, p);
+    return npc;
   }
 
   // someone who works somewhere: stands at their post, says their own lines
   addWorker(w) {
-    this.spawn(NAMES[Math.floor(Math.random() * NAMES.length)]);
-    const n = this.list[this.list.length - 1];
+    const n = this.spawn(NAMES[Math.floor(Math.random() * NAMES.length)]);
+    n.shop = w.shop; n.shopKind = w.kind; n.products = w.products;
     n.body.setTranslation({ x: w.pos.x, y: w.pos.y + CENTRE + 0.05, z: w.pos.z }, true);
     n.state = 'post'; n.home = w.pos.clone(); n.homeYaw = w.yaw; n.yaw = w.yaw; n.lines = w.lines; n.role = w.role; n.mood = 30; n.target = null;
   }
@@ -151,15 +154,25 @@ export class Citizens {
     this.stepN = (this.stepN || 0) + 1;
     for (let i = 0; i < this.list.length; i++) {
       const n = this.list[i];
-      if (n.state === 'seated') continue;
+      if (n.state === 'seated' || n.hostage) continue;
       // far from you, people think (and move) a quarter as often: the same walk, a quarter of the work
       let h = h0;
-      { const t = n.body.translation(), far = Math.hypot(pp.x - t.x, pp.z - t.z) > 55 && n.state !== 'follow';
+      { const t = n.body.translation(), far = Math.hypot(pp.x - t.x, pp.z - t.z) > 55 && n.state !== 'follow' && !n.cop;
         n.acc = (n.acc || 0) + h0;
         if (far && ((this.stepN + i) & 3) !== 0) continue;
         h = n.acc; n.acc = 0; }
-      if (n.state === 'dead') { n.deadT += h; if (n.deadT > 90) { this.remove(n); continue; } /* (the body stays a while; then someone new turns up) */ if (!n.pooled && n.deadT > 1.2 && n.human.ragdoll.speed < 0.3) { n.pooled = true; g.blood.pool(n.human.ragdoll.pelvis, 1.3 + Math.random() * 0.6); } continue; }
-      if (n.human.ragdoll) { n.stateT -= h; if (n.stateT <= 0 && n.human.ragdoll.speed < 0.6) this.getUp(n); continue; }
+      if (n.state === 'dead') { n.deadT += h; if (n.deadT > 90) { this.remove(n); continue; } if (!n.human.ragdoll) continue; /* (the body stays a while; then someone new turns up) */ if (!n.pooled && n.deadT > 1.2 && n.human.ragdoll.speed < 0.3) { n.pooled = true; g.blood.pool(n.human.ragdoll.pelvis, 1.3 + Math.random() * 0.6); } continue; }
+      if (n.human.ragdoll) {
+        n.stateT -= h;
+        if (n.downed) { n.moanT = (n.moanT ?? 2) - h; if (n.moanT <= 0) { n.moanT = 5 + Math.random() * 6; if (n.human.ragdoll.pelvis.distanceTo(pl.pos) < 25) this.say(n, pick(['Ugh… help…', 'Somebody… call an ambulance…', 'Please… no more…', 'Ow…']), 2.5); } }
+        if (n.stateT <= 0 && n.human.ragdoll.speed < 0.6) { n.downed = false; this.getUp(n); }
+        continue;
+      }
+      if (n.punchT != null) { // a punch thrown at you lands halfway through
+        n.punchT += h;
+        if (n.punchHit && n.punchT > 0.17) { n.punchHit = false; const q = this.pos(n); if (!pl.car && !pl.ragdoll && pl.pos.distanceTo(q) < 1.7) { g.sfx.punch(pl.pos); pl.hurt(4 + Math.random() * 4, V(pl.pos.x - q.x, 0, pl.pos.z - q.z).normalize(), 'punch', (n.hits % 4) === 0); } }
+        if (n.punchT > 0.45) n.punchT = null;
+      }
       const p = this.pos(n);
       n.stateT -= h;
       let goal = null, spd = 0;
@@ -251,19 +264,25 @@ export class Citizens {
           if (n.stateT <= 0) this.wander(n);
           break;
         }
-        case 'angry':
-          goal = pp; spd = 4.4;
-          if (dP < 1.25 && !pl.car) { // a shove
-            pl.knockDown(V(pp.x - p.x, 0, pp.z - p.z), 4);
-            this.say(n, pick(["That's for running your mouth.", 'Next time, keep walking.', "Not so funny now, is it?"]), 3.5);
-            n.mood = Math.min(n.mood + 30, -10);
-            n.state = 'idle'; n.stateT = 3;
+        case 'angry': // fists up, and at you
+          goal = pp; spd = dP > 3 ? 4.4 : 2.2;
+          n.punchCool = (n.punchCool ?? 0.3) - h;
+          if (dP < 1.3) goal = null;
+          if (dP < 1.45 && !pl.car && !pl.ragdoll && !pl.dead && n.punchCool <= 0) {
+            n.punchCool = 0.75 + Math.random() * 0.5; n.punchT = 0; n.punchHit = true; n.punchSide = !n.punchSide; n.hits = (n.hits || 0) + 1;
+            if (n.hits >= 5 && Math.random() < 0.4) { this.say(n, pick(["That's for running your mouth.", 'Next time, keep walking.', "Not so funny now, is it?"]), 3.5); n.mood = Math.min(n.mood + 30, -10); n.hits = 0; n.state = 'idle'; n.stateT = 3; }
           }
-          if (n.stateT <= 0 || pl.car) this.wander(n);
+          if (n.stateT <= 0 || pl.car || pl.dead) this.wander(n);
           break;
+        case 'handsUp': // someone's pointing something at them
+          goal = null; spd = 0;
+          if (n.stateT <= 0) { n.state = 'flee'; n.stateT = 9; n.robT = 0; this.say(n, pick(['Psycho!', 'Help! Police!', 'Somebody help!']), 2.5); }
+          break;
+        case 'cop': { const r = g.police.copThink(n, p, h); goal = r.goal; spd = r.spd; n.faceAt = r.face || null; break; }
         case 'down': this.wander(n); break;
       }
-      if (n.state === 'sit') { n.speed = 0; n.vel.set(0, 0, 0); this.move(n, p, V(), h); continue; }
+      if (n.state === 'sit' || n.state === 'seated') { n.speed = 0; n.vel.set(0, 0, 0); if (n.state === 'sit') this.move(n, p, V(), h); continue; }
+      if (n.flinchT > 0) { n.flinchT -= h; goal = p.clone().addScaledVector(n.flinchDir, 2); spd = 2.5; }
       // dodge a car coming at you
       for (const car of g.cars) {
         if (Math.abs(car.speed) < 6) continue;
@@ -348,7 +367,7 @@ export class Citizens {
       } else n.animAcc = (n.animAcc || 0) + dt0;
       const dt = n.animAcc; n.animAcc = 0;
       H.setMood(n.state === 'angry' ? 'angry' : n.state === 'flee' ? 'scared' : n.mood < -40 ? 'annoyed' : n.mood < -15 ? 'sad' : n.mood > 45 ? 'happy' : 'neutral');
-      if (n.state === 'seated') { H.update(dt, { pose: 'passenger' }); continue; }
+      if (n.state === 'seated') { if (n.kidnapped && Math.random() < dt * 0.15) this.say(n, n.hostageBag ? pick(['Mmmph!', 'MMMPH!', '…mmf…']) : pick(['Let me out!', 'Where are you taking me?!', 'Please! I won\'t tell anyone!']), 2); H.update(dt, { pose: 'passenger', struggle: n.kidnapped }); continue; }
       if (H.ragdoll) { H.update(dt, {}); continue; }
       const p = this.pos(n);
       H.root.position.copy(p);
@@ -358,6 +377,9 @@ export class Citizens {
       if (n.state === 'sit') face = n.yaw;
       if (n.state === 'post' && n.speed < 0.3 && !(g.wheel.open && g.wheel.target === n)) face = n.homeYaw;
       if (n.state === 'crossLook') face = n.crossYaw;
+      if (n.state === 'handsUp') face = Math.atan2(pl.pos.x - p.x, pl.pos.z - p.z);
+      if (n.cop && n.faceAt) face = Math.atan2(n.faceAt.x - p.x, n.faceAt.z - p.z);
+      if (n.hostage) face = n.yaw;
       if (n.state === 'shop' && n.waitT > 0 && n.faceYaw != null) face = n.faceYaw;
       if (face !== null) { let d = face - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 8); }
       H.root.rotation.y = n.yaw;
@@ -368,10 +390,16 @@ export class Citizens {
       if (dP < 6 && !pl.car) { const a = Math.atan2(pl.pos.x - p.x, pl.pos.z - p.z) - n.yaw; ly = THREE.MathUtils.clamp(Math.atan2(Math.sin(a), Math.cos(a)), -1, 1); }
       if (n.state === 'crossLook') { const lt = n.lookT || 0; ly = lt < 0.2 ? 0 : lt < 0.9 ? 1.05 : lt < 1.6 ? -1.05 : lt < 2.1 ? 0.9 : 0; } // (left, right, left)
       H.lookYaw += (ly - H.lookYaw) * Math.min(1, dt * 5);
+      if (n.hostage && Math.random() < dt * 0.4) this.say(n, n.hostage.bag ? pick(['Mmmph!', 'MMMPH!', 'Mmf mmf!']) : pick(['Mmmph!', 'Mmmmh!']), 1.4);
+      let aim = null;
+      if (n.cop && n.aimAt) { const hd = p.clone().add(V(0, 1.45, 0)), dd = n.aimAt.clone().sub(hd); aim = { e: Math.atan2(dd.y, Math.hypot(dd.x, dd.z)), kind: 'pistol', recoil: Math.max(0, (n.shootT ?? 1) > 0.4 ? 0 : 0) }; }
       H.update(dt, {
         speed: n.speed, grounded: true, vy: 0,
         pose: n.state === 'sit' ? 'passenger' : 'stand',
         talking: n.bubbleT > 0 && n.speed < 0.3, point: n.pointT > 0, wave: n.waveT > 0,
+        handsUp: n.state === 'handsUp' || n.robbing, guard: n.state === 'angry' && dP < 5 && n.punchT == null,
+        punch: n.punchT != null ? { a: Math.min(1, n.punchT / 0.45), side: n.punchSide ? 'R' : 'L' } : null,
+        aim, weapon: n.cop && !aim, struggle: !!n.hostage,
       });
       n.pointT = Math.max(0, (n.pointT || 0) - dt); n.waveT = Math.max(0, (n.waveT || 0) - dt);
     }
@@ -381,6 +409,15 @@ export class Citizens {
 
   // ---- the interaction wheel's actions
   options(n) {
+    const g = this.g;
+    if (n.home && n.shop === 'Pawn Shop') return [
+      { id: 'talk', label: 'Talk' }, { id: 'buy:pistol', label: 'Pistol $250' }, { id: 'buy:shotgun', label: 'Shotgun $600' },
+      { id: 'buy:ammo', label: 'Ammo $40' }, { id: 'buy:sack', label: 'Sack $5' }, { id: 'insult', label: 'Insult' },
+    ];
+    if (n.home && n.role === 'clerk') return [
+      { id: 'talk', label: 'Talk' }, { id: 'buy:snack', label: 'Snack $3' }, { id: 'buy:sack', label: 'Sack $5' },
+      { id: 'directions', label: 'Directions' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' },
+    ];
     return [
       { id: 'talk', label: 'Talk' },
       { id: 'follow', label: n.following ? 'Stop following' : 'Follow me' },
@@ -397,6 +434,7 @@ export class Citizens {
     const stay = () => { if (!n.following && n.state !== 'sit') { n.state = 'talk'; n.stateT = 5; } };
     pl.talkT = 1.4;
     const hostile = n.mood < -30, warm = n.mood >= 40;
+    if (id.startsWith('buy:')) { this.buy(n, id.slice(4)); return; }
     switch (id) {
       case 'talk': {
         let line;
@@ -448,11 +486,24 @@ export class Citizens {
     n.mood = THREE.MathUtils.clamp(n.mood, -100, 100);
   }
 
+  // buying things from a shopkeeper
+  buy(n, what) {
+    const g = this.g, W = g.weapons, price = { pistol: 250, shotgun: 600, ammo: 40, sack: 5, snack: 3 }[what];
+    if (g.money < price) { this.say(n, pick(["You can't afford it.", 'Come back with money.', 'Cash first.']), 2.5); return; }
+    if (what === 'ammo' && !W.inv.has('pistol') && !W.inv.has('shotgun')) { this.say(n, 'Ammo for what? You don\'t have a gun.', 2.5); return; }
+    g.money -= price; g.sfx?.cash(this.pos(n));
+    if (what === 'pistol' || what === 'shotgun') { const fresh = !W.inv.has(what); W.give(what, what === 'pistol' ? 36 : 18); this.say(n, pick(["Pleasure doing business.", "I didn't sell you that.", 'Serial number? What serial number?']), 3); g.hud.toast(`${fresh ? 'Bought' : 'More rounds for'} the ${what === 'pistol' ? 'Pistol' : 'Pump Shotgun'} · 1–6 or the mouse wheel to switch · right mouse to aim`, '#ffd23f'); }
+    else if (what === 'ammo') { if (W.inv.has('pistol')) W.ammo.pistol += 24; if (W.inv.has('shotgun')) W.ammo.shotgun += 12; this.say(n, 'Try not to use it all at once.', 2.5); g.hud.toast('Bought ammo', '#ffd23f'); }
+    else if (what === 'sack') { g.player.sacks = (g.player.sacks || 0) + 1; this.say(n, pick(['A sack. Sure. For… potatoes.', "I don't want to know.", 'Here you go.']), 2.8); g.hud.toast(`Bought a sack (you have ${g.player.sacks}) · G behind someone to put it over their head`, '#ffd23f'); }
+    else { g.player.hp = Math.min(100, g.player.hp + 15); this.say(n, pick(['Enjoy.', 'Good choice.', 'Bag? No? Okay.']), 2); g.hud.toast('A snack: +15 health', '#7be08a'); }
+  }
+
   // ---- getting hurt
   knock(n, vel, spin = 4) {
     if (n.bench) { n.bench.taken = null; n.bench = null; }
     if (n.human.ragdoll) { n.human.ragdoll.push(vel); return; }
     n.col.setEnabled(false);
+    if (n.state !== 'seated') { n.human.root.position.copy(this.pos(n)); n.human.root.rotation.y = n.yaw; } n.human.root.visible = true; n.human.root.updateMatrixWorld(true); // (it may not have been drawn lately: put it where they are)
     n.human.ragdoll = new Ragdoll(this.g, n.human, vel, spin);
     n.state = 'down'; n.stateT = 2.4 + Math.random(); n.following = false;
   }
@@ -463,9 +514,10 @@ export class Citizens {
     const v = dir.clone().setY(0).normalize().multiplyScalar(Math.min(force, 18) * 0.85); v.y = Math.min(6, 1.2 + force * 0.3);
     this.knock(n, v, 3 + force * 0.4);
     n.hp -= force * 6.5;
+    if (this.g.player.car && force > 2.5) this.crimeAt(n, n.hp <= 0);
     if (force > 6) this.g.blood.spray(n.human.ragdoll.pelvis.add(new THREE.Vector3(0, 0.35, 0)), v.clone().normalize(), Math.min(60, force * 3), 3.5);
     if (n.hp <= 0) this.die(n);
-    else this.after(n, force > 10);
+    else { this.after(n, force > 10); if (n.hp < 35) this.downed(n); }
   }
 
   // hit with a weapon
@@ -477,11 +529,12 @@ export class Citizens {
       if (!n.human.ragdoll) { n.mood -= 8; n.human.express('surprised', 2.5); n.state = 'talk'; n.stateT = 3; this.say(n, pick(['…Was that a plastic knife?', 'Did you just… poke me?', "Ha! Is that from a kids' meal?", 'Okay. Weird. Bye.']), 3); }
       return;
     }
-    n.hp -= W.dmg; n.mood -= 80; n.mem.hitBy++;
+    n.hp -= W.dmg; n.mood -= 80; n.mem.hitBy++; this.crimeAt(n, n.hp <= 0);
+    if (n.human.ragdoll) { if (n.hp <= 0) this.die(n); else n.human.ragdoll.push(dir.clone().multiplyScalar(W.force * 0.5)); g.blood.spray(chest, dir.clone().setY(0.3).normalize(), W.bleed, 2.5); return; }
     g.blood.spray(chest, dir.clone().setY(0.3).normalize(), W.bleed, 2.5);
     this.panic(this.pos(n), n);
     if (n.hp <= 0) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1), 3); this.die(n); return; }
-    if (W.dmg >= 40) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1.5), 3); this.after(n, true); }
+    if (W.dmg >= 40 || n.hp < 35) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1.5), 3); if (n.hp < 40) this.downed(n); this.after(n, true); }
     else if (!n.human.ragdoll) { // a stab that doesn't drop them
       n.state = n.brave > 0.75 ? 'angry' : 'flee'; n.stateT = n.state === 'angry' ? 7 : 9; n.following = false;
       this.say(n, n.state === 'angry' ? pick(['You STABBED me?!', 'Oh, you are going to regret that.']) : pick(['Aaah! Help!', 'He stabbed me! Somebody help!', 'Get away from me!']), 3);
@@ -490,16 +543,71 @@ export class Citizens {
 
   after(n, bad) { n.afterBad = bad; }
 
+  downed(n) { n.downed = true; n.stateT = 22 + Math.random() * 12; n.moanT = 1.5; this.say(n, pick(['Ugh…', 'Help… me…', 'I can\'t… get up…']), 2.5); }
+
+  crimeAt(n, killed) { this.g.police?.crime(n.cop ? (killed ? 'copMurder' : 'copAssault') : (killed ? 'murder' : 'assault'), this.pos(n), n.cop); }
+
+  // a punch from you
+  punched(n, dmg, dir, heavy) {
+    const g = this.g;
+    if (n.state === 'dead' || n.state === 'seated') return;
+    n.mem.hitBy++; n.mood -= 30; n.hp -= dmg;
+    if (n.human.ragdoll) { n.human.ragdoll.push(dir.clone().multiplyScalar(1.6).setY(0.6)); if (n.hp <= 0) { this.die(n); this.crimeAt(n, true); } return; }
+    n.human.express('hurt', 1.2);
+    this.crimeAt(n, n.hp <= 0);
+    if (n.hp <= 0) { this.knock(n, dir.clone().multiplyScalar(3).setY(1.2), 3); this.die(n); return; }
+    if (heavy || n.hp < 35) { this.knock(n, dir.clone().multiplyScalar(heavy ? 3.4 : 2.2).setY(1.5), 3.5); if (n.hp < 35) this.downed(n); else n.stateT = 2.2; this.after(n, false); return; }
+    n.flinchT = 0.22; n.flinchDir = dir.clone();
+    if (n.cop) return;
+    if (n.state === 'handsUp' || n.hostage) return;
+    if (n.brave > 0.45 && n.state !== 'angry') { n.state = 'angry'; n.stateT = 14; n.following = false; this.say(n, pick(['Oh, you want to fight?', 'Big mistake.', 'Come on then!', 'You hit like my nan.']), 2.5); }
+    else if (n.brave <= 0.45 && n.state !== 'flee') { n.state = 'flee'; n.stateT = 9; n.following = false; this.say(n, pick(['Ow! Stop!', 'Help!', 'Leave me alone!']), 2.5); }
+    else if (n.state === 'angry') n.stateT = Math.max(n.stateT, 8);
+  }
+
+  // a bullet
+  shot(n, dmg, dir, at, head) {
+    const g = this.g;
+    if (n.state === 'dead') return;
+    if (n.state === 'seated' && n.car) { // (in a car: they tumble out)
+      const car = n.car; car.unseat(n.human); g.scene.add(n.human.root); const o = car.doorPoint(n.seat, 0.6);
+      n.body.setTranslation({ x: o.x, y: o.y + 1, z: o.z }, true); n.state = 'cop'; n.human.root.position.set(o.x, o.y, o.z); n.human.root.updateMatrixWorld(true);
+    } else if (n.state === 'seated') return;
+    if (n.hostage) g.player.releaseHostage(false);
+    n.hp -= dmg; n.mood = -100; n.mem.hitBy++;
+    g.blood.spray(at, dir.clone().setY(0.2).normalize(), head ? 34 : 16, 2.6);
+    const killed = n.hp <= 0;
+    this.crimeAt(n, killed);
+    const v = dir.clone().multiplyScalar(head ? 2.2 : 3).setY(0.6);
+    if (killed) { this.knock(n, v, 4); this.die(n); return; }
+    if (n.human.ragdoll) { n.human.ragdoll.push(v.multiplyScalar(0.4)); return; }
+    if (n.hp < 45 || dmg > 30) { this.knock(n, v, 3); if (n.hp < 45 && !n.cop) this.downed(n); else n.stateT = 2.2; this.after(n, true); }
+    if (!n.cop) this.panic(at, n);
+  }
+
+  // something pointed at them: hands up (and a wallet, after a moment)
+  threaten(n, dt) {
+    const g = this.g;
+    if (n.cop || ['dead', 'seated'].includes(n.state) || n.human.ragdoll || n.hostage) return;
+    if (n.state !== 'handsUp') { n.state = 'handsUp'; n.robT = 0; n.following = false; if (n.bench) { n.bench.taken = null; n.bench = null; } n.human.express('scared', 6); this.say(n, pick(['Whoa whoa whoa!', "Okay! Okay! Don't hurt me!", 'Please, I have kids!', 'Take it, take it!']), 2.5); g.police?.crime('threat', this.pos(n)); }
+    n.stateT = Math.max(n.stateT, 1.8); n.robT += dt;
+    if (n.robT > 2.0 && !n.mugged && !n.home) { n.mugged = true; const p = this.pos(n), amt = 10 + Math.floor(Math.random() * 70); g.pickups.cash(p.clone().add(V(Math.sin(n.yaw) * 0.7, 0, Math.cos(n.yaw) * 0.7)), amt); this.say(n, pick(["Here! It's all I've got!", 'Take it! Just go!', "That's everything, I swear!"]), 2.5); }
+  }
+
   // everyone near something violent runs
-  panic(at, except) {
+  panic(at, except, R = 28) {
     for (const o of this.list) {
       if (o === except || ['dead', 'seated'].includes(o.state) || o.human.ragdoll) continue;
       const d = this.pos(o).distanceTo(at);
-      if (d < 28) { o.state = 'flee'; o.stateT = 8 + Math.random() * 6; o.following = false; if (o.bench) { o.bench.taken = null; o.bench = null; } if (d < 12 && Math.random() < 0.5) this.say(o, pick(['Oh my god!', 'Run!', 'Somebody call the police!', 'No no no no']), 2.5); }
+      if (o.cop || o.hostage || o.state === 'handsUp' || o.home && o.state === 'post' && d > 12) continue;
+      if (d < R) { o.state = 'flee'; o.stateT = 8 + Math.random() * 6; o.following = false; if (o.bench) { o.bench.taken = null; o.bench = null; } if (d < 12 && Math.random() < 0.5) this.say(o, pick(['Oh my god!', 'Run!', 'Somebody call the police!', 'No no no no']), 2.5); }
     }
   }
 
   die(n) {
+    if (n.cop && !n.dropped) { n.dropped = true; const q = n.human.ragdoll ? n.human.ragdoll.pelvis : this.pos(n); this.g.pickups?.gun('pistol', q.clone().setY(q.y - 0.5), 12); }
+    if (n.hostage) this.g.player.releaseHostage(false);
+    n.downed = false;
     n.human.dead = true; n.state = 'dead'; n.deadT = 0; n.pooled = false; n.following = false; n.bubbleT = 0;
     this.panic(n.human.ragdoll ? n.human.ragdoll.pelvis : this.pos(n), n);
   }
@@ -520,6 +628,7 @@ export class Citizens {
     n.human.root.removeFromParent();
     g.world.removeRigidBody(n.body);
     this.list.splice(this.list.indexOf(n), 1);
-    this.spawn(NAMES[Math.floor(Math.random() * NAMES.length)]);
+    this.g.hud.bubbles.get(n)?.remove(); this.g.hud.bubbles.delete(n);
+    if (!n.cop) this.spawn(NAMES[Math.floor(Math.random() * NAMES.length)]);
   }
 }

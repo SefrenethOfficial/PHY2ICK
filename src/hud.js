@@ -10,7 +10,19 @@ export class Hud {
     this.bubbles = new Map();
     this.mini = document.getElementById('minimap'); this.miniX = this.mini.getContext('2d');
     this.fpsT = 0; this.frames = 0;
+    this.starsEl = $('stars'); this.weaponEl = $('weapon'); this.reticleEl = $('reticle'); this.robEl = $('robbar'); this.hurtEl = $('hurt'); this.endEl = $('endtext');
+    this.starsEl.innerHTML = '<i>★</i>'.repeat(5); this.lastStars = -1;
   }
+
+  hurt() { this.hurtEl.classList.add('on'); clearTimeout(this.hurtTO); this.hurtTO = setTimeout(() => this.hurtEl.classList.remove('on'), 120); }
+  endText(kind) {
+    const el = this.endEl;
+    if (!kind) { el.className = ''; el.textContent = ''; document.getElementById('app').classList.remove('grey'); return; }
+    el.textContent = kind === 'busted' ? 'BUSTED' : 'WASTED'; el.className = kind;
+    requestAnimationFrame(() => el.classList.add('on'));
+    document.getElementById('app').classList.add('grey');
+  }
+  rob(k) { if (k == null) { this.robEl.style.display = 'none'; return; } this.robEl.style.display = 'block'; this.robEl.querySelector('b').style.width = Math.round(k * 100) + '%'; }
 
   toast(text, color = '#fff') {
     const t = document.createElement('div'); t.className = 'toast'; t.textContent = text; t.style.setProperty('--c', color);
@@ -79,6 +91,15 @@ export class Hud {
     const g = this.g, cam = g.camera, W = innerWidth, H = innerHeight;
     this.moneyEl.textContent = '$' + g.money.toLocaleString();
     this.hpEl.style.width = g.player.hp + '%';
+    // wanted stars (blinking while they're looking for you)
+    const P = g.police, st = P ? P.stars : 0;
+    if (st !== this.lastStars) { this.lastStars = st; this.starsEl.style.display = st ? 'block' : 'none'; [...this.starsEl.children].forEach((e, i) => e.classList.toggle('on', i < st)); }
+    this.starsEl.classList.toggle('search', !!(st && P && !P.seen));
+    // the weapon in your hand (and rounds)
+    const Wp = g.weapons, wk = Wp.cur + (Wp.W.gun ? Wp.clip[Wp.cur] + '/' + Wp.ammo[Wp.cur] + (Wp.reloadT > 0 ? 'r' : '') : '') + (g.player.sacks || 0);
+    if (wk !== this.lastW) { this.lastW = wk; this.weaponEl.innerHTML = Wp.W.name + (Wp.W.gun ? `<small>${Wp.reloadT > 0 ? 'reloading…' : Wp.clip[Wp.cur] + ' / ' + Wp.ammo[Wp.cur]}</small>` : '') + (g.player.sacks ? `<small>sacks ${g.player.sacks}</small>` : ''); }
+    this.reticleEl.style.display = Wp.aiming && Wp.W.gun ? 'block' : 'none';
+    this.reticleEl.classList.toggle('red', !!g.aimedAt);
     // speech bubbles follow heads
     for (const [n, b] of this.bubbles) {
       if (n.bubbleT <= 0) { b.style.display = 'none'; continue; }

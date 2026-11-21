@@ -294,7 +294,7 @@ export function buildCity(g) {
     const raw = [toX(px0), toZ(py0), toX(px1), toZ(py1)];
     const r = ['triangle', 'sewer', 'hedge'].includes(kind) ? raw : clamp(raw);
     const [x0, z0, x1, z1] = r, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0;
-    const face = facing(r);
+    const face = facing(r), aw = (face === '+x' || face === '-x') ? d : w; // (aw: the length of the front face)
     const bld = (opts) => { city.building({ x: cx, z: cz, w: w - 1, d: d - 1, ...opts }); blockRect(x0, z0, x1, z1); };
     // a building with a real room inside, behind its front wall
     const withRoom = (opts, kind, iopts = {}, maxDepth = 14, floors = 1, maxWidth = 18) => {
@@ -352,7 +352,7 @@ export function buildCity(g) {
         // red crosses, an ambulance bay, a helipad on the roof
         const H = 4.2 + 3 * 3.3;
         for (const u of [-w / 3, w / 3]) { const p = onFace(r, face, u, H - 2.2, 0.62); const cr = signBoard('+', p.x, p.y, p.z, faceYaw[face], 2.4, { w: 128, h: 128, bg: '#ffffff', fg: '#d42a2a', font: 'bold 150px Arial' }); }
-        const bayP = onFace(r, face, -w / 4, 3.2, 3.5); const bay = new THREE.Mesh(new THREE.BoxGeometry(8, 0.25, 7), std(0xd8d6d0, 0.6)); bay.position.copy(bayP); bay.rotation.y = faceYaw[face]; add(bay);
+        const bayP = onFace(r, face, -aw / 4, 3.2, 3.5); const bay = new THREE.Mesh(new THREE.BoxGeometry(8, 0.25, 7), std(0xd8d6d0, 0.6)); bay.position.copy(bayP); bay.rotation.y = faceYaw[face]; add(bay);
         const pad = new THREE.Mesh(new THREE.CircleGeometry(7, 40), new THREE.MeshStandardMaterial({ map: textTex('H', { w: 256, h: 256, bg: '#33363a', fg: '#f2f0ea', font: 'bold 200px Arial' }), roughness: 0.8 }));
         pad.rotation.x = -Math.PI / 2; pad.position.set(cx, H + 0.08, cz); scene.add(pad);
         g.hospitalSpawn = front(r, face, 2.5); g.hospitalYaw = faceYaw[face];
@@ -411,7 +411,7 @@ export function buildCity(g) {
         withRoom({ floors: 2, style: 'stucco', wallIndex: 6, shopFaces: [face], sign: 'NIGHTCLUB', signColors: ['#120818', '#ff4fd8'] }, 'club', { windows: false, floor: 'dark', ceiling: 0x111114, wallColor: 0x1a1420, noPanels: true, tint: 0xff4fd8, power: 40 }, 16, 1, 22);
         const p = onFace(r, face, 0, 6.6, 0.4); signBoard('◆ NIGHTCLUB ◆', p.x, p.y, p.z, faceYaw[face], 14, { bg: '#0a0410', fg: '#ff4fd8', glow: 0xff4fd8 });
         // the queue rope
-        const door = onFace(r, face, -w / 4, 0, 2.2), along = (face === '+z' || face === '-z') ? V(1, 0, 0) : V(0, 0, 1);
+        const door = onFace(r, face, -aw / 4, 0, 2.2), along = (face === '+z' || face === '-z') ? V(1, 0, 0) : V(0, 0, 1);
         for (let i = 0; i < 6; i++) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 1, 10), std(0xd8b44a, 0.2, { metalness: 0.9 })); post.position.copy(door).addScaledVector(along, i * 1.6).setY(0.5); add(post); }
         const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 8, 6), std(0x9a1c3a, 0.8)); rope.rotation.z = Math.PI / 2; if (along.z) rope.rotation.set(Math.PI / 2, 0, 0); rope.position.copy(door).addScaledVector(along, 4).setY(0.85); scene.add(rope);
         placeAt('the Nightclub', front(r, face)); break;
@@ -450,9 +450,9 @@ export function buildCity(g) {
       case 'police': {
         withRoom({ floors: 3, style: 'concrete', wallIndex: 1, entrance: face, entranceSign: 'POLICE' }, 'lobby', { variant: 'police', floor: 'tiles', tint: 0xeef4ff }, 14, 1, 20);
         const p = onFace(r, face, 0, 9.0, 0.25); signBoard('HALYARD POLICE', p.x, p.y, p.z, faceYaw[face], 10, { bg: '#1c3a7a', fg: '#ffffff' });
-        const roofY = 4.2 + 2 * 3.3 + 0.6, fp = onFace(r, face, w / 2 - 4, 0, -3); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 6, 8), std(0xd8dade, 0.3, { metalness: 0.9 })); pole.position.copy(fp).setY(roofY + 3); add(pole); // (on the roof)
+        const roofY = 4.2 + 2 * 3.3 + 0.6, fp = onFace(r, face, aw / 2 - 4, 0, -3); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 6, 8), std(0xd8dade, 0.3, { metalness: 0.9 })); pole.position.copy(fp).setY(roofY + 3); add(pole); // (on the roof)
         const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.1), std(0x1c3a7a, 0.8, { side: THREE.DoubleSide })); flag.position.copy(fp).add(V(0.9, roofY + 5.2, 0)); scene.add(flag);
-        for (let k = 0; k < 3; k++) { const cp = onFace(r, face, -w / 2 + 4 + k * 3.2, 0, 7.5); parked.push([cp.x, cp.z, faceYaw[face], 0x1a1c20, 'police']); }
+        for (let k = 0; k < 3; k++) { const cp = onFace(r, face, -aw / 2 + 4 + k * 3.2, 0, 7.5); parked.push([cp.x, cp.z, faceYaw[face], 0x1a1c20, 'police']); }
         placeAt('the Police Station', front(r, face)); break;
       }
       case 'pool':

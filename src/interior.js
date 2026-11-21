@@ -137,7 +137,7 @@ export function buildInterior(g, room, kind, opts = {}) {
   const roomRec = { kind, name: opts.name, ring: [toW(-W / 2, 0, 0), toW(W / 2, 0, 0), toW(W / 2, 0, -D), toW(-W / 2, 0, -D)].map(p => [p.x, p.z]), y0: -1, y1: H + 0.2, lights: lightPts, tint: opts.tint ?? 0xffe6c4, power: opts.power ?? 18 };
   g.rooms.push(roomRec);
   const workers = []; // (shopkeepers: where they stand, and what they say)
-  const worker = (x, z, ryLocal, lines, role, y = 0.04) => workers.push({ pos: toW(x, y, z), yaw: yaw + ryLocal, lines, role });
+  const worker = (x, z, ryLocal, lines, role, y = 0.04) => workers.push({ pos: toW(x, y, z), yaw: yaw + ryLocal, lines, role, shop: opts.name, kind, products: opts.products });
 
   // ---- furniture, by kind
   // a row of products, painted, facing out (ry: 0 faces +z)

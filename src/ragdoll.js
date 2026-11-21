@@ -41,10 +41,10 @@ export class Ragdoll {
       else desc = R.ColliderDesc.capsule(P.size[0] * s, P.size[1] * s);
       desc.setTranslation(ox, oy, oz).setDensity(1000).setFriction(0.9).setRestitution(0.05)
         .setCollisionGroups(groups(G_RAG, G_WORLD | G_CAR | G_PROP)).setSolverGroups(groups(G_RAG, G_WORLD | G_CAR | G_PROP));
-      world.createCollider(desc, body);
+      const col = world.createCollider(desc, body);
       body.setLinvel({ x: vel.x, y: vel.y, z: vel.z }, true);
       body.setAngvel({ x: (Math.random() - 0.5) * spin, y: (Math.random() - 0.5) * spin, z: (Math.random() - 0.5) * spin }, true);
-      this.parts[P.bone] = { body, P };
+      this.parts[P.bone] = { body, P, col };
     }
     // joints at each child bone's origin
     this.joints = [];

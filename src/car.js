@@ -30,8 +30,9 @@ function extrudeSide(points, depth, mat, bevel = 0.06) {
 const arch = (c, r, yc, n = 10) => { const out = []; for (let i = 0; i <= n; i++) { const a = Math.PI - (i / n) * Math.PI; out.push([c + r * Math.cos(a), yc + r * Math.sin(a)]); } return out; };
 
 export class Car {
-  constructor(g, pos, yaw = 0, color = 0x9b1c1c, name = 'Sedan') {
-    this.g = g; this.name = name;
+  constructor(g, pos, yaw = 0, color = 0x9b1c1c, name = 'Sedan', opts = {}) {
+    this.g = g; this.name = name; this.police = !!opts.police;
+    this.hp = 1000; this.burning = false; this.wrecked = false; this.siren = false; this.ai = null; this.crew = []; this.flipT = 0; this.wreckFireT = 0; this.smokeT = 0;
     const { world, R } = g;
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
     this.body = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(pos.x, pos.y - GY + 0.05, pos.z).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w })
@@ -63,8 +64,9 @@ export class Car {
     this.driver = null; this.passenger = null;
     this.gear = 1; this.rpm = 900;
 
-    this.build(color);
+    this.build(this.police ? 0x16181c : color);
     g.scene.add(this.group);
+    this.lastV = V();
   }
 
   build(color) {
@@ -178,7 +180,62 @@ export class Car {
       bakeStatic(sp);
       return { g: w, spin: sp };
     });
-    bakeStatic(this.shell, new Set([this.wheelGrp])); // (the body's fixed parts: a handful of meshes, not dozens)
+    if (this.police) this.livery(RY);
+    bakeStatic(this.shell, new Set([this.wheelGrp, this.barR, this.barB].filter(Boolean))); // (the body's fixed parts: a handful of meshes, not dozens)
+    this.paintMeshes = []; this.shell.traverse((m) => { if (m.isMesh && m.material === this.paint) this.paintMeshes.push(m); });
+  }
+
+  // black and white, POLICE on the doors, a light bar on the roof, a push bar on the nose
+  livery(RY) {
+    const add = (m) => { this.shell.add(m); return m; };
+    const c = document.createElement('canvas'); c.width = 512; c.height = 128; const x = c.getContext('2d');
+    x.fillStyle = '#f4f4f2'; x.fillRect(0, 0, 512, 128); x.fillStyle = '#16305e'; x.fillRect(0, 96, 512, 14);
+    x.font = 'bold 74px Arial Black, Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#16305e'; x.fillText('POLICE', 256, 52);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    const white = new THREE.MeshStandardMaterial({ map: t, roughness: 0.35, metalness: 0.2 });
+    for (const sd of [-1, 1]) { const m = add(new THREE.Mesh(new THREE.PlaneGeometry(1.95, 0.42), white)); m.position.set(sd * 0.912, 0.64, -0.42); m.rotation.y = sd * Math.PI / 2; }
+    const roofW = add(new THREE.Mesh(new THREE.BoxGeometry(1.46, 0.012, 1.2), new THREE.MeshStandardMaterial({ color: 0xf4f4f2, roughness: 0.35 }))); roofW.position.set(0, RY + 0.045, -0.55);
+    const dark = new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.5 });
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.07, 0.26), dark)).position.set(0, RY + 0.085, -0.3);
+    this.redM = new THREE.MeshStandardMaterial({ color: 0x5a0808, emissive: 0xff1010, emissiveIntensity: 0.2, roughness: 0.2, transparent: true, opacity: 0.95 });
+    this.blueM = new THREE.MeshStandardMaterial({ color: 0x08105a, emissive: 0x1040ff, emissiveIntensity: 0.2, roughness: 0.2, transparent: true, opacity: 0.95 });
+    this.barR = add(new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.1, 0.24), this.redM)); this.barR.position.set(0.3, RY + 0.16, -0.3);
+    this.barB = add(new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.1, 0.24), this.blueM)); this.barB.position.set(-0.3, RY + 0.16, -0.3);
+    for (const sd of [-1, 1]) { const b = add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.06), dark)); b.position.set(sd * 0.42, 0.55, 2.48); }
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.06, 0.06), dark)).position.set(0, 0.72, 2.48);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.06, 0.06), dark)).position.set(0, 0.42, 2.48);
+  }
+
+  // ---- damage: crashes dent the body and knock the health down; low health smokes, then burns, then blows up
+  damage(amount, at = null, cause = null) {
+    if (this.wrecked) return;
+    this.hp -= amount;
+    if (this.hp <= 0 && !this.burning) { this.burning = true; this.burnT = 4 + Math.random() * 2; this.burnCause = cause; }
+  }
+  dent(localPoint, localDir, amount) {
+    const p = localPoint.clone().sub(V(0, GY, 0)); // (into shell space)
+    for (const m of this.paintMeshes) {
+      const a = m.geometry.attributes.position; if (!a) continue;
+      for (let i = 0; i < a.count; i++) {
+        const dx = a.getX(i) - p.x, dy = a.getY(i) - p.y, dz = a.getZ(i) - p.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (d > 0.75) continue;
+        const k = amount * (1 - d / 0.75) * (0.85 + 0.15 * Math.sin(a.getX(i) * 13 + a.getZ(i) * 7));
+        a.setXYZ(i, a.getX(i) + localDir.x * k, a.getY(i) + localDir.y * k * 0.5 - k * 0.15, a.getZ(i) + localDir.z * k);
+      }
+      a.needsUpdate = true;
+    }
+  }
+  explode() {
+    if (this.wrecked) return;
+    const g = this.g, at = this.pos.clone().add(V(0, 0.4, 0));
+    this.wrecked = true; this.burning = false; this.siren = false; this.wreckFireT = 9; this.hp = 0;
+    g.fx?.explosion(at); g.sfx?.explosion(at);
+    this.paint.color.set(0x1c1a18); this.paint.roughness = 0.95; this.paint.metalness = 0.1; this.paint.clearcoat = 0;
+    this.glassMat.opacity = 0.02; this.headM.emissiveIntensity = 0; this.tailM.emissiveIntensity = 0; this.revM.emissiveIntensity = 0;
+    if (this.redM) { this.redM.emissiveIntensity = 0; this.blueM.emissiveIntensity = 0; }
+    this.body.applyImpulse({ x: (Math.random() - 0.5) * 3000, y: 9000, z: (Math.random() - 0.5) * 3000 }, true);
+    this.body.applyTorqueImpulse({ x: (Math.random() - 0.5) * 6000, y: (Math.random() - 0.5) * 2000, z: (Math.random() - 0.5) * 6000 }, true);
+    g.blast?.(at, 9, this);
   }
 
   drawGauges(kmh, rpm) {
@@ -221,12 +278,15 @@ export class Car {
   }
 
   physics(h) {
+    if (this.inactive) return;
     const g = this.g, k = g.keys, vc = this.vc;
     const drive = this.driver && !g.wheel.open;
     const spd = this.speed;
     let throttle = 0, brake = 0, steerIn = 0;
     this.handbrake = false;
-    if (drive) {
+    if (this.wrecked || this.inactive) brake = 0.6;
+    else if (this.ai) { throttle = this.ai.throttle; brake = this.ai.brake; steerIn = this.ai.steer; this.handbrake = !!this.ai.handbrake; }
+    else if (drive) {
       const fwd = k.has('KeyW') || k.has('ArrowUp'), back = k.has('KeyS') || k.has('ArrowDown');
       if (fwd) { if (spd < -1) brake = 1; else throttle = 1; }
       if (back) { if (spd > 1) brake = 1; else throttle = -0.6; }
@@ -276,6 +336,7 @@ export class Car {
   }
 
   frame(dt) {
+    if (this.inactive) return;
     const t = this.body.translation(), r = this.body.rotation();
     this.group.position.set(t.x, t.y, t.z);
     this.group.quaternion.set(r.x, r.y, r.z, r.w);
@@ -295,12 +356,58 @@ export class Car {
     let gear = 1; for (let i = 1; i < bands.length; i++) if (kmh > bands[i]) gear = i + 1;
     this.gear = Math.min(gear, 6);
     const lo = bands[this.gear - 1], hi = bands[this.gear] ?? 260;
-    const want = this.driver ? 900 + ((kmh - lo) / (hi - lo)) * 5200 + Math.abs(this.throttle) * 900 + (this.gear === 1 ? kmh * 30 : 1200) : 0;
+    const want = (this.driver || this.ai) ? 900 + ((kmh - lo) / (hi - lo)) * 5200 + Math.abs(this.throttle) * 900 + (this.gear === 1 ? kmh * 30 : 1200) : 0;
     this.rpm += (want - this.rpm) * Math.min(1, dt * 6);
     if (this.driver && (Math.abs(kmh - (this.lastKmh ?? -9)) > 0.6 || Math.abs(this.rpm - (this.lastRpm ?? -999)) > 60)) { this.drawGauges(kmh, this.rpm); this.lastKmh = kmh; this.lastRpm = this.rpm; }
     this.tailM.emissiveIntensity = this.braking || this.handbrake ? 2.4 : this.driver ? 0.6 : 0.15;
     this.revM.emissiveIntensity = this.driver && this.speed < -0.3 ? 1.8 : 0;
-    this.headM.emissiveIntensity = this.driver ? 1.2 : 0.3;
+    if (!this.wrecked) this.headM.emissiveIntensity = (this.driver || this.ai) ? 1.2 : 0.3; else this.tailM.emissiveIntensity = 0;
+    this.effects(dt);
+  }
+
+  // crashes (a sudden change in speed), smoke, fire, the siren lights
+  effects(dt) {
+    const g = this.g, v = this.body.linvel(), nv = V(v.x, v.y, v.z);
+    if (dt > 0) {
+      const dv = nv.clone().sub(this.lastV), mag = dv.length();
+      if (mag > Math.max(3.2, dt * 30) && !this.inactive) {
+        const k = (mag - 3) / 10;
+        const loc = dv.clone().negate().applyQuaternion(this.group.quaternion.clone().invert()).normalize(); // (the side that hit)
+        const lp = V(loc.x * 0.95, 0.15 + loc.y * 0.3, loc.z * 2.3).clampScalar(-2.4, 2.4);
+        const ip = lp.clone().applyMatrix4(this.group.matrixWorld);
+        this.dent(lp, loc.clone().negate(), Math.min(0.22, 0.03 + k * 0.08));
+        this.damage((mag - 3) ** 1.5 * (this.ai ? 5 : 14), ip, 'crash'); // (police cars are built tougher)
+        g.sfx?.crash(ip, Math.min(2, k)); g.fx?.sparks(ip, dv.clone().normalize(), Math.min(40, 8 + mag * 2), 3 + mag * 0.3);
+        if (mag > 6) g.fx?.dust(ip, 6);
+        g.onCarCrash?.(this, mag, ip);
+      }
+      this.lastV.copy(nv);
+    }
+    if (this.wrecked) {
+      this.wreckFireT -= dt; this.smokeT -= dt;
+      if (this.wreckFireT > 0 && Math.random() < 0.6) g.fx?.fire(this.pos.clone().add(V(0, 0.4, 0)), 1, 1.2);
+      if (this.smokeT <= 0 && this.wreckFireT > -30) { this.smokeT = 0.15; g.fx?.smoke(this.pos.clone().add(V(0, 0.8, 0)), 1, 0.12, 1.4); }
+      return;
+    }
+    // upside down for a while: it catches fire
+    const up = V(0, 1, 0).applyQuaternion(this.group.quaternion);
+    this.flipT = up.y < -0.3 ? this.flipT + dt : 0;
+    if (this.flipT > 2.5 && !this.burning) this.damage(this.hp + 1, null, 'flip');
+    const engine = V(0, 0.15, 1.6).applyMatrix4(this.group.matrixWorld);
+    if (this.burning) {
+      this.burnT -= dt;
+      if (Math.random() < 0.8) g.fx?.fire(engine, 2, 0.9);
+      if (Math.random() < 0.3) g.fx?.smoke(engine.clone().add(V(0, 0.5, 0)), 1, 0.1, 1.2);
+      if (this.burnT <= 0) this.explode();
+    } else if (this.hp < 450) {
+      this.smokeT -= dt;
+      if (this.smokeT <= 0) { this.smokeT = this.hp < 200 ? 0.08 : 0.25; g.fx?.smoke(engine.clone().add(V(0, 0.3, 0)), 1, this.hp < 200 ? 0.15 : 0.55, 0.8); }
+    }
+    if (this.redM) {
+      const on = this.siren, ph = Math.floor(performance.now() / 140) % 4;
+      this.redM.emissiveIntensity = on ? (ph === 0 || ph === 2 ? 4 : 0.3) : 0.2;
+      this.blueM.emissiveIntensity = on ? (ph === 1 || ph === 3 ? 4 : 0.3) : 0.2;
+    }
   }
 
   renderMirror(renderer, scene) {
