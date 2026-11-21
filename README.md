@@ -123,6 +123,8 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - **Cars float.** Drive off the sea wall and the car bobs on the water; you can still (slowly) motor about and steer like a boat. The bridge over the inlet is solid to drive and walk on.
 - **Traffic.** About a dozen cars drive about the island: **sedans** in all colours, yellow **taxis** (a lit TAXI sign, a chequered stripe), **delivery vans** (Swiftly Parcels, FreshCo, DripFix, Bayside Laundry) and **convertibles**. They keep to the right-hand lane, pick a way at each junction (not down dead ends if they can help it), slow for corners, give way to whoever's already crossing, brake for the car in front, pull out round something stopped in their lane, stop for people in the road, and **honk and shout** if you stand in front of them or bump them. Gunfire, screaming or a police chase nearby and they put their foot down. Wreck one and the driver gets out and runs. Cars too far off come back round somewhere out of sight.
 - **Carjacking.** Press `F` by a car in traffic (stand in front of it and it stops) to pull the driver out and take it. They run off shouting, and it's a crime if anyone sees.
+- **Taking a car off someone.** At the driver's door (`F`) you try to drag them out, even while it's rolling along. Whether you manage it depends how strong they are, how fast it's going and what's in your hand (a gun nearly always works; a weapon helps). Too strong, and they shove you off (onto the road, if it's moving), hold the door shut and drive off. Then try the **passenger door**: you get in beside them, they stop dead and start shouting, and `F` shoves them out of their own door while you slide across to the wheel.
+- **Bicycles.** People ride about on bikes, near the kerb, pedalling, ringing their bells at you if you're in the way. `F` by one knocks the rider off and it's yours (that's theft, if anyone sees): `W` pedal (`Shift` to go faster), `S` brake, `A`/`D` steer, `F` get off (at speed you go over the bars). Ride into a wall or a car fast and you come off. A car that hits someone on a bike knocks them off it.
 - **Parked cars** line the kerbs and fill the car parks: press `F` by one to get in. About half are **locked**: you put your elbow through the driver's window (glass everywhere) and climb in.
 - **Doors open and close**: getting in, the driver's door swings open, you climb in and sit down, and it shuts behind you; getting out, it opens again. Cops' doors, passengers' too.
 - **The boot**: hold someone (`G`) and press `F` at the back of a car to bundle them into the boot (it opens and slams). `G` at the boot throws in someone lying on the ground nearby (hurt or dead), or lets out whoever's in there. They thump and shout to be let out.
@@ -181,7 +183,7 @@ The drug the game is named after. It's made up, and the cook is a game, not chem
 | `G` | grab someone / let them go (from a car: let your captive out) |
 | `Q` | finish off someone who's down |
 | `Y` | give yourself up |
-| `F` | get in / out of a car (at any speed); by a car in traffic: pull the driver out |
+| `F` | get in / out of a car (at any speed); a driver's door: drag them out; the passenger door: get in, then `F` to shove them out; by a bike: take it / get off |
 | `C` (in a car) | inside view / chase camera |
 | `Space` / `E` / `Q` (cooking) | heat / stir / give up |
 | `H` | hide the controls |
@@ -228,7 +230,8 @@ src/
   weapons.js    fists, the hatchet, the butter knife, the plastic kiddie knife, the pistol, the shotgun: aiming, punching, swinging, shooting
   police.js     wanted stars, crimes, witnesses and their calls, reports, patrols and stop-and-searches, cop cars (A* along the roads), cops on foot, losing them, BUSTED
   desert.js     the Dry: the desert north over the causeway (ground, mesas, scrub, highway and tracks, poles), North Quay and the Saltline Apartments
-  traffic.js    cars driving about (sedans, taxis, delivery vans, convertibles), carjacking
+  traffic.js    cars driving about (sedans, taxis, delivery vans, convertibles), carjacking (dragging drivers out, the passenger door)
+  bikes.js      bicycles: people riding them, taking one, riding it
   save.js       saving to the browser, Continue
   marcos.js     MARCOS, the burger place on the desert road: the building, the crew, ordering
   missions.js   the jobs after the first cook (Three More, Saltline), the day and sleeping, the rival crew's gunmen

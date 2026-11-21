@@ -54,7 +54,7 @@ export class Player {
   get headPos() { return this.pos.add(new THREE.Vector3(0, 1.62, 0)); }
 
   physics(h) {
-    if (this.car || this.scripted) return;
+    if (this.car || this.scripted || this.bike) return;
     if (this.ragdoll) {
       this.downT -= h;
       if (this.dead) return;
@@ -224,9 +224,10 @@ export class Player {
 
   frame(dt) {
     const H = this.human;
+    if (this.bike) return; // (the bike poses you)
     if (this.car) {
       const bk = this.car.boarding?.h === H ? this.car.boardingK : 1;
-      H.update(dt, bk < 0.42 ? { pose: 'stand', speed: 0, grounded: true } : { pose: this.dead ? 'slump' : 'drive', steer: this.car.steer / this.car.maxSteer });
+      H.update(dt, bk < 0.42 ? { pose: 'stand', speed: 0, grounded: true } : { pose: this.dead ? 'slump' : this.seat === 'passenger' ? 'passenger' : 'drive', steer: this.car.steer / this.car.maxSteer });
       return;
     }
     if (this.ragdoll) { H.update(dt, {}); return; }
@@ -346,8 +347,14 @@ export class Player {
     this.col.setEnabled(false);
     this.vel.set(0, 0, 0);
     car.seatPerson(this.human, seat);
-    car.driver = this;
+    if (seat === 'driver') car.driver = this; else car.passengerYou = true;
     car.board(this.human, seat);
+  }
+  // from the passenger seat across to the wheel
+  slideOver() {
+    const car = this.car; if (!car || this.seat !== 'passenger') return;
+    car.unseat(this.human); car.passengerYou = false; this.seat = 'driver'; car.ai = null;
+    car.seatPerson(this.human, 'driver'); car.driver = this;
   }
 
   // a locked car: an elbow through the window first
@@ -380,9 +387,9 @@ export class Player {
 
   exitCar() {
     const car = this.car; if (!car) return;
-    const out = car.doorPoint('driver', 1.1);
+    const side = this.seat === 'passenger' ? 'passenger' : 'driver', out = car.doorPoint(side, 1.1);
     this.car = null;
-    car.unseat(this.human); car.driver = null; car.boarding = null; car.openDoor('driver', 0.55);
+    car.unseat(this.human); if (side === 'driver') car.driver = null; else { car.passengerYou = false; if (car.tRec) { car.tRec.hostage = false; car.tRec.waitT = 0; car.tRec.panicT = 6; } } car.boarding = null; car.openDoor(side, 0.55);
     this.g.scene.add(this.human.root);
     this.body.setTranslation({ x: out.x, y: out.y + CENTRE + 0.2, z: out.z }, true);
     this.body.setNextKinematicTranslation({ x: out.x, y: out.y + CENTRE + 0.2, z: out.z });

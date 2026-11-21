@@ -93,7 +93,8 @@ export class Traffic {
       const rec = { car, a, b, c: this.nextNode(a, b), stuckT: 0, revT: 0, waitT: 0, honkT: 0, panicT: 0, hp: car.hp, driver: null };
       // the driver
       let n = car.tDriver;
-      if (!n || n.state !== 'seated' || n.tcar !== car) { n = g.citizens.spawn(pick(['Dana', 'Marcus', 'Priya', 'Tomás', 'Hannah', 'Kofi', 'Lena', 'Jun', 'Rosa', 'Eli', 'Nadia', 'Owen'])); n.state = 'seated'; n.col.setEnabled(false); n.tcar = car; n.seat = 'driver'; car.seatPerson(n.human, 'driver'); car.tDriver = n; }
+      if (!n || n.state !== 'seated' || n.tcar !== car) { n = g.citizens.spawn(pick(['Dana', 'Marcus', 'Priya', 'Tomás', 'Hannah', 'Kofi', 'Lena', 'Jun', 'Rosa', 'Eli', 'Nadia', 'Owen'])); n.state = 'seated'; n.col.setEnabled(false); n.tcar = car; n.seat = 'driver'; car.seatPerson(n.human, 'driver'); car.tDriver = n; n.strength = Math.random(); }
+      rec.held = false; rec.hostage = false;
       n.human.root.visible = true; rec.driver = n;
       car.tRec = rec; this.list.push(rec);
       return rec;
@@ -117,6 +118,45 @@ export class Traffic {
       n.state = 'flee'; n.stateT = 10 + Math.random() * 5; n.mood = Math.min(n.mood, -50);
       g.citizens.say(n, why === 'jack' ? pick(JACKED) : pick(['My car!', 'Oh my god, oh my god…', 'Somebody call someone!']), 3);
     }
+  }
+  // at the driver's door: try to drag them out. Strong ones (or a car going too fast) shove you off: the
+  // passenger door's still open, though. A gun in your hand helps a lot; a weapon helps a bit.
+  overpower(car) {
+    const g = this.g, rec = car.tRec, n = rec?.driver, pl = g.player, C = g.citizens; if (!rec || !n) return true;
+    const s = Math.abs(car.speed), W = g.weapons.W;
+    if (s > 9) { g.hud.toast("It's going too fast to grab"); return false; }
+    if (rec.held) { C.say(n, pick(["I'm holding it shut!", 'Not today!', 'GO AWAY!']), 2); g.hud.toast("They're holding the door shut. Try the passenger side.", '#ffd23f'); return false; }
+    const chance = (W.gun ? 1.2 : W.melee ? 0.95 : 0.8) - (n.strength ?? 0.5) * 0.75 - s * 0.035;
+    if (Math.random() < chance) {
+      this.detach(rec, 'jack');
+      if (s > 1.5) { const f = car.forward; C.knock(n, V(f.x * s * 0.8 + Math.cos(car.yaw) * 2, 1.5, f.z * s * 0.8 - Math.sin(car.yaw) * 2), 3); } // (out onto the road, tumbling)
+      g.police.crime('carjack', pl.pos);
+      return true;
+    }
+    rec.held = true;
+    C.say(n, pick(['Get OFF me!', 'Not my car, pal!', 'Back off!', 'HELP! HE\'S TRYING TO TAKE MY CAR!']), 2.5);
+    const away = pl.pos.clone().sub(car.pos).setY(0).normalize();
+    if (s > 2) pl.knockDown(away.add(car.forward.clone().multiplyScalar(0.5)), 3 + s * 0.4); else pl.knock = away.multiplyScalar(3.5);
+    if (s > 1.5) rec.panicT = 6; else { rec.waitT = 1.5; setTimeout(() => { rec.panicT = 6; }, 1500); }
+    g.hud.toast("Too strong. They shoved you off. (Try the passenger door.)", '#ffd23f');
+    g.police.crime('assault', pl.pos);
+    return false;
+  }
+  // in through the passenger door: they stop dead (and start shouting)
+  intoPassenger(car) {
+    const g = this.g, rec = car.tRec, n = rec?.driver, pl = g.player;
+    if (Math.abs(car.speed) > 4) { g.hud.toast("It's moving too fast"); return; }
+    if (car.passenger) { g.hud.toast('Someone\'s in the passenger seat'); return; }
+    pl.enterCar(car, 'passenger');
+    if (rec) { rec.hostage = true; rec.waitT = 999; }
+    if (n) g.citizens.say(n, pick(['What are you DOING?!', 'Get out of my car!', 'Who are you?! GET OUT!', "I'm calling the police!"]), 3);
+    g.hud.toast('F: shove them out and take the wheel', '#ffd23f');
+  }
+  // from the passenger seat: out of the driver's door they go, and you slide across
+  shove(car) {
+    const g = this.g, rec = car.tRec, pl = g.player;
+    if (rec) { this.detach(rec, 'jack'); g.police.crime('carjack', pl.pos); }
+    pl.slideOver();
   }
   // you're taking it: the driver comes out, protesting
   carjack(car) {
@@ -220,7 +260,7 @@ export class Traffic {
     if (!panic || dPlayer < 15) {
       const peds = []; const pl = g.player;
       if (!pl.car && !pl.dead && dPlayer < ahead + 4) peds.push([pl.pos, 'you']);
-      for (const n of g.citizens.list) { if (n.state === 'seated' || n.state === 'dead' || n.state === 'trunk') continue; const t2 = n.body.translation(); if (Math.abs(t2.x - pos.x) > ahead + 3 || Math.abs(t2.z - pos.z) > ahead + 3) continue; peds.push([V(t2.x, t2.y, t2.z), n]); }
+      for (const n of g.citizens.list) { if (n.state === 'seated' || n.state === 'dead' || n.state === 'trunk' || n.state === 'cycling') continue; const t2 = n.body.translation(); if (Math.abs(t2.x - pos.x) > ahead + 3 || Math.abs(t2.z - pos.z) > ahead + 3) continue; peds.push([V(t2.x, t2.y, t2.z), n]); }
       for (const [p, who] of peds) {
         const l = car.group.worldToLocal(p.clone().setY(pos.y)); if (l.z < 1 || l.z > ahead || Math.abs(l.x) > 1.7) continue;
         want = this.lim(r, want, who === 'you' ? 'you' : 'person', Math.max(0, (l.z - 4.5) * 0.8));

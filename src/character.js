@@ -332,6 +332,11 @@ export class Human {
         set('shoulderL', -0.35, 0, 0.12); set('elbowL', -1.1); set('wristL');
         set('shoulderR', -0.35, 0, -0.12); set('elbowR', -1.1); set('wristR');
       }
+    } else if (s.pose === 'bike') { // on a bicycle: leaning on the bars, pedalling
+      hipsY = 0.95; const p = s.pedal || 0, st = s.steer || 0;
+      set('hips'); set('spine', 0.42); set('chest', 0.12); set('neck', -0.35); set('head', -0.12, this.lookYaw * 0.5);
+      for (const [k, o] of [['L', 0], ['R', Math.PI]]) { const a = Math.sin(p + o); set('hip' + k, -1.15 - a * 0.38, 0, k === 'L' ? 0.07 : -0.07); set('knee' + k, 1.15 + a * 0.5); set('ankle' + k, 0.15 + Math.cos(p + o) * 0.15); }
+      set('shoulderL', -1.15 - st * 0.12, 0, -0.08); set('elbowL', -0.3); set('wristL', 0.25); set('shoulderR', -1.15 + st * 0.12, 0, 0.08); set('elbowR', -0.3); set('wristR', 0.25);
     } else if (s.pose === 'swim') { // front crawl (treading water when still)
       const mv = Math.min(1, (s.speed || 0) / 1.5);
       this.phase += dt * (2.2 + mv * 3.2);

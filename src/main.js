@@ -31,6 +31,7 @@ import { Shops } from './shops.js';
 import { ChopShop } from './chopshop.js';
 import { Marcos } from './marcos.js';
 import { Missions } from './missions.js';
+import { Bikes } from './bikes.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -85,6 +86,7 @@ class Game {
     for (const w of this.workers || []) this.citizens.addWorker(w);
     this.police = new Police(this); this.police.warm(3);
     this.traffic = new Traffic(this);
+    this.bikes = new Bikes(this);
     this.saver = new Save(this);
     this.drugs = new Drugs(this);
     this.setupDrugs();
@@ -136,7 +138,7 @@ class Game {
     });
     addEventListener('contextmenu', (e) => e.preventDefault());
     addEventListener('mousedown', (e) => {
-      if (!this.locked) return;
+      if (!this.locked || this.player.bike) return;
       if (this.wheel.open) { if (e.button === 0) this.wheel.choose(); return; }
       const pl = this.player;
       if (pl.car || pl.ragdoll) return;
@@ -221,6 +223,8 @@ class Game {
   toggleCar() {
     const pl = this.player;
     if (pl.ragdoll) return;
+    if (pl.bike) { this.bikes.dismount(); return; }
+    if (pl.car && pl.seat === 'passenger') { const car = pl.car; if (car.tRec) this.traffic.shove(car); else pl.slideOver(); return; } // (in their passenger seat: shove them out, take the wheel)
     if (pl.car) {
       const car = pl.car, fast = Math.abs(car.speed) > 3;
       if (fast) pl.bailOut(); else pl.exitCar(); // (at speed you tumble out; the car rolls on without you)
@@ -233,6 +237,14 @@ class Game {
     if (pl.hostage) { const tc = this.trunkCar(); if (tc) { this.intoTrunk(tc, pl.hostage); return; } }
     if (pl.smashT > 0) return;
     let c = this.nearestCar();
+    // a bike's nearer than any car: on you get (knocking them off it first, if someone's riding it)
+    { const bk = this.bikes.nearest(pl.pos); if (bk && (!c || Math.hypot(bk.pos.x - pl.pos.x, bk.pos.z - pl.pos.z) < c.pos.distanceTo(pl.pos) - 1.2)) { this.bikes.mount(bk); return; } }
+    // someone's driving it: their door (drag them out, if you can) or the passenger's (get in, then shove them out)
+    if (c && c.tRec?.driver && !pl.hostage) {
+      const dD = c.doorPoint('driver', 0.4).distanceTo(pl.pos), dP = c.doorPoint('passenger', 0.4).distanceTo(pl.pos);
+      if (dP < dD) { if (this.props.held) this.props.drop(false); this.traffic.intoPassenger(c); return; }
+      if (!this.traffic.overpower(c)) return;
+    }
     if (!c) { const pc = this.parkedCars.nearest(pl.pos); if (pc) c = this.parkedCars.take(pc); }
     if (c) {
       if (c.locked && !c.smashed.driver && !c.wrecked) { if (this.props.held) this.props.drop(false); if (this.weapons.cur !== 'fists') this.weapons.equip('fists', true); this.hud.toast("It's locked. You put your elbow through the window."); pl.smashIn(c); return; }
@@ -489,6 +501,7 @@ class Game {
     this.weapons.update(dt);
     this.police.update(dt);
     this.traffic.update(dt);
+    this.bikes.update(dt);
     if (this.started) this.saver.update(rdt);
     this.pickups.update(dt);
     this.fx.update(dt);
@@ -517,9 +530,11 @@ class Game {
     if (this.wheel.open) prompt = 'Move the mouse to pick · release <kbd>E</kbd> (or click, or <kbd>1</kbd>–<kbd>6</kbd>) · <kbd>Q</kbd> cancel';
     else if (this.marcos?.canOrder() && !pl.ragdoll) prompt = this.marcos.label() + (pl.car ? ' · <kbd>F</kbd> get out' : '');
     else if (pl.car && this.chop?.canUse()) prompt = `<kbd>E</kbd> Rusty's: register, respray, new plates · <kbd>F</kbd> get out`;
+    else if (pl.bike) prompt = '<kbd>W</kbd> pedal · <kbd>Shift</kbd> faster · <kbd>S</kbd> brake · <kbd>A</kbd>/<kbd>D</kbd> steer · <kbd>F</kbd> get off';
+    else if (pl.car && pl.seat === 'passenger') prompt = pl.car.tRec ? '<kbd>F</kbd> shove the driver out and take the wheel' : '<kbd>F</kbd> slide over to the wheel';
     else if (pl.car) prompt = (pl.car.passenger?.kidnapped ? '<kbd>G</kbd> let them go · ' : '') + `<kbd>F</kbd> get out · <kbd>C</kbd> ${this.cam.mode === 'chase' ? 'inside view' : 'chase camera'} · <kbd>Space</kbd> handbrake`;
     else if (!pl.ragdoll) {
-      const slot = this.weapons.candidate(), n = !slot && this.wheel.candidate(), c = this.nearestCar() || this.parkedCars.nearest(pl.pos);
+      const slot = this.weapons.candidate(), n = !slot && this.wheel.candidate(), c = this.nearestCar() || this.parkedCars.nearest(pl.pos), bkN = this.bikes.nearest(pl.pos);
       const fin = pl.finishTarget(), kc = this.kidnapCar(), sp = this.spotNear();
       if (this.drugs.cook) prompt = 'Cooking · hold <kbd>Space</kbd> heat · <kbd>E</kbd> stir · <kbd>Q</kbd> give up';
       else if (pl.surrender) prompt = 'Hands up · <kbd>Y</kbd> change your mind';
@@ -532,7 +547,8 @@ class Game {
       else if (slot && slot.drawer) prompt = !this.weapons.drawer.open ? '<kbd>E</kbd> open the drawer' : !slot.taken ? '<kbd>E</kbd> take the Butter Knife' : this.weapons.inv.has('butter') ? '<kbd>E</kbd> put the Butter Knife back' : '<kbd>E</kbd> close the drawer';
       else if (slot) prompt = slot.taken ? `<kbd>E</kbd> put the ${this.weapons.held.name} back` : `<kbd>E</kbd> take the ${{ hatchet: 'Hatchet', butter: 'Butter Knife', kiddie: 'Plastic Kiddie Knife' }[slot.id]}`;
       else if (n) prompt = `Hold <kbd>E</kbd> interact with ${n.mem.met ? n.name : 'this person'}`;
-      else if (c) prompt = c.tRec ? '<kbd>F</kbd> pull the driver out and take the car' : '<kbd>F</kbd> get in the car';
+      else if (bkN) prompt = bkN.rider ? '<kbd>F</kbd> knock them off the bike and take it' : '<kbd>F</kbd> get on the bike';
+      else if (c) prompt = c.tRec?.driver ? (c.doorPoint('passenger', 0.4).distanceTo(pl.pos) < c.doorPoint('driver', 0.4).distanceTo(pl.pos) ? '<kbd>F</kbd> get in the passenger side' : c.tRec.held ? "They're holding the door shut · try the passenger side" : '<kbd>F</kbd> drag the driver out') : '<kbd>F</kbd> get in the car';
       else { const p = this.weapons.held ? null : this.props.aimed(); if (p) prompt = `<kbd>Click</kbd> pick up ${p.name}`; else if (this.weapons.W.gun) prompt = `<kbd>Right mouse</kbd> aim · <kbd>Click</kbd> fire · <kbd>R</kbd> reload`; else if (this.weapons.held) prompt = `<kbd>Click</kbd> swing the ${this.weapons.held.name} · <kbd>X</kbd> fists`; else if (this.police.stars) prompt = '<kbd>Y</kbd> give yourself up'; }
     }
     this.hud.prompt(this.started && !this.story?.locked ? prompt : '');

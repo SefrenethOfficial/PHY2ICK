@@ -218,7 +218,7 @@ export class Citizens {
     for (let i = 0; i < this.list.length; i++) {
       const n = this.list[i];
       if (n.state === 'trunk') { const tp = n.trunkCar.trunkPoint(-0.6); n.body.setNextKinematicTranslation({ x: tp.x, y: tp.y + 0.6, z: tp.z }); continue; }
-      if (n.state === 'seated' || n.state === 'scripted' || n.hostage) continue;
+      if (n.state === 'seated' || n.state === 'scripted' || n.state === 'cycling' || n.hostage) continue;
       // far from you, people think (and move) a quarter as often: the same walk, a quarter of the work
       let h = h0;
       { const t = n.body.translation(), far = Math.hypot(pp.x - t.x, pp.z - t.z) > 55 && n.state !== 'follow' && !n.cop;
@@ -449,6 +449,7 @@ export class Citizens {
       const n = this.list[i];
       n.bubbleT = Math.max(0, n.bubbleT - dt0);
       const H = n.human;
+      if (n.state === 'cycling') continue; // (the bike poses them)
       if (n.state === 'trunk') { H.root.visible = false; if (n.trunkAlive && Math.random() < dt0 * 0.12 && n.trunkCar.pos.distanceTo(pl.pos) < 30) this.say(n, n.hostageBag ? pick(['Mmmph!', '*thump thump*']) : pick(['LET ME OUT!', 'Help! I\'m in the boot!', '*thump thump thump*']), 2); continue; }
       // only draw (and pose) people who are on screen and not too far off; far ones are posed every other frame
       if (n.state !== 'seated') {
@@ -724,9 +725,9 @@ export class Citizens {
 
   // everyone near something violent runs
   panic(at, except, R = 28) {
-    this.g.traffic?.panic(at, R * 1.6);
+    this.g.traffic?.panic(at, R * 1.6); this.g.bikes?.panic(at, R * 1.4);
     for (const o of this.list) {
-      if (o === except || ['dead', 'seated'].includes(o.state) || o.human.ragdoll) continue;
+      if (o === except || ['dead', 'seated', 'cycling'].includes(o.state) || o.human.ragdoll) continue;
       const d = this.pos(o).distanceTo(at);
       if (o.cop || o.hostage || o.companion || o.storyNpc || o.state === 'handsUp' || o.home && o.state === 'post' && d > 12) continue;
       if (d < R) { o.state = 'flee'; o.stateT = 8 + Math.random() * 6; o.following = false; if (o.bench) { o.bench.taken = null; o.bench = null; } if (d < 12 && Math.random() < 0.5) this.say(o, pick(['Oh my god!', 'Run!', 'Somebody call the police!', 'No no no no']), 2.5); }

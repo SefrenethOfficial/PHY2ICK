@@ -16,7 +16,7 @@ export class CameraRig {
 
   mouse(dx, dy) {
     const g = this.g;
-    if (g.player.car) {
+    if (g.player.car || g.player.bike) {
       this.lookYaw -= dx * 0.0025; this.lookPitch -= dy * 0.0025;
       this.lookYaw = THREE.MathUtils.clamp(this.lookYaw, -2.4, 2.4);
       this.lookPitch = THREE.MathUtils.clamp(this.lookPitch, -0.9, 0.7);
@@ -40,6 +40,20 @@ export class CameraRig {
 
   update(dt) {
     const g = this.g, cam = g.camera, p = g.player;
+    if (p.bike) { // on a bike: a chase camera, close behind
+      const b = p.bike;
+      this.freeT = Math.max(0, (this.freeT || 0) - dt);
+      if (this.freeT <= 0) { this.lookYaw *= Math.exp(-dt * 3); this.lookPitch *= Math.exp(-dt * 3); }
+      this.chaseYaw = this.chaseYaw ?? b.yaw;
+      let d = b.yaw - this.chaseYaw; d = Math.atan2(Math.sin(d), Math.cos(d)); this.chaseYaw += d * Math.min(1, dt * 3.5);
+      const yaw = this.chaseYaw + this.lookYaw, dist = 3.6 + Math.abs(b.speed) * 0.06, height = 1.7 - this.lookPitch * 1.5;
+      const target = b.pos.clone().add(V(0, 1.4, 0)), want = target.clone().add(V(-Math.sin(yaw) * dist, height - 0.4, -Math.cos(yaw) * dist));
+      cam.position.copy(this.clip(target, want, [p.col.handle])); cam.lookAt(target);
+      cam.fov = 70 + Math.abs(b.speed) * 0.5; cam.updateProjectionMatrix();
+      this.yaw = yaw + Math.PI; this.pitch = 0.2;
+      return;
+    }
+    this.chaseYawBike = null;
     if (p.car) {
       const car = p.car;
       this.freeT = Math.max(0, this.freeT - dt);
