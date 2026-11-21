@@ -538,6 +538,7 @@ class Game {
     const envT = inside ? 0.3 : 0.75;
     this.scene.environmentIntensity += (envT - this.scene.environmentIntensity) * Math.min(1, rdt * 3);
     if (this.water) this.water.update(rdt, this.camera);
+    if (this.sky) this.sky.position.copy(this.camera.position); // (the sky goes where you go: out at the docks too)
     if (this.fountainWater) this.fountainWater.position.y = 0.45 + Math.sin(performance.now() / 600) * 0.01;
     this.hud.frame(rdt);
     if (pl.car && this.cam.mode === 'cockpit') pl.car.renderMirror(this.renderer, this.scene);

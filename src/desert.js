@@ -1,14 +1,17 @@
 // The Dry: the desert north of Halyard, over the causeway. Red flats and low dunes, mesas, scrub and cacti,
 // a two-lane highway running up the middle with telegraph poles beside it, a couple of side roads and dirt
-// tracks, and all round it a wall of mountains you can't get over (for now: there's an invisible fence at
-// their foot). Out here nobody's watching.
+// tracks, a line of mesas down each side with the sea behind them, and at the far end a little dockside
+// (a quay, containers, a crane, a freighter, a warehouse) with a small apartment block beside it.
+// Out here nobody's watching.
 import * as THREE from 'three';
 import { canvasTex, noise } from './world.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 // the patch of world it covers (metres); the south edge is under the sea between it and the island
-export const DRY = { x0: -1000, x1: 1300, z0: -2400, z1: -392, shore: -470 };
+export const DRY = { x0: -1000, x1: 1300, z0: -2450, z1: -392, shore: -470, north: -2330, west: -880, east: 1180 };
+// the dock: a concrete apron along the north shore (and the apartments' plot at its east end)
+export const DOCK = { x0: 30, x1: 700, z0: -2333, z1: -2250 };
 const STEP = 10;
 const RW = 11; // (same width as the island's roads, so the traffic's lanes line up)
 
@@ -27,7 +30,8 @@ function roads(start) {
   const s = start;
   return {
     paved: [
-      [s, [130.3, -760], [20, -1080], [20, -1650], [180, -1950], [180, -2110]], // the highway, up the middle
+      [s, [130.3, -760], [20, -1080], [20, -1650], [180, -1950], [180, -2240]], // the highway, up the middle to the docks
+      [[180, -2240], [660, -2240]],                                                // along the back of the dock to the apartments
       [[130.3, -760], [620, -860], [900, -1250]],                                 // east, towards the big mesas
       [[20, -1080], [-480, -1180], [-640, -1500]],                                // west, into the flats
     ],
@@ -55,35 +59,37 @@ export function buildDesert(g, islandSegs) {
   let start = [130.3, -379];
   for (const s of islandSegs) for (const p of [s.a, s.b]) if (Math.abs(p[0] - 130.3) < 1.5 && p[1] < start[1] + 30 && p[1] < -300) start = [p[0], p[1]];
   const RD = roads(start);
-  const mesas = [[-300, -820, 52, 78], [430, -1130, 70, 104], [-250, -1520, 40, 64], [650, -1560, 84, 120], [330, -1880, 34, 58], [-720, -980, 40, 70], [920, -1720, 56, 96], [-520, -1930, 62, 88], [860, -1020, 30, 52], [-120, -2080, 50, 76]]
+  const mr = (() => { let s0 = 99; return () => (s0 = (s0 * 16807) % 2147483647) / 2147483647; })();
+  const border = [];
+  for (let z = -600; z > -2230; z -= 105) { border.push([DRY.west + 70 + mr() * 35, z + mr() * 30, 44 + mr() * 20, 55 + mr() * 60]); border.push([DRY.east - 70 - mr() * 35, z + mr() * 30, 44 + mr() * 20, 55 + mr() * 60]); }
+  for (let x = DRY.west + 150; x < DRY.east - 120; x += 110) if (x < DOCK.x0 - 90 || x > DOCK.x1 + 80) border.push([x + mr() * 25, DRY.north + 85 + mr() * 20, 44 + mr() * 18, 50 + mr() * 50]);
+  const mesas = [[-300, -820, 52, 78], [430, -1130, 70, 104], [-250, -1520, 40, 64], [650, -1560, 84, 120], [330, -1880, 34, 58], [-560, -980, 40, 70], [860, -1720, 56, 96], [-480, -1930, 62, 88], [860, -1020, 30, 52], [-120, -2080, 50, 76], ...border]
     .filter(([x, z, r]) => [...RD.paved, ...RD.dirt].every(l => distLine(x, z, l) > r * 1.4 + 26));
 
   // ---- the ground: one height for everywhere
+  // how far inland (from the nearest of its four shores: negative out at sea)
+  const inland = (x, z) => Math.min(DRY.shore - z, z - DRY.north, x - DRY.west, DRY.east - x);
   const base = (x, z) => {
-    const inl = DRY.shore - z; // (how far inland from the shore)
-    let h = inl < 0 ? -4 + 4 * ss(-40, 0, inl) : 0.35 + Math.min(6, inl * 0.003) + ss(0, 30, inl) * 0.2;
-    return h;
+    const inl = inland(x, z);
+    return inl < 0 ? -4 + 4 * ss(-40, 0, inl) : 0.35 + Math.min(5, inl * 0.004) + ss(0, 30, inl) * 0.2;
   };
-  const edge = (x, z) => Math.min(x - DRY.x0, DRY.x1 - x, z - DRY.z0);
-  const mountain = (x, z) => {
-    const e = edge(x, z), k = Math.pow(ss(360, 0, e), 1.5) * ss(-392, -560, z);
-    if (k <= 0) return 0;
-    const ridge = 1 - Math.abs(fbm(x * 0.004, z * 0.004, 5) * 2 - 1); // (sharp ridges)
-    return k * (150 + ridge * 260 + fbm(x * 0.02, z * 0.02, 3) * 40);
-  };
+  // the dock's apron is flat, level with the island (the ground round it eases down to it)
+  const dockD = (x, z) => Math.hypot(Math.max(DOCK.x0 - x, 0, x - DOCK.x1), Math.max(0, z - DOCK.z1));
   const roadMask = (x, z) => {
     let m = 0;
     for (const l of RD.paved) { const d = distLine(x, z, l); if (d < 26) m = Math.max(m, 1 - ss(7, 24, d)); }
     for (const l of RD.dirt) { const d = distLine(x, z, l); if (d < 16) m = Math.max(m, 1 - ss(3.5, 14, d)); }
     return m;
   };
-  const roadY = (x, z) => Math.max(0.05, base(x, z));
+  const roadY = (x, z) => { const y = Math.max(0.05, base(x, z)); return z > DOCK.z0 ? y + (0.02 - y) * ss(40, 0, dockD(x, z)) : y; };
   const mesaAt = (x, z) => mesas.find(([mx, mz, r]) => Math.hypot(x - mx, z - mz) < r * 1.5);
   const height = (x, z) => {
     let h = base(x, z);
-    if (DRY.shore - z > 0) h += Math.max(0, fbm(x * 0.011, z * 0.011, 4) - 0.4) * 9 * ss(0, 60, DRY.shore - z); // (low dunes and swells)
-    h += mountain(x, z);
+    const inl = inland(x, z);
+    if (inl > 0) h += Math.max(0, fbm(x * 0.011, z * 0.011, 4) - 0.4) * 9 * ss(0, 60, inl); // (low dunes and swells)
     const m = roadMask(x, z); if (m > 0) h = h + (roadY(x, z) - h) * m;
+    if (z > DOCK.z0) { const k = ss(40, 0, dockD(x, z)); if (k > 0) h = h + (-0.05 - h) * k; }
+    else if (x > DOCK.x0 - 30 && x < DOCK.x1 + 30) h = Math.min(h, -7); // (deep water off the quay, for the ship)
     return h;
   };
 
@@ -97,7 +103,7 @@ export function buildDesert(g, islandSegs) {
     const n = fbm(x * 0.006 + 31, z * 0.006 - 17, 3);
     tmp.copy(sand).lerp(red, ss(0.35, 0.7, n));
     if (h > 12) tmp.lerp(rock, ss(12, 60, h)); if (h > 120) tmp.lerp(dark, ss(120, 300, h) * 0.8);
-    if (DRY.shore - z < 25) tmp.lerp(pale, 0.6 * ss(25, 0, DRY.shore - z));
+    { const inl = inland(x, z); if (inl < 25) tmp.lerp(pale, 0.6 * ss(25, 0, inl)); }
     colr[k * 3] = tmp.r; colr[k * 3 + 1] = tmp.g; colr[k * 3 + 2] = tmp.b;
   }
   const idx = new Uint32Array(NX * NZ * 6); let q = 0;
@@ -179,7 +185,7 @@ export function buildDesert(g, islandSegs) {
 
   // ---- scrub, cacti, rocks (instanced; nothing to bump into but the big rocks)
   const rnd = (() => { let s = 12345; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
-  const spots = (n, ok) => { const out = []; for (let t = 0; t < n * 6 && out.length < n; t++) { const x = DRY.x0 + 120 + rnd() * (DRY.x1 - DRY.x0 - 240), z = DRY.z0 + 120 + rnd() * (DRY.shore - 30 - DRY.z0 - 120), y = groundY(x, z); if (y < 0.3 || y > 30 || roadMask(x, z) > 0.02 || mesaAt(x, z) || !ok(x, z)) continue; out.push([x, y, z]); } return out; };
+  const spots = (n, ok) => { const out = []; for (let t = 0; t < n * 6 && out.length < n; t++) { const x = DRY.west + 20 + rnd() * (DRY.east - DRY.west - 40), z = DRY.north + 20 + rnd() * (DRY.shore - 30 - DRY.north - 20), y = groundY(x, z); if (y < 0.3 || y > 30 || inland(x, z) < 15 || dockD(x, z) < 30 || roadMask(x, z) > 0.02 || mesaAt(x, z) || !ok(x, z)) continue; out.push([x, y, z]); } return out; };
   const scatter = (geo, mat, list, scale, shadow = false) => {
     const im = new THREE.InstancedMesh(geo, mat, list.length), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S3 = new THREE.Vector3();
     list.forEach(([x, y, z], k) => { Q.setFromEuler(new THREE.Euler(0, rnd() * 6.28, 0)); const s = scale(); S3.set(s, s * (0.8 + rnd() * 0.4), s); M.compose(V(x, y, z), Q, S3); im.setMatrixAt(k, M); });
@@ -230,7 +236,7 @@ export function buildDesert(g, islandSegs) {
     scene.add(new THREE.LineSegments(wg, new THREE.LineBasicMaterial({ color: 0x222222 })));
   }
 
-  // ---- a sign at the end of the causeway, and a barrier where the highway runs into the mountains
+  // ---- a sign at the end of the causeway
   const sign = (x, z, yaw, w, h, draw) => {
     const y = groundY(x, z), t = canvasTex(512, Math.round(512 * h / w), draw);
     const board = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.12), [0, 0, 0, 0, 1, 1].map(i => i ? new THREE.MeshStandardMaterial({ map: t, roughness: 0.7 }) : new THREE.MeshStandardMaterial({ color: 0x6a6a6a })));
@@ -243,15 +249,7 @@ export function buildDesert(g, islandSegs) {
     c.fillStyle = '#f2f2ea'; c.textAlign = 'center'; c.font = 'bold 64px Arial'; c.fillText('THE DRY', w / 2, 96);
     c.font = 'bold 34px Arial'; c.fillText('NO SERVICES NEXT 60 MILES', w / 2, 158); c.fillText('CARRY WATER', w / 2, 206);
   });
-  const end = RD.paved[0][RD.paved[0].length - 1];
-  sign(end[0], end[1] + 8, 0, 6, 1.4, (c, w, h) => { for (let i = 0; i < 8; i++) { c.fillStyle = i % 2 ? '#f2f2ea' : '#d8302a'; c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64 + 64, 0); c.lineTo(i * 64, h); c.lineTo(i * 64 - 64, h); c.fill(); } c.fillStyle = '#111'; c.fillRect(120, h / 2 - 34, 272, 68); c.fillStyle = '#fff'; c.font = 'bold 48px Arial'; c.textAlign = 'center'; c.fillText('ROAD CLOSED', w / 2, h / 2 + 17); });
-
-  // ---- the fence you can't see: at the foot of the mountains (and out to sea at the corners)
-  {
-    const inset = 230, Hh = 300, wall = (x, z, hx, hz) => world.createCollider(R.ColliderDesc.cuboid(hx, Hh, hz).setTranslation(x, Hh / 2 - 10, z));
-    const wx0 = DRY.x0 + inset, wx1 = DRY.x1 - inset, wz0 = DRY.z0 + inset, zS = -300;
-    wall(wx0, (wz0 + zS) / 2, 1, (zS - wz0) / 2); wall(wx1, (wz0 + zS) / 2, 1, (zS - wz0) / 2); wall((wx0 + wx1) / 2, wz0, (wx1 - wx0) / 2, 1);
-  }
+  buildDock(g, groundY);
 
   // ---- what the rest of the game needs to know
   const segs = [];
@@ -264,13 +262,16 @@ export function buildDesert(g, islandSegs) {
     inLand: (x, z) => inside(x, z) && groundY(x, z) > -0.45,
     inRoad: (x, z) => inside(x, z) && RD.paved.some(l => distLine(x, z, l) < RW / 2),
     inDesert: (x, z) => inside(x, z) && z < DRY.shore + 10,
+    dock: DOCK,
     // the minimap
     draw(ctx, tx, tz, k) {
       const step = 20;
       for (let z = DRY.z0; z < DRY.z1; z += step) for (let x = DRY.x0; x < DRY.x1; x += step) {
         const y = groundY(x + step / 2, z + step / 2); if (y < -0.45) continue;
-        ctx.fillStyle = y > 60 ? '#6a4a3a' : y > 12 ? '#8a6a4a' : '#b08a62'; ctx.fillRect(tx(x), tz(z), step * k + 0.6, step * k + 0.6);
+        ctx.fillStyle = y > 12 ? '#8a6a4a' : '#b08a62'; ctx.fillRect(tx(x), tz(z), step * k + 0.6, step * k + 0.6);
       }
+      ctx.fillStyle = '#a8a49c'; ctx.fillRect(tx(DOCK.x0), tz(DOCK.z0), (DOCK.x1 - DOCK.x0) * k, (DOCK.z1 - DOCK.z0) * k);
+      ctx.fillStyle = '#8d8a84'; for (const [x0, z0, x1, z1] of DOCK_FOOT) ctx.fillRect(tx(x0), tz(z0), (x1 - x0) * k, (z1 - z0) * k);
       ctx.fillStyle = '#9a5a3a';
       for (const [mx, mz, r] of mesas) { ctx.beginPath(); ctx.arc(tx(mx), tz(mz), r * k, 0, 7); ctx.fill(); }
       ctx.lineCap = 'round';
@@ -280,4 +281,121 @@ export function buildDesert(g, islandSegs) {
       for (const l of RD.paved) { ctx.beginPath(); l.forEach(([x, z], i) => (i ? ctx.lineTo(tx(x), tz(z)) : ctx.moveTo(tx(x), tz(z)))); ctx.stroke(); }
     },
   };
+}
+
+// ================= the dockside, at the north end =================
+// what's built on it (for the minimap): [x0, z0, x1, z1]
+const DOCK_FOOT = [[430, -2318, 490, -2284], [612, -2297, 648, -2283], [55, -2314, 240, -2304], [55, -2292, 240, -2282]];
+function buildDock(g, groundY) {
+  const { scene, world, R } = g, Y = 0.02;
+  const add = (m, cast = true) => { m.castShadow = cast; m.receiveShadow = true; scene.add(m); return m; };
+  const mat = (color, rough = 0.85, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, ...extra });
+  const solid = (w, h, d, x, y, z, m, ry = 0, collide = true) => {
+    const b = add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m)); b.position.set(x, y, z); b.rotation.y = ry;
+    if (collide) world.createCollider(R.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(x, y, z).setRotation(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0))));
+    return b;
+  };
+  // the apron: concrete, a quay wall down into the water, a yellow line along the edge
+  const concT = canvasTex(256, 256, (c, w, h) => { noise(c, w, h, '#a9a59c', 0.12, 16000, 2); c.strokeStyle = 'rgba(60,58,54,.35)'; c.lineWidth = 2; c.strokeRect(0, 0, w, h); for (let i = 0; i < 6; i++) { c.fillStyle = 'rgba(70,60,50,.1)'; c.beginPath(); c.arc(Math.random() * w, Math.random() * h, 10 + Math.random() * 30, 0, 7); c.fill(); } }, [(DOCK.x1 - DOCK.x0) / 8, (DOCK.z1 - DOCK.z0) / 8]);
+  const slab = solid(DOCK.x1 - DOCK.x0, 5, DOCK.z1 - DOCK.z0, (DOCK.x0 + DOCK.x1) / 2, Y - 2.5, (DOCK.z0 + DOCK.z1) / 2, [mat(0x8a867e), mat(0x8a867e), mat(0xb0aca4, 0.95, { map: concT }), mat(0x8a867e), mat(0x8a867e), mat(0x7a766e)]);
+  slab.castShadow = false;
+  solid(DOCK.x1 - DOCK.x0 - 2, 0.02, 0.3, (DOCK.x0 + DOCK.x1) / 2, Y + 0.01, DOCK.z0 + 1.2, mat(0xe0b830, 0.6), 0, false);
+  const dark = mat(0x26282a, 0.5, { metalness: 0.4 });
+  for (let x = DOCK.x0 + 8; x < DOCK.x1 - 6; x += 14) { const b = add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.7, 10), dark)); b.position.set(x, Y + 0.35, DOCK.z0 + 0.6); world.createCollider(R.ColliderDesc.cylinder(0.35, 0.28).setTranslation(x, Y + 0.35, DOCK.z0 + 0.6)); }
+  // tyres hung on the quay wall as fenders
+  for (let x = DOCK.x0 + 15; x < 520; x += 20) { const t = add(new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.2, 8, 14), mat(0x161616, 0.9)), false); t.position.set(x, Y - 1.2, DOCK.z0 - 0.1); }
+
+  // ---- containers, stacked in blocks
+  const ribT = canvasTex(64, 64, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); for (let i = 0; i < w; i += 8) { c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(i, 0, 3, h); } c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(0, 0, w, 3); c.fillRect(0, h - 3, w, 3); });
+  const COLS = [0x9a3324, 0x2a4a8a, 0x3a6a3a, 0xd8742a, 0x7a7d80, 0xe8e2d4, 0x6a2a4a, 0xc8a030];
+  const parts = [];
+  const box = (w, h, d, x, y, z, color) => { const b = new THREE.BoxGeometry(w, h, d); b.translate(x, y, z); const c = new THREE.Color(color), n = b.attributes.position.count, col = new Float32Array(n * 3); for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; } b.setAttribute('color', new THREE.BufferAttribute(col, 3)); parts.push(b); };
+  let seed = 7; const rr = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (const z0 of [-2312, -2290]) for (let row = 0; row < 3; row++) for (let bx = 58; bx < 240; bx += 6.5) {
+    if (rr() < 0.18) continue;
+    const z = z0 + row * 2.7, n = 1 + Math.floor(rr() * 3);
+    for (let k = 0; k < n; k++) box(6.06, 2.58, 2.44, bx, Y + 1.29 + k * 2.6, z, COLS[Math.floor(rr() * COLS.length)]);
+    world.createCollider(R.ColliderDesc.cuboid(3.03, 1.3 * n, 1.22).setTranslation(bx, Y + 1.3 * n, z));
+  }
+  add(new THREE.Mesh(mergeGeometries(parts, false), new THREE.MeshStandardMaterial({ map: ribT, vertexColors: true, roughness: 0.75, metalness: 0.2 })));
+
+  // ---- a gantry crane over the quay, its boom out over the water
+  {
+    const yel = mat(0xe0a820, 0.55, { metalness: 0.3 }), x0 = 328, x1 = 352, zA = DOCK.z0 + 2, zB = DOCK.z0 + 16, H = 28;
+    for (const x of [x0, x1]) for (const z of [zA, zB]) solid(1.3, H, 1.3, x, Y + H / 2, z, yel);
+    for (const x of [x0, x1]) solid(1.1, 1.4, zB - zA + 1.3, x, Y + H, (zA + zB) / 2, yel, 0, false);
+    for (const z of [zA, zB]) solid(x1 - x0 + 1.3, 1.6, 1.1, (x0 + x1) / 2, Y + H - 0.2, z, yel, 0, false);
+    for (const x of [x0, x1]) solid(0.5, 0.5, zB - zA, x, Y + 6, (zA + zB) / 2, yel, 0, false);
+    solid(x1 - x0 + 2, 2.4, 95, (x0 + x1) / 2, Y + H + 2, DOCK.z0 - 25, yel, 0, false); // (the boom)
+    solid(8, 4, 10, (x0 + x1) / 2, Y + H + 5, zB - 2, mat(0xd8d4c8, 0.6), 0, false);   // (the machinery house)
+    solid(3.6, 2.2, 3, (x0 + x1) / 2, Y + H - 0.6, DOCK.z0 - 20, mat(0x3a3d40, 0.5), 0, false); // (the trolley)
+    const cable = add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 16, 4), dark), false); cable.position.set((x0 + x1) / 2, Y + H - 9, DOCK.z0 - 20);
+  }
+
+  // ---- a freighter alongside: rust-red below, black above, no name on her, no flag
+  {
+    const z = DOCK.z0 - 10, x = 300, L = 92;
+    solid(L, 4.5, 15, x, -2.4, z, mat(0x6a1e16, 0.8));
+    solid(L, 3.2, 15.4, x, 1.4, z, mat(0x1a1c1e, 0.6));
+    const bow = add(new THREE.Mesh(new THREE.CylinderGeometry(7.7, 7.7, 7.7, 3, 1), mat(0x1a1c1e, 0.6))); bow.rotation.set(0, 0, 0); bow.scale.set(1.4, 1, 1); bow.position.set(x + L / 2 + 2, -0.85, z); bow.rotation.y = Math.PI / 2;
+    world.createCollider(R.ColliderDesc.cuboid(L / 2, 3.9, 7.6).setTranslation(x, -0.8, z));
+    solid(L - 2, 0.2, 14, x, 3.1, z, mat(0x5a4a3a, 0.9), 0, false); // (the deck)
+    const sx = x - L / 2 + 9;
+    solid(12, 11, 13, sx, 8.5, z, mat(0xe6e2d8, 0.6));
+    solid(12.2, 1.4, 13.2, sx, 12.6, z, mat(0x22303a, 0.2, { metalness: 0.5 }), 0, false); // (the bridge windows)
+    const fun = add(new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 6, 12), mat(0x1a1c1e, 0.5))); fun.position.set(sx - 2, 17, z);
+    const deckCols = []; for (let i = 0; i < 9; i++) for (let k = 0; k < 2; k++) deckCols.push([x - 22 + i * 6.5, 4.5 + k * 2.6, z + (i % 2 ? 2.6 : -2.6)]);
+    for (const [cx, cy, cz] of deckCols) { if (rr() < 0.3) continue; solid(6, 2.58, 2.44, cx, cy, cz, mat(COLS[Math.floor(rr() * COLS.length)], 0.75), 0, false); }
+    // ropes to the bollards
+    for (const ox of [-36, 36]) { const r = add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 11, 4), mat(0xc8b890, 0.9)), false); r.position.set(x + ox, 2.2, (z + DOCK.z0) / 2 + 2); r.rotation.x = Math.PI / 2 - 0.25; }
+  }
+
+  // ---- the warehouse: corrugated sides, roller doors facing the yard
+  {
+    const corrT = canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#8a9aa4'; c.fillRect(0, 0, w, h); for (let i = 0; i < w; i += 6) { c.fillStyle = 'rgba(0,0,0,.16)'; c.fillRect(i, 0, 2, h); c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(i + 3, 0, 1, h); } for (let i = 0; i < 30; i++) { c.fillStyle = 'rgba(120,70,40,.12)'; c.fillRect(Math.random() * w, Math.random() * h, 3, 10 + Math.random() * 20); } }, [8, 2]);
+    const [x0, z0, x1, z1] = DOCK_FOOT[0], cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, H = 11;
+    solid(x1 - x0, H, z1 - z0, cx, Y + H / 2, cz, mat(0xffffff, 0.7, { map: corrT, metalness: 0.3 }));
+    const roof = add(new THREE.Mesh(new THREE.BoxGeometry(x1 - x0 + 1, 0.5, (z1 - z0) / 2 + 1.2), mat(0x6a7278, 0.6, { metalness: 0.4 })));
+    roof.position.set(cx, Y + H + 1.3, cz - (z1 - z0) / 4); roof.rotation.x = -0.15;
+    const roof2 = roof.clone(); roof2.position.z = cz + (z1 - z0) / 4; roof2.rotation.x = 0.15; scene.add(roof2);
+    for (let i = 0; i < 3; i++) solid(7, 6, 0.2, x0 + 12 + i * 18, Y + 3, z1 + 0.05, mat(0x5a6066, 0.6, { metalness: 0.4 }), 0, false);
+    const signT = canvasTex(512, 96, (c, w, h) => { c.fillStyle = '#1e2a36'; c.fillRect(0, 0, w, h); c.fillStyle = '#f0ece0'; c.font = 'bold 52px Arial'; c.textAlign = 'center'; c.fillText('NORTH QUAY FREIGHT', w / 2, 66); });
+    const sg = add(new THREE.Mesh(new THREE.PlaneGeometry(22, 4), new THREE.MeshStandardMaterial({ map: signT, roughness: 0.6 })), false); sg.position.set(cx, Y + H - 2.4, z1 + 0.12);
+  }
+  // floodlights over the yard
+  for (const [x, z] of [[100, -2262], [290, -2262], [400, -2300], [560, -2262]]) {
+    solid(0.4, 16, 0.4, x, Y + 8, z, dark);
+    const head = add(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.6, 1), mat(0x333333, 0.5, { emissive: 0xfff2c0, emissiveIntensity: 0.4 }))); head.position.set(x, Y + 16.2, z);
+  }
+
+  // ---- the apartments: a small three-storey walk-up at the east end, with open walkways and a stair
+  {
+    const [x0, z0, x1, z1] = DOCK_FOOT[1], cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0;
+    g.city.building({ x: cx, z: cz, w, d, floors: 3, style: 'stucco', wallIndex: 1 });
+    const GROUND = 4.2, FLOOR = 3.3, rail = mat(0x3a3a3a, 0.5, { metalness: 0.5 }), deck = mat(0xb4ada0, 0.9);
+    for (const y of [GROUND, GROUND + FLOOR]) {
+      solid(w, 0.25, 2, cx, Y + y - 0.12, z1 + 1, deck);                              // (the walkway)
+      solid(w, 0.08, 0.08, cx, Y + y + 1.0, z1 + 1.95, rail, 0, false);              // (the rail)
+      world.createCollider(R.ColliderDesc.cuboid(w / 2, 0.55, 0.05).setTranslation(cx, Y + y + 0.55, z1 + 1.95));
+      for (let x = x0; x <= x1; x += 2) solid(0.05, 1.0, 0.05, x, Y + y + 0.5, z1 + 1.95, rail, 0, false);
+      for (let x = x0 + 3; x < x1 - 2; x += 6) solid(1.0, 2.1, 0.08, x, Y + y + 1.05, z1 + 0.02, mat(0x5a2a1a, 0.7), 0, false); // (front doors)
+    }
+    for (let x = x0 + 3; x < x1 - 8; x += 6) solid(1.0, 2.1, 0.08, x, Y + 1.05, z1 + 0.02, mat(0x5a2a1a, 0.7), 0, false);
+    // the stair up the east end: two flights
+    const ramp = (xa, ya, xb, yb, z) => { const L = Math.hypot(xb - xa, yb - ya), a = Math.atan2(yb - ya, xb - xa);
+      const m = add(new THREE.Mesh(new THREE.BoxGeometry(L, 0.3, 1.6), deck)); m.position.set((xa + xb) / 2, Y + (ya + yb) / 2, z); m.rotation.z = a;
+      world.createCollider(R.ColliderDesc.cuboid(L / 2, 0.15, 0.8).setTranslation((xa + xb) / 2, Y + (ya + yb) / 2, z).setRotation(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, a)))); };
+    ramp(x1 + 9, 0, x1 + 1, GROUND, z1 + 1);
+    ramp(x1 + 1, GROUND, x1 + 9, GROUND + FLOOR, z1 + 3);
+    solid(2, 0.25, 4, x1 + 1, Y + GROUND - 0.12, z1 + 2, deck);
+    solid(2, 0.25, 2, x1 + 9.6, Y + GROUND + FLOOR - 0.12, z1 + 3, deck);
+    solid(2, 0.25, 2, x1 + 0.4, Y + GROUND + FLOOR - 0.12, z1 + 1, deck);
+    // a sign by the road, a dumpster, a washing line
+    const sT = canvasTex(512, 160, (c, w, h) => { c.fillStyle = '#d8c8a0'; c.fillRect(0, 0, w, h); c.fillStyle = '#2a5a6a'; c.fillRect(8, 8, w - 16, h - 16); c.fillStyle = '#f2ead8'; c.font = 'bold 54px Georgia'; c.textAlign = 'center'; c.fillText('SALTLINE', w / 2, 72); c.font = 'bold 30px Arial'; c.fillText('APARTMENTS · VACANCY', w / 2, 120); });
+    const sg = new THREE.Mesh(new THREE.BoxGeometry(4, 1.25, 0.15), [0, 0, 0, 0, 1, 1].map(i => i ? new THREE.MeshStandardMaterial({ map: sT }) : mat(0x6a6a6a)));
+    sg.position.set(x0 - 3, Y + 2.6, -2247); add(sg); solid(0.15, 2, 0.15, x0 - 4.5, Y + 1, -2247, rail, 0, false); solid(0.15, 2, 0.15, x0 - 1.5, Y + 1, -2247, rail, 0, false);
+    solid(2.6, 1.5, 1.6, x0 - 6, Y + 0.75, z0 + 4, mat(0x2a5a3a, 0.6, { metalness: 0.3 }));
+    // parking bays painted out front
+    for (let x = x0 - 2; x < x1 + 4; x += 3) solid(0.12, 0.02, 5, x, Y + 0.012, z1 + 7.5, mat(0xe8e4d8, 0.6), 0, false);
+  }
 }

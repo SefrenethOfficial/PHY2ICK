@@ -17,7 +17,11 @@ It's a **dense** city, not an open one: every gap between the places on the map 
 - **The south**: the Spa, **Fairview Heights** (where you live), the Convenience Store, the **construction site** (a half-built multi-storey car park you can drive or climb up, a crane, scaffolding, site hoarding), the **abandoned car park** (broken, graffitied, a burnt-out car), **Albuquerque Boiled Turkey** (with a drive-thru window and menu board on the loop road round it), its car park, the hedge, and the beach's washrooms, reception and car park.
 
 ### The Dry (the desert)
-North of the island, over a causeway at the top of the main north–south road: a desert about 2 km across. Red and tan flats with low dunes, sagebrush, saguaro cacti and boulders; flat-topped **mesas** in bands of red, orange and cream; a two-lane **highway** up the middle with telegraph poles and sagging wires beside it, two side roads (east towards the big mesas, west into the flats) and a few dirt tracks. A sign at the end of the causeway (*THE DRY · NO SERVICES NEXT 60 MILES · CARRY WATER*), and *ROAD CLOSED* where the highway runs into the mountains. All round it a wall of **mountains** you can see from the city; for now you can't cross them. Traffic and the police can use its roads. Nobody lives out here.
+North of the island, over a causeway at the top of the main north–south road: a desert about 2 km long with the sea on three sides. Red and tan flats with low dunes, sagebrush, saguaro cacti and boulders; flat-topped **mesas** in bands of red, orange and cream, a few out in the middle and a long line of them down each side and along the top, with the sea behind; a two-lane **highway** up the middle with telegraph poles and sagging wires beside it, two side roads (east towards the big mesas, west into the flats) and a few dirt tracks. A sign at the end of the causeway: *THE DRY · NO SERVICES NEXT 60 MILES · CARRY WATER*.
+
+**North Quay**, where the highway ends: a concrete dockside on the north shore. Stacks of shipping containers, a yellow gantry crane with its boom out over the water, a rust-red freighter tied up alongside (no name on her, no flag), the **North Quay Freight** warehouse, floodlights, bollards and tyre fenders. At its east end, the **Saltline Apartments**: a small three-storey walk-up with open walkways along the front, a stair up the end, a parking area and a *VACANCY* sign by the road.
+
+Traffic and the police can use its roads. Nobody lives out here (yet).
 
 ### Inside
 Walk in through the front door of most places: there's a real room behind it, lit, furnished, with someone working there you can talk to.
@@ -215,7 +219,7 @@ src/
   props.js      loose things: picking up, carrying, dropping, throwing
   weapons.js    fists, the hatchet, the butter knife, the plastic kiddie knife, the pistol, the shotgun: aiming, punching, swinging, shooting
   police.js     wanted stars, crimes, witnesses and their calls, reports, patrols and stop-and-searches, cop cars (A* along the roads), cops on foot, losing them, BUSTED
-  desert.js     the Dry: the desert north over the causeway (ground, mesas, scrub, highway and tracks, poles, the mountains round it)
+  desert.js     the Dry: the desert north over the causeway (ground, mesas, scrub, highway and tracks, poles), North Quay and the Saltline Apartments
   traffic.js    cars driving about (sedans, taxis, delivery vans, convertibles), carjacking
   save.js       saving to the browser, Continue
   fx.js         fire, smoke, sparks, muzzle flashes, tracers, explosions, debris
