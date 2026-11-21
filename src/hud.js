@@ -100,8 +100,8 @@ export class Hud {
     if (sk !== this.lastStars) { this.lastStars = sk; this.starsEl.innerHTML = '<i>★</i>'.repeat(5) + (sus ? '<b>REPORTED · STAY OUT OF SIGHT</b>' : ''); this.starsEl.style.display = st ? 'block' : 'none'; this.starsEl.classList.toggle('suspect', !!sus); [...this.starsEl.querySelectorAll('i')].forEach((e, i) => e.classList.toggle('on', i < st)); }
     this.starsEl.classList.toggle('search', !!(st && P && !P.seen));
     // the weapon in your hand (and rounds)
-    const Wp = g.weapons, wk = Wp.cur + (Wp.W.gun ? Wp.clip[Wp.cur] + '/' + Wp.ammo[Wp.cur] + (Wp.reloadT > 0 ? 'r' : '') : '') + (g.player.sacks || 0) + 'd' + (g.drugs?.count || 0);
-    if (wk !== this.lastW) { this.lastW = wk; this.weaponEl.innerHTML = Wp.W.name + (Wp.W.gun ? `<small>${Wp.reloadT > 0 ? 'reloading…' : Wp.clip[Wp.cur] + ' / ' + Wp.ammo[Wp.cur]}</small>` : '') + (g.player.sacks ? `<small>sacks ${g.player.sacks}</small>` : '') + (g.drugs?.count ? `<small style="color:#5fd0ff">Physick ${g.drugs.count}</small>` : ''); }
+    const Wp = g.weapons, wk = Wp.cur + (Wp.W.gun ? Wp.clip[Wp.cur] + '/' + Wp.ammo[Wp.cur] + (Wp.reloadT > 0 ? 'r' : '') : '') + (g.player.sacks || 0) + 'd' + (g.drugs?.count || 0) + 'l' + (g.shopping?.loot.length || 0) + 'h' + (g.player.car?.heat || 0);
+    if (wk !== this.lastW) { this.lastW = wk; this.weaponEl.innerHTML = Wp.W.name + (Wp.W.gun ? `<small>${Wp.reloadT > 0 ? 'reloading…' : Wp.clip[Wp.cur] + ' / ' + Wp.ammo[Wp.cur]}</small>` : '') + (g.player.sacks ? `<small>sacks ${g.player.sacks}</small>` : '') + (g.drugs?.count ? `<small style="color:#5fd0ff">Physick ${g.drugs.count}</small>` : '') + (g.shopping?.loot.length ? `<small style="color:#ffd23f">stuff ${g.shopping.loot.length}</small>` : '') + (g.player.car?.heat >= 2 ? `<small style="color:#ff9a5a">known car</small>` : ''); }
     this.reticleEl.style.display = Wp.aiming && Wp.W.gun ? 'block' : 'none';
     this.reticleEl.classList.toggle('red', !!g.aimedAt);
     // speech bubbles follow heads

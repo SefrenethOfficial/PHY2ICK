@@ -70,7 +70,7 @@ export class Player {
       if (this.smashT <= 0 && c) { this.smashCar = null; if (!c.driver && c.pos.distanceTo(this.pos) < 4) this.enterCar(c); }
     }
     if (this.swimming || this.car) this.crouch = false;
-    const stuck = busy || !!g.drugs?.cook || !!g.story?.locked || !!g.wren?.phoneOpen || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
+    const stuck = busy || !!g.drugs?.cook || !!g.story?.locked || !!g.wren?.phoneOpen || !!g.chop?.open || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
     if (!stuck) {
       if (k.has('KeyW')) want.z -= 1; if (k.has('KeyS')) want.z += 1;
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;

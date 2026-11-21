@@ -134,7 +134,7 @@ export function buildInterior(g, room, kind, opts = {}) {
   for (let z = -3; z > -D + 1; z -= 5) for (let x = -W / 2 + 3; x < W / 2 - 2; x += 6) { if (!opts.noPanels) glow(1.2, 0.6, x, H - 0.04, z, opts.panel ?? 0xfff2dc, 1.4).rotation.x = Math.PI / 2; }
   lightPts.push(toW(-W / 4, H - 0.5, -D * 0.35), toW(W / 4, H - 0.5, -D * 0.65));
   g.rooms = g.rooms || [];
-  const roomRec = { kind, name: opts.name, ring: [toW(-W / 2, 0, 0), toW(W / 2, 0, 0), toW(W / 2, 0, -D), toW(-W / 2, 0, -D)].map(p => [p.x, p.z]), y0: -1, y1: H + 0.2, lights: lightPts, tint: opts.tint ?? 0xffe6c4, power: opts.power ?? 18 };
+  const roomRec = { kind, name: opts.name, ring: [toW(-W / 2, 0, 0), toW(W / 2, 0, 0), toW(W / 2, 0, -D), toW(-W / 2, 0, -D)].map(p => [p.x, p.z]), y0: -1, y1: H + 0.2, lights: lightPts, tint: opts.tint ?? 0xffe6c4, power: opts.power ?? 18, shelf: [], set: opts.products || 'food' }; // (shelf: where real things sit, to pick up)
   g.rooms.push(roomRec);
   const workers = []; // (shopkeepers: where they stand, and what they say)
   const worker = (x, z, ryLocal, lines, role, y = 0.04) => workers.push({ pos: toW(x, y, z), yaw: yaw + ryLocal, lines, role, shop: opts.name, kind, products: opts.products });
@@ -146,14 +146,15 @@ export function buildInterior(g, room, kind, opts = {}) {
   const aisleAccent = opts.accent ?? 0x2f6aa8;
   const gondola = (x0, x1, z, set, label) => {
     const len = x1 - x0, cx = (x0 + x1) / 2, h = 1.78;
-    col(len, h, 0.94, cx, h / 2, z);
+    col(len, h, 0.1, cx, h / 2, z); col(len, 0.12, 0.94, cx, 0.06, z); // (the back panel and the plinth; each shelf has its own, below: things sit on them)
     cbox(len, 0.1, 0.94, cx, 0.05, z, 0x3a3d40);
     cbox(len, h - 0.1, 0.04, cx, 0.1 + (h - 0.1) / 2, z, 0xe4e4e0);
     for (const ex of [x0, x1]) { cbox(0.05, h, 0.96, ex, h / 2, z, aisleAccent); }
     for (const [i, y] of [0.1, 0.52, 0.94, 1.36].entries()) for (const sd of [-1, 1]) {
-      if (i) cbox(len - 0.06, 0.025, 0.44, cx, y + 0.0125, z + sd * 0.24, 0xd4d4d0);
+      if (i) { cbox(len - 0.06, 0.025, 0.44, cx, y + 0.0125, z + sd * 0.24, 0xd4d4d0); col(len - 0.06, 0.04, 0.46, cx, y + 0.005, z + sd * 0.24); }
       cbox(len - 0.06, 0.045, 0.012, cx, y + 0.01, z + sd * 0.462, 0xf2ecc8); // (the price strip)
       facing(len - 0.08, cx, y + 0.03 + 0.2, z + sd * 0.36, sd > 0 ? 0 : Math.PI, set);
+      if (i) for (let x = x0 + 0.35; x < x1 - 0.3; x += 0.5) roomRec.shelf.push({ p: toW(x, y + 0.03, z + sd * 0.41), ry: yaw + (sd > 0 ? 0 : Math.PI) });
     }
     if (label) { sign(label, 2.2, cx, 2.55, z + 0.01, 0, '#ffffff', '#1d2a38'); sign(label, 2.2, cx, 2.55, z - 0.01, Math.PI, '#ffffff', '#1d2a38'); cbox(0.02, H - 2.55 - 0.2, 0.02, cx - 0.9, (H + 2.75) / 2, z, 0x8a8d90); cbox(0.02, H - 2.55 - 0.2, 0.02, cx + 0.9, (H + 2.75) / 2, z, 0x8a8d90); }
   };
@@ -232,6 +233,17 @@ export function buildInterior(g, room, kind, opts = {}) {
           const stops = pts.map(() => null); stops[5] = 'browse'; stops[10] = 'till';
           return { pts, stops };
         } });
+      break;
+    }
+    case 'gunstore': { // Halyard Arms: a long glass counter of pistols, racks of long guns on the wall, a target range sign
+      counter(0, -3.4, W - 8, 0.9, 0x2b2d30, 0x1a1a1a); mesh(new THREE.BoxGeometry(W - 8, 0.12, 0.9), glassM, 0, 1.12, -3.4); register(W / 2 - 5.5, -3.4);
+      for (let x = -W / 2 + 5; x < W / 2 - 6; x += 0.7) { cbox(0.32, 0.05, 0.18, x, 0.98, -3.4, 0x1a1a1c); cbox(0.06, 0.14, 0.1, x - 0.11, 0.93, -3.4, 0x1a1a1c); }
+      worker(0, -4.6, 0, opts.lines || ["Looking to protect yourself? Smart.", "Background check? Sure. You look fine.", "Ammo's by the box. Don't be shy."], 'clerk');
+      for (let x = -W / 2 + 3; x < W / 2 - 2; x += 0.55) { cbox(0.09, 1.1, 0.07, x, 1.75, -D + 0.16, [0x2a2a2a, 0x5a3a22, 0x3a3d40][Math.floor(Math.random() * 3)]); cbox(0.05, 0.3, 0.05, x, 1.2, -D + 0.16, 0x1a1a1a); }
+      cbox(W - 4, 0.06, 0.3, 0, 1.15, -D + 0.25, 0x5a3a22); cbox(W - 4, 0.06, 0.3, 0, 2.35, -D + 0.25, 0x5a3a22);
+      for (let x = -W / 2 + 2.5; x < -W / 2 + 7; x += 1.4) cbox(0.9, 0.75, 0.5, x, 0.375, -D + 2.4, 0x3a4a2a, { collide: true }); // (ammo crates)
+      sign('HALYARD ARMS · EST. 1987', 5, 0, H - 0.6, -D + 0.07, 0, '#1a1410', '#e8c46a');
+      sign('NO LOADED WEAPONS PAST THIS POINT', 4, -W / 2 + 0.3, 2.4, -D / 2, Math.PI / 2, '#8a1c1c', '#ffffff');
       break;
     }
     case 'pawn': { // glass counters, guitars, TVs, a safe

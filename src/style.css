@@ -139,3 +139,15 @@ body.title #hud, body.title #objective { opacity: 0; pointer-events: none; }
 #phone .acts button { text-align: left; font: 13px Arial; color: #fff; background: #1f2630; border: 1px solid #2e3844; border-radius: 10px; padding: 6px 9px; cursor: pointer; }
 #phone .acts button:hover:not([disabled]) { background: #2a3a4c; } #phone .acts button[disabled] { opacity: .4; cursor: default; }
 #phone .acts button small { color: #ffb27a; margin-right: 7px; }
+
+/* Rusty's */
+#garage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 340px; padding: 18px 18px 14px; background: rgba(14,16,20,.94); border: 2px solid #e8c020; border-radius: 12px; color: #fff; font: 14px Arial; display: none; z-index: 6; }
+#garage.on { display: block; }
+#garage h3 { margin: 0 0 6px; font: 700 22px "Arial Black", Arial; letter-spacing: 2px; color: #e8c020; }
+#garage .car { color: #c8d0d8; margin-bottom: 4px; } #garage .car b { font-family: monospace; background: #f4f2ea; color: #1b2a55; padding: 1px 6px; border-radius: 3px; }
+#garage .heat { font-size: 12px; color: #7be08a; margin-bottom: 10px; } #garage .heat.warm { color: #ffd166; } #garage .heat.hot { color: #ff6a5a; }
+#garage button[data-a] { display: block; width: 100%; text-align: left; margin: 4px 0; padding: 8px 10px; border-radius: 8px; border: 1px solid #2e3844; background: #1f2630; color: #fff; font: 14px Arial; cursor: pointer; }
+#garage button[data-a]:hover:not([disabled]) { background: #2a3a4c; } #garage button[disabled] { opacity: .45; cursor: default; }
+#garage button small { color: #e8c020; margin-right: 8px; }
+#garage .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 6px 0; } #garage .swatches button { height: 38px; border-radius: 8px; border: 2px solid rgba(255,255,255,.25); cursor: pointer; }
+#garage .hint { margin-top: 8px; font-size: 12px; color: #9aa4b0; text-align: center; }

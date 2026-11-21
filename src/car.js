@@ -147,7 +147,8 @@ export class Car {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.16, 0.05), trim)).position.set(0, 0.55, 2.37);
     add(new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.12, 0.16), trim)).position.set(0, 0.36, 2.32);
     add(new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.12, 0.16), trim)).position.set(0, 0.38, -2.33);
-    const plateT = new THREE.CanvasTexture((() => { const c = document.createElement('canvas'); c.width = 128; c.height = 40; const x = c.getContext('2d'); x.fillStyle = '#f4f2ea'; x.fillRect(0, 0, 128, 40); x.strokeStyle = '#223'; x.lineWidth = 3; x.strokeRect(2, 2, 124, 36); x.fillStyle = '#1b2a55'; x.font = 'bold 24px monospace'; x.textAlign = 'center'; x.fillText('PHY 2ICK', 64, 29); return c; })());
+    this.plateC = document.createElement('canvas'); this.plateC.width = 128; this.plateC.height = 40;
+    const plateT = this.plateT = new THREE.CanvasTexture(this.plateC); this.setPlate(Car.randomPlate());
     plateT.colorSpace = THREE.SRGBColorSpace;
     const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.13), new THREE.MeshStandardMaterial({ map: plateT })); plate.position.set(0, 0.52, -2.36); plate.rotation.y = Math.PI; add(plate);
 
@@ -315,6 +316,14 @@ export class Car {
   board(h, seat, dur = 1.05) { this.boarding = { h, seat, t: 0, dur }; this.openDoor(seat, dur * 0.72); }
   get boardingK() { return this.boarding ? this.boarding.t / this.boarding.dur : 1; }
   // a point behind the car (for the boot)
+  // number plates (each car its own; Rusty can swap them) and the paint (Rusty can respray it)
+  static randomPlate() { const L = 'ABCDEFGHJKLMNPRSTUVWXYZ', r = (s) => s[Math.floor(Math.random() * s.length)]; return `${r(L)}${r(L)}${r(L)} ${Math.floor(100 + Math.random() * 900)}`; }
+  setPlate(text) {
+    this.plate = text; const x = this.plateC.getContext('2d');
+    x.fillStyle = '#f4f2ea'; x.fillRect(0, 0, 128, 40); x.strokeStyle = '#223'; x.lineWidth = 3; x.strokeRect(2, 2, 124, 36);
+    x.fillStyle = '#1b2a55'; x.font = 'bold 24px monospace'; x.textAlign = 'center'; x.fillText(text, 64, 29); this.plateT.needsUpdate = true;
+  }
+  respray(color) { this.paint.color.set(color); this.color = color; }
   localPoint(x, y, z) { return V(x, GY + y, z).applyMatrix4(this.group.matrixWorld); } // (a point on the car, from the ground under it)
   trunkPoint(out = 1) { return V(0, GY + 0.05, -2.4 - out).applyMatrix4(this.group.matrixWorld); }
   animateParts(dt) {

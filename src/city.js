@@ -303,7 +303,7 @@ export function buildCity(g) {
       city.building({ x: cx, z: cz, w: w - 1, d: d - 1, ...opts, room }); blockRect(x0, z0, x1, z1);
       const res = buildInterior(g, room, kind, { name, ...iopts }); g.workers.push(...res.workers);
     };
-    const ROOMS = { 'Mini Mart': ['store', {}], 'A Rival Mini Mart': ['store', { lines: ["The OTHER mini mart? Never heard of it.", "Our prices are lower. Probably.", "What can I get you?"] }], 'Convenience Store': ['store', {}], 'Grocery': ['store', { fridges: true }], 'Game Shop': ['store', { products: 'games', fridges: false, sign: 'NEW RELEASES', lines: ["Pre-orders are back there.", "No, we don't have the new one yet.", "You look like a racing-game person."] }], 'Home Improvements': ['store', { products: 'tools', fridges: false, sign: 'PAINT · TOOLS · TIMBER', lines: ["Aisle 4 for hammers.", "We don't hire out the chainsaw any more. Long story."] }], 'Cheap House': ['store', { products: 'cheap', fridges: false, sign: 'EVERYTHING $2', lines: ["Everything's two dollars.", "Even that. Yes, that too."] }], 'Pawn Shop': ['pawn', {}], 'Spa': ['lobby', { variant: 'spa', floor: 'wood' }], 'City Wok': ['restaurant', { variant: 'wok', floor: 'tiles' }] };
+    const ROOMS = { 'Mini Mart': ['store', {}], 'A Rival Mini Mart': ['store', { lines: ["The OTHER mini mart? Never heard of it.", "Our prices are lower. Probably.", "What can I get you?"] }], 'Convenience Store': ['store', {}], 'Grocery': ['store', { fridges: true }], 'Game Shop': ['store', { products: 'games', fridges: false, sign: 'NEW RELEASES', lines: ["Pre-orders are back there.", "No, we don't have the new one yet.", "You look like a racing-game person."] }], 'Home Improvements': ['store', { products: 'tools', fridges: false, sign: 'PAINT · TOOLS · TIMBER', lines: ["Aisle 4 for hammers.", "We don't hire out the chainsaw any more. Long story."] }], 'Cheap House': ['store', { products: 'cheap', fridges: false, sign: 'EVERYTHING $2', lines: ["Everything's two dollars.", "Even that. Yes, that too."] }], 'Pawn Shop': ['pawn', {}], 'Halyard Arms': ['gunstore', {}], 'Spa': ['lobby', { variant: 'spa', floor: 'wood' }], 'City Wok': ['restaurant', { variant: 'wok', floor: 'tiles' }] };
     curAt = V(cx, 0, cz);
     switch (kind) {
       case 'shop':
@@ -485,7 +485,9 @@ export function buildCity(g) {
         blockRect(x0, z0, x1, z1); placeAt('Town Square', V(cx, 0, z1 + 1)); g.townSquare = V(cx, KERB, cz); g.squareRect = [x0, z0, x1, z1]; break;
       }
       case 'lot':
-        lotPaint(x0, z0, x1, z1, d > w ? 'z' : 'x'); blockRect(x0, z0, x1, z1); placeAt(name === 'ABT Parking Lot' ? 'the ABT Parking Lot' : 'the parking lot', V(cx, 0, cz)); break;
+        lotPaint(x0, z0, x1, z1, d > w ? 'z' : 'x'); blockRect(x0, z0, x1, z1); placeAt(name === 'ABT Parking Lot' ? 'the ABT Parking Lot' : name === "Rusty's Parking" ? "Rusty's Parking" : 'the parking lot', V(cx, 0, cz));
+        if (name === "Rusty's Parking") g.chopLot = { x0, z0, x1, z1, face }; // (the garage at the back is built later: chopshop.js)
+        break;
       case 'diner': { // a long red diner with chrome, big windows, a neon sign; the rest of its lot is its car park
         const dw = Math.min(w - 4, 17), dl = Math.min(d * 0.45, 46), dz = z0 + d * 0.3;
         if (dz - dl / 2 - 2 - z0 > 8) lotPaint(x0, z0, x1, dz - dl / 2 - 2, 'z');

@@ -27,6 +27,15 @@ Walk in through the front door of most places: there's a real room behind it, li
 ### The title screen
 The PHY2ICK logo over a timelapse on the beach by Kit's van: the day runs by in seconds (dusk, a short night, dawn). Wren sits on the sand in a yellow hazmat suit; you come out of the back and hand her the bags; she walks off along the beach, sells to the dealers there, and comes back and sits down again. Now and then a police car pulls up by the dealers and a cop gets out to ask a few questions, and they suddenly find their phones, the sea and a nice tune very interesting. The title theme plays over it (once you've clicked or pressed a key: browsers won't play music before that).
 
+### Shops, stealing and selling
+- **Shelves:** the Mini Marts, the Grocery, the Game Shop, Home Improvements and Cheap House have real things on the shelves (chips, cans, cereal, games, paint, hammers…). Pick one up, take it to the till and hold `E` on the clerk to **pay**. Or press `V` to **pocket** it and walk out. If the clerk sees you pocket it, or notices you leave, they call the police (crouching helps).
+- **Pickpocketing:** crouch, or get behind someone, and hold `E`: *Pickpocket*. Get it right and you lift their cash, and maybe a watch, a phone or a necklace. Get it wrong and they shout, and they'll call it in.
+- **The Pawn Shop** buys whatever's in your pockets (stolen things for half what they're worth, things you paid for for less). It also sells sacks and Blue Salts, and buys Physick.
+- **Halyard Arms**, the gun shop downtown (where the visitor kiosk was), sells the pistol, the shotgun, ammo and a hatchet.
+
+### Rusty's Parking
+A small parking lot on the east side, $5 an hour, says the sign. At the back, a garage marked *STAFF ONLY*. Drive a car in, stop in the bay and press `E`: Rusty will **register it as yours** ($300), **respray** it ($150, ten colours) or put **new plates** on it ($100). Every car has its own plates now, and the police **remember cars**: use one in a crime, or let them see it in a chase, and it's a *known car* (it shows under your weapon). Drive past a cop in a known car, even with no stars, and they'll recognise it. A respray or new plates makes it a different car. If the police are after you and nobody saw you drive in, Rusty pulls the shutter down and they lose you.
+
 ### The story
 PHY2ICK is a prequel to PHYSICK: the time before Wren is gone. Press **Play** and it starts at the beginning.
 
@@ -184,6 +193,8 @@ src/
   title.js      the title screen: the timelapse, the title theme
   wren.js       Wren after she moves in: trust, her wheel, the phone, selling, texts, moods, ideas, reactions
   wrenlines.js  everything Wren says
+  shops.js      things on shop shelves, paying, pocketing, shoplifting, pickpocketing, selling at the Pawn Shop, Halyard Arms
+  chopshop.js   Rusty's Parking: the garage, registering, respraying, new plates
   story.js      the story: the scenes (camera moves, subtitles, letterbox), choosing your look, the opening
   tenants.js    your neighbours: who they are, making friends, their favours
   water.js      the sea: rolling waves, sliding ripples, the sky reflected

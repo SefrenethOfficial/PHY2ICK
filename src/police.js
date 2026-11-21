@@ -11,7 +11,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 // how bad each thing is (the least it gets you), and whether it needs a witness
 const CRIMES = {
   assault: 1, gunfire: 1, carjack: 1, ramCop: 1, explosion: 1, threat: 1,
-  murder: 2, robbery: 2, kidnap: 2, copAssault: 3, copMurder: 4, drugs: 1,
+  murder: 2, robbery: 2, kidnap: 2, copAssault: 3, copMurder: 4, drugs: 1, theft: 1,
 };
 
 // ---- the roads as a graph: every end and crossing is a node; A* finds the way
@@ -95,6 +95,8 @@ export class Police {
     const g = this.g, base = CRIMES[kind] ?? 1, C = g.citizens;
     if (g.player.dead || g.busted) return;
     g.wren?.onCrime(kind, at);
+    // a crime from a car: they'll remember the car (Rusty can fix that)
+    const car = g.player.car; if (car && !['drugs', 'theft'].includes(kind)) { const was = car.heat || 0; car.heat = Math.min(3, was + 1); if (was < 2 && car.heat >= 2) g.hud.toast(`The police will know this car now (${car.plate})`, '#ff9a5a'); }
     // a cop saw it (or they're already after you and watching): straight to stars
     if (known || (this.stars && this.seen) || this.copSees(at)) { this.escalate(base); return; }
     // an alarm, or the victim: a call that goes out on its own
@@ -369,6 +371,15 @@ export class Police {
   update(dt) {
     const g = this.g, pl = g.player, pp = pl.car ? pl.car.pos : pl.pos;
     g.sfx.musicOn = this.stars > 0 && !pl.dead;
+    // cars they know: seen in a chase, or used in a crime. Seen again (even with no stars), they're onto you
+    this.carT = (this.carT || 0) - dt;
+    if (pl.car && this.carT <= 0) {
+      this.carT = 1; const car = pl.car;
+      if (this.stars && this.seen && (car.heat || 0) < 3) { car.heat = 3; g.hud.toast(`They've seen the car (${car.plate})`, '#ff9a5a'); }
+      else if (!this.stars && !this.suspect && (car.heat || 0) >= 2 && (this.recogT || 0) <= 0 && this.copSees(car.pos)) { this.recogT = 40; g.hud.toast(`A cop recognises the car (${car.plate})`, '#ff6a5a'); this.reported(1, car.pos.clone(), 'car'); }
+    }
+    this.recogT = (this.recogT || 0) - dt;
+    for (const c of g.cars) if (c.heat) { c.heatT = (c.heatT || 0) + dt; if (c.heatT > 300) { c.heatT = 0; c.heat--; } }
     // can any of them see you?
     this.seeT = (this.seeT || 0) - dt;
     if (this.stars && this.seeT <= 0) {
