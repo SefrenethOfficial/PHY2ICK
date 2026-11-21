@@ -128,6 +128,16 @@ export class Human {
       add('eye' + k, ball(0.0062, 6, 5), 0xffffff, e.x + 0.006, HY + e.y + 0.009, e.z + 0.008);
       add('brow' + k, box(0.052, 0.014, 0.016, 0.006), new THREE.Color(L.hair).multiplyScalar(0.55), b.x, HY + b.y, b.z, { rz: s * -0.06, ry: s * 0.25 });
     }
+    // a hazmat suit's hood (open at the face) and a gas mask: a lens over the eyes, a snout, two filters
+    if (L.hazmat) {
+      add('head', new THREE.SphereGeometry(HR * 1.22, 20, 14, Math.PI / 2 + 0.95, Math.PI * 2 - 1.9, 0, Math.PI * 0.68), L.shirt, 0, HY + HC + 0.005, -0.01);
+      add('neck', new THREE.CylinderGeometry(0.075, 0.09, 0.08, 14), L.shirt, 0, 1.49, 0);
+      const mk = 0x1c1e20;
+      add('head', box(0.17, 0.075, 0.05, 0.02), 0x2a2e30, 0, HY + HC + 0.012, 0.108);
+      add('head', box(0.15, 0.052, 0.012, 0.012), 0x6a8a98, 0, HY + HC + 0.012, 0.133);
+      add('head', box(0.1, 0.085, 0.07, 0.025), mk, 0, HY + HC - 0.06, 0.112);
+      for (const sx of [-1, 1]) add('head', new THREE.CylinderGeometry(0.038, 0.038, 0.045, 14), 0x3a3e40, sx * 0.07, HY + HC - 0.075, 0.12, { rz: Math.PI / 2, ry: sx * 0.5 });
+    }
     // sunglasses (Vic)
     if (L.shades) { const dark = 0x0b0c0e; for (const sx of [-1, 1]) add('head', box(0.07, 0.042, 0.02, 0.008), dark, sx * 0.044, HY + HC + 0.006, 0.113); add('head', box(0.03, 0.012, 0.012, 0.004), dark, 0, HY + HC + 0.016, 0.118); for (const sx of [-1, 1]) add('head', box(0.008, 0.012, 0.11, 0.003), dark, sx * 0.083, HY + HC + 0.014, 0.06); }
     // hair
@@ -304,6 +314,11 @@ export class Human {
       for (const k of ['L', 'R']) { set('hip' + k, -1.57, 0, k === 'L' ? 0.14 : -0.14); set('knee' + k, 1.13); set('ankle' + k, 0.45); }
       set('shoulderL', -0.95, 0, -0.1); set('elbowL', -0.9); set('wristL'); set('shoulderR', -0.95, 0, 0.1); set('elbowR', -0.9); set('wristR');
       if (s.phone) { set('shoulderR', -0.95, 0, 0.35); set('elbowR', -2.45, 0, 0); set('wristR', 0, 0, 0.3); set('head', 0.1, this.lookYaw, -0.18); }
+    } else if (s.pose === 'groundsit') { // sat on the ground, knees up, arms over them
+      hipsY = 0.3;
+      set('hips'); set('spine', 0.32); set('chest', 0.12); set('neck', 0.1); set('head', 0.05, this.lookYaw, 0);
+      for (const k of ['L', 'R']) { set('hip' + k, -2.0, 0, k === 'L' ? 0.16 : -0.16); set('knee' + k, 2.3); set('ankle' + k, -0.15); }
+      set('shoulderL', -1.0, 0, -0.12); set('elbowL', -0.75); set('wristL'); set('shoulderR', -1.0, 0, 0.12); set('elbowR', -0.75); set('wristR');
     } else if (s.pose === 'drive' || s.pose === 'passenger') {
       hipsY = 0.95; // the seat sets the height
       set('hips'); set('spine', -0.26); set('chest'); set('neck', 0.16); set('head', 0.04, this.lookYaw * 0.6);

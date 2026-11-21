@@ -22,6 +22,7 @@ import { Drugs } from './drugs.js';
 import { Tenants } from './tenants.js';
 import { Story } from './story.js';
 import { VanInterior } from './van.js';
+import { Title } from './title.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -79,6 +80,7 @@ class Game {
     this.setupDrugs();
     this.tenants = new Tenants(this, this.apt.tenants);
     this.story = new Story(this);
+    this.title = new Title(this);
     // two lights that follow you indoors (cheaper than a light in every room)
     this.roomLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffe6c4, 0, 16, 1.5); this.scene.add(l); return l; });
     this.loadTimes.all = performance.now() - T0;
@@ -91,6 +93,7 @@ class Game {
     this.started = false;
     r.setAnimationLoop(() => this.tick());
     document.getElementById('splash').classList.add('ready');
+    this.title.start();
     window.game = this;
   }
 
@@ -103,7 +106,7 @@ class Game {
       if (!this.started) {
         const mode = e.target.closest('[data-mode]')?.dataset.mode; if (!mode) return;
         this.started = true; splash.classList.add('playing'); this.sfx.unlock();
-        if (mode === 'story') { splash.style.display = 'none'; this.story.begin(); return; }
+        if (mode === 'story') { splash.style.display = 'none'; this.title.end(); this.story.begin(); return; }
       }
       lock();
     });
@@ -455,12 +458,14 @@ class Game {
     this.drugs.update(dt);
     this.tenants?.update(dt);
     this.story?.update(rdt);
+    this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);
     this.citizens.frame(dt);
     this.blood.update(dt);
     this.cam.update(rdt);
     this.story?.camera();
+    this.title?.camera();
     if (this.shake > 0) { this.shake = Math.max(0, this.shake - rdt * 1.5); const k = this.shake * 0.12; this.camera.position.add(V((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k)); }
     // the prompt
     const pl = this.player;

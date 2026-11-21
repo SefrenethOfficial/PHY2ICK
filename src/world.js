@@ -65,7 +65,7 @@ export function buildWorld(g) {
   }
   scene.add(sky); g.sky = sky;
   scene.fog = new THREE.Fog(0xb7c6d2, 220, 1300);
-  scene.add(new THREE.HemisphereLight(0xc4d8f0, 0x6a5a46, 0.35));
+  scene.add(g.hemi = new THREE.HemisphereLight(0xc4d8f0, 0x6a5a46, 0.35));
   const sun = new THREE.DirectionalLight(0xffeedd, 3.4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);

@@ -24,6 +24,9 @@ Walk in through the front door of most places: there's a real room behind it, li
 - **The Nightclub**: a dance floor that lights up to the beat, a bar, a DJ booth, booths. **The Indoor Pool**: a deck, lanes, a lifeguard, and water you can swim in.
 - **Lobbies** with a front desk: the **Hospital**, the **Police Station** (a wanted board), **Putin's Ritz** (marble, a chandelier, a red carpet), **Paul Badfella's** (bookshelves, carpet), the **Spa**. Restaurants: **City Wok** and **Albuquerque Boiled Turkey**.
 
+### The title screen
+The PHY2ICK logo over a timelapse outside Kit's van: the day runs by in seconds (dusk, a short night, dawn), Wren sits on the ground in a yellow hazmat suit and a gas mask, and now and then you climb out of the back and stand with her for a bit. Every so often a police car comes round, slowly circling a couple of dealers, who suddenly find their phones, the sky and a nice tune very interesting. The title theme plays over it (once you've clicked or pressed a key: browsers won't play music before that).
+
 ### The story
 PHY2ICK is a prequel to PHYSICK: the time before Wren is gone. Press **Play** and it starts at the beginning.
 
@@ -171,6 +174,7 @@ src/
   interior.js   rooms behind the front doors: the shell, the furniture for each kind of place, the people working there
   drugs.js      Physick: the cook (a timing game) in the camper, selling
   van.js        inside Kit's camper: the room, getting in and out, Wren waiting outside
+  title.js      the title screen: the timelapse, the title theme
   story.js      the story: the scenes (camera moves, subtitles, letterbox), choosing your look, the opening
   tenants.js    your neighbours: who they are, making friends, their favours
   water.js      the sea: rolling waves, sliding ripples, the sky reflected

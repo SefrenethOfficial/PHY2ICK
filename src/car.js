@@ -484,7 +484,7 @@ export class Car {
       if (this.smokeT <= 0) { this.smokeT = this.hp < 200 ? 0.08 : 0.25; g.fx?.smoke(engine.clone().add(V(0, 0.3, 0)), 1, this.hp < 200 ? 0.15 : 0.55, 0.8); }
     }
     if (this.redM) {
-      const on = this.siren, ph = Math.floor(performance.now() / 140) % 4;
+      const on = this.siren || this.lightsOnly, ph = Math.floor(performance.now() / 140) % 4;
       this.redM.emissiveIntensity = on ? (ph === 0 || ph === 2 ? 4 : 0.3) : 0.2;
       this.blueM.emissiveIntensity = on ? (ph === 1 || ph === 3 ? 4 : 0.3) : 0.2;
     }

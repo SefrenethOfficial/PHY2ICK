@@ -413,7 +413,7 @@ export class Citizens {
       } else n.animAcc = (n.animAcc || 0) + dt0;
       const dt = n.animAcc; n.animAcc = 0;
       H.setMood(n.state === 'angry' ? 'angry' : n.state === 'flee' ? 'scared' : n.mood < -40 ? 'annoyed' : n.mood < -15 ? 'sad' : n.mood > 45 ? 'happy' : 'neutral');
-      if (n.state === 'scripted' && n.script) { const S = n.script; H.root.visible = true; H.root.position.copy(S.pos); H.root.rotation.y = S.yaw; H.lookYaw += ((S.look || 0) - H.lookYaw) * Math.min(1, dt * 4); H.update(dt, { speed: 0, grounded: true, talking: n.bubbleT > 0, ...S.pose }); continue; }
+      if (n.state === 'scripted' && n.script) { const S = n.script; H.root.visible = !S.hidden; H.root.position.copy(S.pos); H.root.rotation.y = S.yaw; H.lookYaw += ((S.look || 0) - H.lookYaw) * Math.min(1, dt * 4); H.update(dt, { speed: 0, grounded: true, talking: n.bubbleT > 0, ...S.pose }); continue; }
       if (n.state === 'seated') { if (n.kidnapped && Math.random() < dt * 0.15) this.say(n, n.hostageBag ? pick(['Mmmph!', 'MMMPH!', '…mmf…']) : pick(['Let me out!', 'Where are you taking me?!', 'Please! I won\'t tell anyone!']), 2); H.update(dt, { pose: 'passenger', struggle: n.kidnapped }); continue; }
       if (H.ragdoll) { H.update(dt, {}); continue; }
       const p = this.pos(n);
