@@ -216,12 +216,12 @@ class Game {
     const C = this.citizens, D = this.drugs, P = (name) => { const k = name in this.places ? name : Object.keys(this.places).find(k => k.startsWith(name.toLowerCase())); return k ? this.places[k] : null; };
     this.spots = [];
     const spot = (pos, r, label, act, when = () => true) => this.spots.push({ pos, r, label, act, when });
-    // a camper, rusting in the abandoned car park (locked)
-    const ab = P('the abandoned car park');
-    if (ab) {
-      const q = ab.pos.clone().add(V(6, 0, 4)); this.camper = new Car(this, V(q.x, 0.03, q.z), 0.4, 0xe6dcc0, 'Camper', { camper: true }); this.camper.locked = true; this.cars.push(this.camper);
-      // inside it (a room of its own, out of sight under the car park)
-      const van = this.van = new VanInterior(this, V(ab.pos.x, -40, ab.pos.z));
+    // Kit's camper, parked up on the beach (locked)
+    const bp = P('beach');
+    if (bp) {
+      const q = bp.pos.clone().add(V(12, 0, 9)); this.camper = new Car(this, V(q.x, 0.03, q.z), Math.PI / 2, 0xe6dcc0, 'Camper', { camper: true }); this.camper.locked = true; this.cars.push(this.camper);
+      // inside it (a room of its own, out of sight under the sand)
+      const van = this.van = new VanInterior(this, V(q.x, -40, q.z));
       spot(van.stove, 0.9, () => '<kbd>E</kbd> cook Physick', () => { this.player.yaw = van.stoveYaw; D.start('van', this.camper); }, () => van.inside);
       spot(van.door, 0.8, () => '<kbd>E</kbd> get out', () => van.exit(), () => van.inside && !D.cook);
     }

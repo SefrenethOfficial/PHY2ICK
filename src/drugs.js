@@ -1,6 +1,6 @@
 // PHYSICK (code name: MERIDIAN). A made-up drug, made up properly: the cook is a game, not chemistry.
 // Supplies (Industrial Solvent from Home Improvements, Blue Salts from the Pawn Shop) are cooked in the
-// back of a camper van, rusting in the abandoned car park.
+// back of Kit's camper van, parked up on the beach.
 // The cook: keep the heat in the green, stir when it asks, don't let it boil over. Purity is your score.
 // Sell it to buyers at the skatepark, the bushes, the beach washrooms and outside the nightclub,
 // or in bulk at the Pawn Shop. Some buyers are cops.

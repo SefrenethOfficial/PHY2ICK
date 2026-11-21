@@ -392,7 +392,7 @@ export class Story {
       this.shotS(meSpot.clone().addScaledVector(r, 0.6).addScaledVector(f, 0.9).setY(S0.y + 1.7), null, vicSpot.clone().setY(S0.y + 1.65), null, 9, 40),
       this.line('VIC', "She won't take a cent from me. Never has. It was always her and Kit against me."),
       this.line('VIC', "Help her. However you can. I mean it."),
-      this.line('VIC', 'Kit had a van. An old camper, in the abandoned car park. He thought I didn\'t know.'),
+      this.line('VIC', 'Kit had a van. An old camper, parked up on the beach. He thought I didn\'t know.'),
       this.line('VIC', "The hospital gave me his keys. That one's the van. I don't want it.", 3.6),
       this.call(() => { g.drugs.vanKeys = true; if (g.camper) g.camper.locked = false; g.sfx?.thunk?.(pl.pos); }),
       this.line('VIC', "And whatever he was doing in that thing… don't.", 3.2),
@@ -410,7 +410,7 @@ export class Story {
   startToVan() {
     const g = this.g;
     this.phase = 'toVan'; this.checkpoint = 'toVan'; this.ride = null;
-    this.objective("Find <b>Kit's van</b> · the abandoned car park · take Wren");
+    this.objective("Find <b>Kit's van</b> · on the beach · take Wren");
     if (g.camper) this.waypoint(g.camper.pos.clone(), "Kit's van");
   }
 
