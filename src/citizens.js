@@ -233,7 +233,7 @@ export class Citizens {
       }
       if (n.witness) { // on the phone to the police
         n.witness.t -= h;
-        if (n.witness.t <= 0) { const w = n.witness; n.witness = null; g.police.reported(w.level, w.at, 'witness', n); }
+        if (n.witness.t <= 0) { const w = n.witness; n.witness = null; g.police.reported(w.level, w.at, 'witness', n, w.kind); }
       }
       if (n.punchT != null) { // a punch thrown at you lands halfway through
         n.punchT += h;
@@ -735,6 +735,7 @@ export class Citizens {
 
   remove(n) {
     const g = this.g;
+    if (!this.list.includes(n)) return; // (already gone)
     if (n.human.ragdoll) { n.human.ragdoll.dispose(); n.human.ragdoll = null; }
     n.human.root.removeFromParent();
     g.world.removeRigidBody(n.body);

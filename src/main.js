@@ -364,7 +364,8 @@ class Game {
     const pl = this.player;
     this.ending = kind;
     if (kind === 'busted') { this.busted = true; pl.surrender = true; if (pl.hostage) pl.releaseHostage(false); }
-    this.hud.endText(kind);
+    const why = kind === 'busted' ? (this.police.why || (this.police.stars ? 'evading the police' : null)) : null;
+    this.hud.endText(kind, why);
     this.timeScale = 0.3;
     this.sfx.musicOn = false;
     setTimeout(() => this.hud.blackout(true), 4200);
@@ -372,11 +373,11 @@ class Game {
       const fine = kind === 'busted' ? Math.min(this.money, 100 + this.police.stars * 150) : Math.min(this.money, 100);
       this.money -= fine;
       this.police.busted();
-      if (kind === 'busted') { this.weapons.confiscate(); const ps = this.places['the police station']?.pos || this.apt.spawn; pl.respawn(ps.clone().setY(0.05), null); }
+      let tookBags = 0; if (kind === 'busted') { tookBags = this.drugs.count; this.drugs.bags = []; this.weapons.confiscate(); const ps = this.places['the police station']?.pos || this.apt.spawn; pl.respawn(ps.clone().setY(0.05), null); }
       else { const s = this.hospitalSpawn || this.apt.spawn; pl.respawn(s, this.hospitalYaw); }
       this.timeScale = 1; this.hud.endText(null); this.ending = null; this.busted = false;
       this.hud.blackout(false);
-      this.hud.toast(kind === 'busted' ? `You're released from the Police Station. The fine: $${fine}.${this.weapons.inv.size ? '' : ''} They kept your guns.` : `You wake up outside the Hospital, aching. The bill: $${fine}`);
+      this.hud.toast(kind === 'busted' ? `You're released from the Police Station${why ? ` (arrested for ${why})` : ''}. The fine: $${fine}. They kept your guns${tookBags ? ` and ${tookBags} bag${tookBags > 1 ? 's' : ''} of Physick` : ''}.` : `You wake up outside the Hospital, aching. The bill: $${fine}`);
     }, 5400);
   }
 

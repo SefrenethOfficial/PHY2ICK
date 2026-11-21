@@ -153,3 +153,4 @@ body.title #hud, body.title #objective { opacity: 0; pointer-events: none; }
 #garage .hint { margin-top: 8px; font-size: 12px; color: #9aa4b0; text-align: center; }
 #splash .modes button[data-mode=continue] { border-color: #ffb27a; color: #ffd2b0; }
 #splash .modes button.alt { border-color: rgba(255,255,255,.45); color: #fff; font-size: 16px !important; padding: 11px 30px !important; }
+#endtext small { display: block; margin-top: 14px; font: 700 24px Arial, sans-serif; letter-spacing: 1px; -webkit-text-stroke: 0; color: #fff; text-shadow: 0 2px 6px #000; }

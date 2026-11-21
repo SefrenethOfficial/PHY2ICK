@@ -15,10 +15,11 @@ export class Hud {
   }
 
   hurt() { this.hurtEl.classList.add('on'); clearTimeout(this.hurtTO); this.hurtTO = setTimeout(() => this.hurtEl.classList.remove('on'), 120); }
-  endText(kind) {
+  endText(kind, why = null) {
     const el = this.endEl;
     if (!kind) { el.className = ''; el.textContent = ''; document.getElementById('app').classList.remove('grey'); return; }
     el.textContent = kind === 'busted' ? 'BUSTED' : 'WASTED'; el.className = kind;
+    if (why) { const sm = document.createElement('small'); sm.textContent = 'for ' + why; el.appendChild(sm); }
     requestAnimationFrame(() => el.classList.add('on'));
     document.getElementById('app').classList.add('grey');
   }
