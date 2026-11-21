@@ -31,7 +31,7 @@ You wake up in an ice bath in the shared bathroom at the end of your corridor, i
 
 Wren's on the stairs, on the phone to the hospital. Her younger brother **Kit** put you in that bath. Then he lay down on your floor and didn't get up. She needs a lift to the hospital.
 
-It isn't a run of missions: a few scenes, a line in the corner telling you what's going on, and the rest is the city. (Kit left debts. Pratt wants them paid. Vic, their older brother, is too busy with his midlife crisis to help. That's all still to come.) `Enter`, `Space` or `Escape` skips a scene.
+It isn't a run of missions: a few scenes, a line in the corner telling you what's going on, and the rest is the city. (Kit left debts. Pratt wants them paid. Vic, their older brother, is too busy with his midlife crisis to help. That's all still to come.) If the car blows up on the way to the hospital (or Wren dies), that part starts again: back on the stairs with her, a car out the front. `Enter`, `Space` or `Escape` skips a scene.
 
 ### Home: Fairview Heights
 In free roam you start in your room, **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.

@@ -7,6 +7,7 @@
 // (until), and do things as it starts, as it runs and as it ends. Enter, Space or Escape skips a scene.
 import * as THREE from 'three';
 import { randomLook } from './character.js';
+import { Car } from './car.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const ease = (k) => k * k * (3 - 2 * k);
@@ -223,7 +224,7 @@ export class Story {
   stairs() {
     const g = this.g, pl = g.player, A = g.apt, W = this.wren, Ws = W.script;
     this.phase = 'stairs'; this.objective(null); this.waypoint(null);
-    const up = A.stairStep(18), me = V(up.x - 0.45, up.y, up.z);
+    const up = A.stairStep(18), me = V(up.x - 0.45, up.y, up.z); this.stairMe = me;
     pl.scripted = { pos: me, yaw: 0, pose: { pose: 'stand' } };
     W.human.root.updateMatrixWorld(true);
     const wHead = W.human.b.head.getWorldPosition(V()).add(V(0, 0.1, 0)), myHead = me.clone().add(V(0, 1.66, 0));
@@ -254,17 +255,55 @@ export class Story {
       this.fadeS(1, 0.6),
       this.call(() => {
         pl.scripted = null; pl.body.setTranslation({ x: me.x, y: me.y + 1.0, z: me.z }, true); pl.body.setNextKinematicTranslation({ x: me.x, y: me.y + 1.0, z: me.z }); pl.yaw = 0; g.cam.yaw = Math.PI; g.cam.pitch = 0.2;
-        const p = Ws.pos; W.body.setTranslation({ x: p.x, y: p.y + 1.0, z: p.z + 0.4 }, true); W.body.setNextKinematicTranslation({ x: p.x, y: p.y + 1.0, z: p.z + 0.4 });
-        W.state = 'follow'; W.following = true; W.script = null; W.human.resetPose();
+        this.wrenUp(W);
       }),
       this.fadeS(0, 0.6),
     ]);
-    this.onDone = () => {
-      this.phase = 'hospital';
-      const H = g.places['the hospital'];
-      this.objective('Drive <b>Wren</b> to the hospital · your car\'s out the front');
-      if (H) this.waypoint(H.pos, 'the hospital');
-    };
+    this.onDone = () => this.startDrive();
+  }
+  // up off the step, and after you
+  wrenUp(W) {
+    const p = W.script.pos; W.body.setTranslation({ x: p.x, y: p.y + 1.0, z: p.z + 0.4 }, true); W.body.setNextKinematicTranslation({ x: p.x, y: p.y + 1.0, z: p.z + 0.4 });
+    W.state = 'follow'; W.following = true; W.script = null; W.human.resetPose();
+  }
+  startDrive() {
+    const H = this.g.places['the hospital'];
+    this.phase = 'hospital'; this.ride = null;
+    this.objective('Drive <b>Wren</b> to the hospital · your car\'s out the front');
+    if (H) this.waypoint(H.pos, 'the hospital');
+  }
+
+  // the drive went wrong (the car blew up, or Wren's dead): back to the stairs, and try again
+  // (later, when Wren can die and live on: she'll be picked up from the hospital instead)
+  fail(why) {
+    this.phase = 'failed'; this.failWhy = why; this.objective(null); this.waypoint(null);
+  }
+  restartDrive() {
+    const g = this.g, A = g.apt, pl = g.player, C = g.citizens;
+    this.phase = 'restarting';
+    const msg = this.failWhy === 'car' ? "The car's gone." : "Wren didn't make it.";
+    this.play([
+      this.call(() => { this.shot = null; }),
+      this.fadeS(1, 0.8),
+      this.call(() => { el('chapter').innerHTML = `<span>${msg}</span><small>Back to Fairview Heights. Try that again.</small>`; el('chapter').classList.add('on'); }),
+      this.wait(2.6),
+      this.call(() => {
+        el('chapter').classList.remove('on');
+        g.police.clear(); g.police.stars = 0;
+        // the old Wren goes (out of whatever car, alive or not); a new one's on the stairs with you
+        const W = this.wren;
+        if (W) { const car = g.cars.find(c => c.passenger === W); if (car) { car.passenger = null; car.unseat(W.human); } if (C.list.includes(W)) C.remove(W); }
+        const me = this.stairMe;
+        pl.respawn(me, 0); g.cam.yaw = Math.PI; g.cam.pitch = 0.2;
+        this.spawnWren(); this.wrenUp(this.wren);
+        // a car outside (if there isn't one that still runs)
+        const d = A.door, at = V(d.x + 8, 0.03, d.z + 6.2);
+        if (!g.cars.some(c => !c.wrecked && !c.inactive && !c.police && !c.driver && c.pos.distanceTo(at) < 12)) g.cars.push(new Car(g, at, Math.PI / 2, 0x9b1c1c));
+      }),
+      this.wait(0.5),
+      this.fadeS(0, 0.8),
+    ]);
+    this.onDone = () => this.startDrive();
   }
 
   // at the hospital: she goes in alone
@@ -296,10 +335,16 @@ export class Story {
       this.sub('CHANNEL 6', '…a second person taken to hospital this week after taking an unidentified blue substance…', 5);
       setTimeout(() => { if (this.phase === 'dress' || this.phase === 'dressing' || this.phase === 'phoneWait') this.sub('CHANNEL 6', 'Police are asking anyone with information to come forward.', 4); }, 5200);
     }
+    if (this.phase === 'failed' && !g.ending && !pl.dead && !this.cine) this.restartDrive();
     if (this.phase === 'phoneWait' && (this.phoneT -= dt) <= 0) this.openPhone();
     if (this.phase === 'wren' && this.wren && pl.pos.distanceTo(this.wren.script.pos) < 4.6 && !pl.car) this.stairs();
     if (this.phase === 'hospital' && this.wren) {
-      const W = this.wren; if (W.state !== 'seated' && W.state !== 'dead') { W.following = true; if (W.state !== 'follow') W.state = 'follow'; }
+      const W = this.wren;
+      // the car you're taking her in: if it blows up (or she dies), the drive starts again
+      if (pl.car) this.ride = pl.car; else if (W.state === 'seated') this.ride = g.cars.find(c => c.passenger === W) || this.ride;
+      if (this.ride?.wrecked) { this.fail('car'); return; }
+      if (W.state === 'dead' || W.hp <= 0 || !g.citizens.list.includes(W)) { this.fail('wren'); return; }
+      if (W.state !== 'seated' && W.state !== 'dead') { W.following = true; if (W.state !== 'follow') W.state = 'follow'; }
       const H = g.places['the hospital'], at = pl.car ? pl.car.pos : pl.pos;
       if (H && at.distanceTo(H.pos) < 32 && (!pl.car || Math.abs(pl.car.speed) < 2) && (W.state === 'seated' || g.citizens.pos(W).distanceTo(pl.pos) < 8)) this.arrive();
     }
