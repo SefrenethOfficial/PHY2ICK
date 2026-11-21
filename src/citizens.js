@@ -72,7 +72,7 @@ export class Citizens {
 
   // someone who works somewhere: stands at their post, says their own lines
   addWorker(w) {
-    const n = this.spawn(NAMES[Math.floor(Math.random() * NAMES.length)]);
+    const n = this.spawn(w.name || NAMES[Math.floor(Math.random() * NAMES.length)], { look: w.look });
     n.shop = w.shop; n.shopKind = w.kind; n.products = w.products;
     n.body.setTranslation({ x: w.pos.x, y: w.pos.y + CENTRE + 0.05, z: w.pos.z }, true);
     n.state = 'post'; n.home = w.pos.clone(); n.homeYaw = w.yaw; n.yaw = w.yaw; n.lines = w.lines; n.role = w.role; n.mood = 30; n.target = null;
@@ -422,11 +422,9 @@ export class Citizens {
       { id: 'buy:pistol', label: 'Pistol $250' }, { id: 'buy:shotgun', label: 'Shotgun $600' }, { id: 'buy:ammo', label: 'Ammo $40' },
       { id: 'buy:sack', label: 'Sack $5' }, { id: 'buy:salts', label: 'Blue Salts $45' }, { id: 'sellall', label: D.count ? `Sell ${D.count} Physick` : 'Sell Physick' },
     ];
+    if (n.tenant && g.tenants) return g.tenants.options(n);
     if (n.role === 'buyer') return [
-      { id: 'talk', label: 'Talk' }, { id: 'sell1', label: 'Sell 1 Physick' }, { id: 'sell5', label: 'Sell 5' }, { id: 'insult', label: 'Insult' },
-    ];
-    if (n.home && n.shopKind === 'restaurant' && n.shop === 'Albuquerque Boiled Turkey' && !D.labOwned) return [
-      { id: 'talk', label: 'Talk' }, { id: 'buylab', label: 'Buy in $6000' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' },
+      { id: 'talk', label: n.outed ? 'Talk (June says: cop!)' : 'Talk' }, { id: 'sell1', label: 'Sell 1 Physick' }, { id: 'sell5', label: 'Sell 5' }, { id: 'insult', label: 'Insult' },
     ];
     if (n.home && n.role === 'clerk' && n.products === 'tools') return [
       { id: 'talk', label: 'Talk' }, { id: 'buy:solvent', label: 'Solvent $30' }, { id: 'buy:sack', label: 'Sack $5' },
@@ -455,7 +453,8 @@ export class Citizens {
     if (id.startsWith('buy:')) { this.buy(n, id.slice(4)); return; }
     if (id === 'sell1' || id === 'sell5') { g.drugs.sell(n, n, id === 'sell1' ? 1 : 5); return; }
     if (id === 'sellall') { g.drugs.sell(n, n, 999); return; }
-    if (id === 'buylab') { if (g.money < 6000) { this.say(n, "Six thousand. Cash. Come back when you've got it.", 3); return; } g.money -= 6000; g.drugs.labOwned = true; this.say(n, 'Welcome to the family. The door in the back. Staff only.', 4); g.hud.toast('You bought into Albuquerque Boiled Turkey. The superlab is through the STAFF ONLY door at the back.', '#5fd0ff'); return; }
+    const mood0 = n.mood;
+    if (n.tenant && g.tenants?.act(n, id)) { n.mood = THREE.MathUtils.clamp(n.mood, -100, 100); g.tenants.levelCheck(n, mood0); return; }
     switch (id) {
       case 'talk': {
         let line;
@@ -505,6 +504,7 @@ export class Citizens {
         break;
     }
     n.mood = THREE.MathUtils.clamp(n.mood, -100, 100);
+    if (n.tenant) g.tenants?.levelCheck(n, mood0);
   }
 
   // buying things from a shopkeeper

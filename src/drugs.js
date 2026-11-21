@@ -1,6 +1,6 @@
 // PHYSICK (code name: MERIDIAN). A made-up drug, made up properly: the cook is a game, not chemistry.
-// Supplies (Industrial Solvent from Home Improvements, Blue Salts from the Pawn Shop) are cooked at a
-// lab: your kitchen stove, the back of a camper van, or the superlab under Albuquerque Boiled Turkey.
+// Supplies (Industrial Solvent from Home Improvements, Blue Salts from the Pawn Shop) are cooked in the
+// back of a camper van, rusting in the abandoned car park.
 // The cook: keep the heat in the green, stir when it asks, don't let it boil over. Purity is your score.
 // Sell it to buyers at the skatepark, the bushes, the beach washrooms and outside the nightclub,
 // or in bulk at the Pawn Shop. Some buyers are cops.
@@ -10,9 +10,7 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 export const LAB = {
-  kitchen: { name: 'your kitchen', batch: 4, fumes: true, time: 22, bonus: 0 },
-  van: { name: 'the camper', batch: 8, fumes: false, time: 24, bonus: 0.03 },
-  superlab: { name: 'the superlab', batch: 16, fumes: false, time: 26, bonus: 0.08 },
+  van: { name: 'the camper', batch: 8, time: 24, bonus: 0.03 },
 };
 
 export class Drugs {
@@ -21,7 +19,6 @@ export class Drugs {
     this.solvent = 0; this.salts = 0;
     this.bags = []; // purities, 0–1
     this.cook = null;
-    this.labOwned = false; this.cookHired = false; this.labStock = []; this.labT = 0;
     this.spotHeat = {};
     this.el = document.getElementById('cook');
     this.cv = this.el.querySelector('canvas'); this.cx = this.cv.getContext('2d');
@@ -49,7 +46,6 @@ export class Drugs {
   }
   update(dt) {
     const g = this.g;
-    this.labTick(dt);
     const c = this.cook; if (!c) return;
     c.t += dt;
     const hold = g.keys.has('Space') || g.mouseL;
@@ -64,10 +60,7 @@ export class Drugs {
     // boiling over
     c.boil = c.heat > 0.93 ? c.boil + dt : Math.max(0, c.boil - dt);
     if (c.boil > 1.4) { this.fire(); return; }
-    // fumes (in a flat, the neighbours notice)
-    if (c.L.fumes) { c.fumes += dt * (0.03 + c.heat * 0.03); if (c.fumes >= 1 && !c.reported) { c.reported = true; g.hud.toast('A neighbour smells the fumes and calls it in…', '#ff5a5a'); g.police.reported(1, g.player.pos.clone(), 'fumes'); } }
     if (c.kind === 'van' && c.where && Math.random() < dt * 3) g.fx.smoke(c.where.pos.clone().add(V(0, 0.5, 0)).add(new THREE.Vector3(0, 1.55, -1.4).applyQuaternion(c.where.group.quaternion)), 1, 0.85, 0.5);
-    if (c.kind === 'kitchen' && Math.random() < dt * 2) g.fx.smoke(g.player.pos.clone().add(V(Math.sin(g.player.yaw) * 0.6, 1.1, Math.cos(g.player.yaw) * 0.6)), 1, 0.8, 0.35);
     c.color = THREE.MathUtils.clamp(c.good / Math.max(1, c.total) - c.stirMiss * 0.06, 0, 1);
     this.draw();
     if (c.t >= c.L.time) this.finish(false);
@@ -89,7 +82,6 @@ export class Drugs {
     g.player.hurt(28, V(-Math.sin(g.player.yaw), 0, -Math.cos(g.player.yaw)), 'explosion', true);
     if (c.kind === 'van' && c.where) c.where.damage(400);
     g.hud.toast('It boiled over and went up. Batch ruined.', '#ff5a5a');
-    if (c.kind === 'kitchen') g.police.reported(1, g.player.pos.clone(), 'fire');
   }
   draw() {
     const c = this.cook, x = this.cx, W = this.cv.width, H = this.cv.height;
@@ -112,17 +104,9 @@ export class Drugs {
     x.font = '13px Arial'; x.fillStyle = '#9fb4c8'; x.fillText('MERIDIAN · batch ' + (c.L.batch), 210, 48);
     x.fillStyle = '#fff'; x.font = 'bold 14px Arial'; x.fillText('Purity ' + Math.round(this.purityNow() * 100) + '%', 210, 74);
     x.fillStyle = '#9fb4c8'; x.font = '13px Arial'; x.fillText('Time ' + Math.max(0, Math.ceil(c.L.time - c.t)) + 's', 210, 94);
-    if (c.L.fumes) { x.fillText('Fumes', 210, 116); x.fillStyle = '#1a2230'; x.fillRect(260, 106, 110, 10); x.fillStyle = c.fumes > 0.75 ? '#ff5a3a' : '#c8b46a'; x.fillRect(260, 106, 110 * Math.min(1, c.fumes), 10); }
     if (c.stirWin > 0) { x.fillStyle = Math.floor(c.stirWin * 8) % 2 ? '#ffd23f' : '#fff'; x.font = 'bold 26px Arial'; x.fillText('STIR! [E]', 210, 150); }
     else if (c.boil > 0) { x.fillStyle = '#ff5a3a'; x.font = 'bold 20px Arial'; x.fillText('BOILING OVER!', 210, 150); }
     else { x.fillStyle = '#6a7a8a'; x.font = '12px Arial'; x.fillText('Space: heat · E: stir · Q: quit', 210, 150); }
-  }
-
-  // ---- the superlab: a hired cook makes it while you're away (one bag every 40 s, up to 30)
-  labTick(dt) {
-    if (!this.cookHired) return;
-    this.labT += dt;
-    if (this.labT > 40 && this.labStock.length < 30) { this.labT = 0; this.labStock.push(0.86 + Math.random() * 0.08); }
   }
 
   // ---- selling

@@ -25,10 +25,17 @@ Walk in through the front door of most places: there's a real room behind it, li
 - **Lobbies** with a front desk: the **Hospital**, the **Police Station** (a wanted board), **Putin's Ritz** (marble, a chandelier, a red carpet), **Paul Badfella's** (bookshelves, carpet), the **Spa**. Restaurants: **City Wok** and **Albuquerque Boiled Turkey**.
 
 ### Home: Fairview Heights
-You start in your apartment: a loft on the first floor of your building at **Fairview Heights**, on the south avenue. Real windows look out over the street. There's a living room (sofa, TV showing Channel 6, a rug, a lamp), a kitchen with a dining table, a bed, moving boxes still stacked by the stair, and a stair down to the lobby and out the front door. Your car's parked outside.
+You start in your room, **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
 
-- **Pick things up.** Mugs, a bottle, books, cans, apples, a cereal box, a pan, cushions, chairs, the moving boxes, a basketball, and a traffic cone (don't ask). `Click` to pick something up and carry it, `Click` again to put it down, `Right-click` to throw it.
-- **The weapon rack** ("FOR EMERGENCIES") by the top of the stair: a **Hatchet**, a **Butter Knife** and a **Plastic Kiddie Knife**. Press `E` at the rack to take one (or put it back), `Click` to swing, `X` to put it away. The hatchet drops people; the butter knife makes them bleed and run; the plastic knife bends, and people laugh at you.
+- **The neighbours.** Each flat is furnished for whoever lives there, and each of them can become a friend. Hold `E` on them to talk, **hang out** (once a minute or so), give them $20 or pay them a compliment (now and then, not over and over). They go from *Stranger* to *Neighbour* to *Friend* to *Close friend*, greet you when you pass, and once you're friends they'll do you a **favour** (every few minutes):
+  - **Mrs. Okafor**, 1A, a retired teacher: **dinner**, which heals you fully.
+  - **Dez**, 1B, a musician who keeps weird hours: lends you **$150**.
+  - **Marco**, 1C, a mechanic who never sees nothing: lets you **lie low** at his place. A report, or up to three stars, and the police lose interest.
+  - **June**, 1D, who knows everyone's business (and has a cat): **gossip**. She tells you which Physick buyers are undercover cops.
+  Insult them and they'll go off you.
+
+- **Pick things up.** A mug, books, cans, a pillow, the boxes, a basketball, and a traffic cone (don't ask). `Click` to pick something up and carry it, `Click` again to put it down, `Right-click` to throw it.
+- **The weapon rack** ("IN CASE OF EMERGENCY") on your wall: a **Hatchet**, a **Butter Knife** and a **Plastic Kiddie Knife**. Press `E` at the rack to take one (or put it back), `Click` to swing, `X` to put it away. The hatchet drops people; the butter knife makes them bleed and run; the plastic knife bends, and people laugh at you.
 
 ### Moving about
 - **Swimming**: go into the water and you swim (front crawl when moving, treading water when still). `Space` at a low edge pulls you out.
@@ -91,11 +98,8 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 The drug the game is named after. It's made up, and the cook is a game, not chemistry.
 - **Supplies**: *Industrial Solvent* from the Home Improvements clerk ($30) and *Blue Salts* from the Pawn Shop ($45). One of each makes a batch.
 - **The cook**: hold `Space` to raise the heat and keep the needle in the green zone (which drifts about). When it flashes **STIR!**, hit `E`. Too hot for too long and it **boils over and blows up**. `Q` gives up (the supplies are wasted). The better you keep it in the green, the bluer it gets: **purity** is your score, and it sets the price.
-- **Where to cook**:
-  - **your kitchen stove** at Fairview Heights: small batches (4 bags), and the **fumes** build up. Take too long and a neighbour calls it in.
-  - **the camper**, rusting in the abandoned car park (locked: smash a window). Cook at its back door anywhere you like: 8 bags, no neighbours, a little smoke out of the vent. Boil over in there and the van goes up.
-  - **the superlab**, under Albuquerque Boiled Turkey. Buy into the business from the staff ($6,000), then take the STAFF ONLY door downstairs. 16-bag batches at the best purity, and you can **hire a cook** ($1,500) who makes a bag every 40 seconds while you're out (up to 30): collect it from them.
-- **Selling**: buyers hang about the **skatepark**, **the park**, the **beach washrooms** and outside the **nightclub** (the best price, but the bouncer takes 20%). Talk to them (`E`) and sell one or five. Or dump the lot on the **Pawn Shop** for a low price. Some buyers are **undercover cops**. Dealing in one spot too often gets you reported. Your bags show under your weapon.
+- **Where to cook**: **the camper**, rusting in the abandoned car park (locked: smash a window). Cook at its back door anywhere you like: 8 bags a batch, a little smoke out of the vent. Boil over in there and the van goes up.
+- **Selling**: buyers hang about the **skatepark**, **the park**, the **beach washrooms** and outside the **nightclub** (the best price, but the bouncer takes 20%). Talk to them (`E`) and sell one or five. Or dump the lot on the **Pawn Shop** for a low price. Some buyers are **undercover cops** (June can tell you which). Dealing in one spot too often gets you reported. Your bags show under your weapon.
 
 ### Blood
 - Wounds soak into people's clothes and skin where they're shot, stabbed or hit by a car (a head shot, a red head); exit wounds spray out behind. Explosions leave people scorched. Pools spread under bodies.
@@ -152,10 +156,11 @@ src/
   bake.js       merges everything that doesn't move into a few big meshes (fewer draw calls)
   parked.js     the parked cars: drawn in bulk, turned into real cars when you get in
   interior.js   rooms behind the front doors: the shell, the furniture for each kind of place, the people working there
-  drugs.js      Physick: the cook (a timing game), the labs, the hired cook, selling
+  drugs.js      Physick: the cook (a timing game) in the camper, selling
+  tenants.js    your neighbours: who they are, making friends, their favours
   water.js      the sea: rolling waves, sliding ripples, the sky reflected
   buildings.js  building facades: windows, shopfronts, awnings, signs, balconies, cornices, rooftops
-  apartment.js  your building at Fairview Heights: the lobby, the stair, your apartment, its things
+  apartment.js  your building at Fairview Heights: the lobby, the stair, the corridor, the neighbours' flats and your room, its things
   props.js      loose things: picking up, carrying, dropping, throwing
   weapons.js    fists, the hatchet, the butter knife, the plastic kiddie knife, the pistol, the shotgun: aiming, punching, swinging, shooting
   police.js     wanted stars, crimes, witnesses and their calls, reports, patrols and stop-and-searches, cop cars (A* along the roads), cops on foot, losing them, BUSTED
