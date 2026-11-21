@@ -11,7 +11,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 // how bad each thing is (the least it gets you), and whether it needs a witness
 const CRIMES = {
   assault: 1, gunfire: 1, carjack: 1, ramCop: 1, explosion: 1, threat: 1,
-  murder: 2, robbery: 2, kidnap: 2, copAssault: 3, copMurder: 4,
+  murder: 2, robbery: 2, kidnap: 2, copAssault: 3, copMurder: 4, drugs: 1,
 };
 
 // ---- the roads as a graph: every end and crossing is a node; A* finds the way
@@ -66,27 +66,70 @@ export class Police {
     this.graph = buildGraph(g.map.segs);
   }
 
-  // ---- crimes
-  witnessed(at) {
-    const g = this.g;
-    for (const c of this.cops()) if (g.citizens.pos(c).distanceTo(at) < 60) return true;
-    for (const c of this.cars) if (!c.car.wrecked && c.car.pos.distanceTo(at) < 70) return true;
-    for (const n of g.citizens.list) { if (n.state === 'dead' || n.human.ragdoll || n.hostage || n.cop) continue; if (g.citizens.pos(n).distanceTo(at) < 32) return true; }
+  // ---- crimes: the police only come for you if a cop sees it, or a witness calls it in (and lives to)
+  los(from, to, range) {
+    const g = this.g, d = from.distanceTo(to); if (d > range) return false; if (d < 4) return true;
+    const dir = to.clone().sub(from).normalize();
+    return !g.world.castRay(new g.R.Ray(from, dir), d - 0.6, true, undefined, groups(0xffff, G_WORLD));
+  }
+  copSees(at) {
+    const g = this.g, k = g.player.crouch ? 0.55 : 1, to = at.clone().add(V(0, 1.1, 0));
+    for (const n of this.cops()) { if (n.state === 'seated' || n.state === 'dead' || n.human.ragdoll) continue; if (this.los(g.citizens.pos(n).add(V(0, 1.6, 0)), to, 55 * k)) return true; }
+    for (const c of this.cars) { if (c.car.wrecked || c.car.inactive || !c.crew.some(n => n.state === 'seated' && n.car === c.car)) continue; if (this.los(c.car.pos.clone().add(V(0, 1.3, 0)), to, 65 * k)) return true; }
     return false;
   }
-  crime(kind, at, always = false) {
-    const g = this.g, base = CRIMES[kind] ?? 1;
+  // who saw it: people facing it (or close by, or it was loud), with a clear line to it
+  witnessesOf(at, loud) {
+    const g = this.g, C = g.citizens, crouch = g.player.crouch, R = loud ? 40 : crouch ? 13 : 30, to = at.clone().add(V(0, 1.1, 0)), out = [];
+    for (const n of C.list) {
+      if (n.cop || n.state === 'dead' || n.state === 'seated' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
+      const q = C.pos(n), d = q.distanceTo(at); if (d > R || d < 0.3) continue;
+      const f = V(Math.sin(n.yaw), 0, Math.cos(n.yaw)), dir = at.clone().sub(q).setY(0).normalize();
+      if (!loud && d > 5 && f.dot(dir) < -0.25) continue; // (behind them, and quiet)
+      if (!this.los(q.clone().add(V(0, 1.6, 0)), to, R)) continue;
+      out.push([d, n]);
+    }
+    return out.sort((a, b) => a[0] - b[0]).map(a => a[1]);
+  }
+  crime(kind, at, always = false, known = false) {
+    const g = this.g, base = CRIMES[kind] ?? 1, C = g.citizens;
     if (g.player.dead || g.busted) return;
-    if (!always && !this.witnessed(at)) return;
-    const before = this.stars;
+    // a cop saw it (or they're already after you and watching): straight to stars
+    if (known || (this.stars && this.seen) || this.copSees(at)) { this.escalate(base); return; }
+    // an alarm, or the victim: a call that goes out on its own
+    if (always) { this.calls = this.calls || []; this.calls.push({ level: base, at: at.clone(), t: 4 }); return; }
+    // otherwise: witnesses, who'll call it in if you let them
+    const loud = kind === 'gunfire' || kind === 'explosion';
+    const ws = this.witnessesOf(at, loud).slice(0, 2);
+    for (const n of ws) {
+      if (n.witness) { n.witness.level = Math.max(n.witness.level, base); continue; }
+      n.witness = { level: base, at: at.clone(), t: 3.5 + Math.random() * 3 };
+      if (n.state !== 'handsUp' && !n.home) { n.state = 'flee'; n.stateT = 12; }
+      C.say(n, pick(["I'm calling the police!", 'Police? Yes, I want to report…', '911! Someone just…', 'I saw that! I saw your face!']), 2.5);
+    }
+    if (ws.length) g.hud.toast(ws.length > 1 ? 'Witnesses are calling the police' : 'A witness is calling the police', '#ffb04a');
+  }
+  escalate(base) {
+    const g = this.g, before = this.stars;
     let s = Math.max(this.stars, base);
     if (this.stars >= base && base >= 2) s = this.stars + 1; // (doing it again, when they're already after you)
-    this.stars = Math.min(5, s);
-    if (this.stars > before) { this.seen = true; this.searchT = 0; this.graceT = 18; /* (the call's just gone out: they know where you are for a while) */ this.lastKnown = (g.player.car ? g.player.car.pos : g.player.pos).clone(); if (before === 0) g.hud.toast(pick(['The police are on their way.', "Someone's called the cops.", 'You\'re wanted.']), '#ff5a5a'); }
+    this.stars = Math.min(5, s); this.suspect = null;
+    if (this.stars > before) { this.seen = true; this.searchT = 0; this.graceT = 18; /* (they know where you are for a while) */ this.lastKnown = (g.player.car ? g.player.car.pos : g.player.pos).clone(); if (before === 0) g.hud.toast(pick(['The police are after you.', "They know it was you.", 'You\'re wanted.']), '#ff5a5a'); }
+  }
+  // a call came in: they know what happened and roughly what you look like, not where you are.
+  // A car comes to have a look; if a cop then sees you, that's you.
+  reported(level, at, why = 'witness', who = null) {
+    const g = this.g;
+    if (g.player.dead || g.busted) return;
+    if (this.stars) { this.escalate(level); return; }
+    const was = this.suspect;
+    this.suspect = { level: Math.max(level, was?.level || 0), at: at.clone(), t: 100 + level * 30 };
+    if (!was) g.hud.toast({ witness: 'A witness has described you to the police. Stay out of sight.', fumes: 'The police are coming to check on the smell.', fire: 'The fire brigade and the police are on their way.', dealing: "Someone's tipped off the police about the dealing.", alarm: 'The alarm went off: the police are on their way.' }[why] || 'You\'ve been reported to the police.', '#ffb04a');
+    if (!this.cars.some(c => c.investigate && !c.car.wrecked)) { const c = this.spawnCar(); if (c) { c.investigate = true; c.car.siren = false; } }
   }
   clear() {
-    this.stars = 0; this.seen = false;
-    for (const n of this.cops()) n.copMode = 'leave';
+    this.stars = 0; this.seen = false; this.suspect = null;
+    for (const n of this.cops()) n.copMode = n.patrol ? 'patrol' : 'leave';
     for (const c of this.cars) { c.car.siren = false; c.leaving = true; }
   }
 
@@ -128,7 +171,8 @@ export class Police {
     const crew = [this.makeCop(q.clone()), this.makeCop(q.clone())];
     crew.forEach((n, k) => { n.state = 'seated'; n.col.setEnabled(false); n.car = car; n.seat = k ? 'passenger' : 'driver'; car.seatPerson(n.human, n.seat); n.human.root.visible = true; });
     car.crew = crew;
-    this.cars.push({ car, crew, route: null, wpI: 0, routeT: 0, stuckT: 0, revT: 0, leaving: false });
+    const rec = { car, crew, route: null, wpI: 0, routeT: 0, stuckT: 0, revT: 0, leaving: false };
+    this.cars.push(rec); return rec;
   }
 
   // cops get out (near you, or their car's done)
@@ -200,6 +244,8 @@ export class Police {
   copThink(n, p, h) {
     const g = this.g, pl = g.player, pp = pl.car ? pl.car.pos : pl.pos, d = Math.hypot(pp.x - p.x, pp.z - p.z);
     n.shootT = (n.shootT ?? 1) - h; n.aimAt = null;
+    if (!this.stars && !pl.dead && ['patrol', 'investigate', 'frisk'].includes(n.copMode)) return this.beat(n, p, h, d);
+    if (!this.stars && !pl.dead && n.copMode !== 'leave' && this.suspect && n.car) { n.copMode = 'investigate'; return this.beat(n, p, h, d); }
     if (n.copMode === 'leave' || !this.stars || pl.dead) {
       n.copMode = 'leave';
       const c = this.cars.find(c => c.car === n.car && !c.car.wrecked && !c.car.inactive);
@@ -242,6 +288,58 @@ export class Police {
     return { goal: see ? pp : lk, spd: 5.4 };
   }
 
+  // ---- on the beat (no stars): walking about; looking for whoever was reported; stopping and searching people
+  illegalOnYou() {
+    const g = this.g, W = g.weapons;
+    return ['pistol', 'shotgun', 'hatchet'].filter(id => W.inv.has(id)).map(id => ({ pistol: 'a pistol', shotgun: 'a shotgun', hatchet: 'a hatchet' })[id]).concat(g.drugs.count ? [`${g.drugs.count} bag${g.drugs.count > 1 ? 's' : ''} of Physick`] : []);
+  }
+  beat(n, p, h, d) {
+    const g = this.g, pl = g.player, C = g.citizens, pp = pl.pos;
+    n.friskCool = (n.friskCool || 0) - h; n.warnT = n.warnT ?? 0;
+    const near = d < 18 && !pl.car && this.los(p.clone().add(V(0, 1.6, 0)), pp.clone().add(V(0, 1.1, 0)), 18 * (pl.crouch ? 0.55 : 1));
+    if (near) {
+      // they recognise you from the description
+      if (this.suspect) { C.say(n, pick(["That's them! That's the one from the call!", 'Hey! You match the description!', 'Stop right there!']), 2.5); this.escalate(this.suspect.level); return { goal: pp, spd: 5 }; }
+      // a weapon out, in plain sight
+      const W = g.weapons, out = (W.aiming && W.cur !== 'fists') || ['pistol', 'shotgun', 'hatchet'].includes(W.cur);
+      if (out) {
+        if (W.aiming && g.aimedAt === n) { C.say(n, "He's pointing a weapon at me!", 2); this.escalate(2); return { goal: pp, spd: 5 }; }
+        if (n.warnT <= 0) { n.warnT = 3.2; C.say(n, pick(['Drop the weapon!', 'Put it away! Now!', 'Whoa. Weapon down!']), 2.5); }
+        n.warnT -= h; if (n.warnT <= 0.05) { this.escalate(1); return { goal: pp, spd: 5 }; }
+        return { goal: null, spd: 0, face: pp };
+      }
+      n.warnT = 0;
+      // a stop-and-search: now and then, or if you're running about near them
+      if (n.copMode !== 'frisk' && n.friskCool <= 0 && d < 12 && (pl.speed > 4.5 || Math.random() < h * 0.06)) {
+        n.copMode = 'frisk'; n.friskT = 0; n.friskCool = 120; C.say(n, pick(['Hey, you. Hold it right there.', 'Stop. Random search. Hands where I can see them.', 'You. Over here. Now.']), 3);
+        g.hud.toast('A cop wants to search you · stand still and let them (or run)', '#9ad0ff');
+      }
+    }
+    if (n.copMode === 'frisk') {
+      if (pl.car || d > 9) { C.say(n, 'Hey! Stop!', 2); n.copMode = n.patrol ? 'patrol' : 'investigate'; this.escalate(1); return { goal: pp, spd: 5 }; }
+      if (d > 1.3) return { goal: pp, spd: 2.6 };
+      if (pl.speed < 0.8) n.friskT += h;
+      n.frisking = true;
+      if (n.friskT > 2.6) {
+        n.frisking = false; n.copMode = n.patrol ? 'patrol' : 'investigate';
+        const found = this.illegalOnYou();
+        if (found.length) { C.say(n, `Well, well. ${found[0][0].toUpperCase() + found[0].slice(1)}. You're under arrest.`, 3); g.hud.toast(`They found ${found.join(', ')}`, '#ff5a5a'); this.escalate(1); }
+        else C.say(n, pick(["You're clean. Move along.", 'Alright. Off you go.', 'Nothing. Have a nice day.']), 2.5);
+      }
+      return { goal: null, spd: 0, face: pp };
+    }
+    n.frisking = false;
+    // investigating a call: wander round where it happened
+    if (n.copMode === 'investigate' && this.suspect) {
+      if (!n.searchPt || n.searchPt.distanceTo(p) < 1.5 || (n.searchT = (n.searchT || 0) - h) <= 0) { n.searchT = 6; const a = Math.random() * 6.28, r = 4 + Math.random() * 22; n.searchPt = this.suspect.at.clone().add(V(Math.sin(a) * r, 0, Math.cos(a) * r)); n.searchPt.y = p.y; }
+      return { goal: n.searchPt, spd: 1.8 };
+    }
+    if (n.copMode === 'investigate') { n.copMode = 'leave'; return { goal: null, spd: 0 }; }
+    // a patrol: along the sidewalks
+    if (!n.target || n.target.distanceTo(p) < 1.5) n.target = C.randomPoint(p);
+    return { goal: n.target, spd: 1.35 };
+  }
+
   copShoot(n, from, tp, d) {
     const g = this.g, pl = g.player;
     const hand = new THREE.Vector3(); n.human.b.wristR.getWorldPosition(hand);
@@ -281,6 +379,18 @@ export class Police {
       if (seen) { this.lastKnown = pp.clone(); this.searchT = 0; }
     }
     if (this.graceT > 0) this.graceT -= dt;
+    // calls coming in (alarms, victims)
+    if (this.calls) for (let i = this.calls.length - 1; i >= 0; i--) { const c = this.calls[i]; c.t -= dt; if (c.t <= 0) { this.calls.splice(i, 1); this.reported(c.level, c.at, 'alarm'); } }
+    // a description out: it runs out after a while
+    if (this.suspect && !this.stars) { this.suspect.t -= dt; if (this.suspect.t <= 0) { this.suspect = null; for (const c of this.cars) if (c.investigate) { c.leaving = true; } for (const n of this.cops()) if (n.copMode === 'investigate') n.copMode = 'leave'; g.hud.toast('The police have stopped looking for you.', '#7be08a'); } }
+    // the beat: a few cops on foot about town
+    this.patrolT = (this.patrolT || 0) - dt;
+    if (this.patrolT <= 0) {
+      this.patrolT = 5;
+      const pats = this.cops().filter(n => n.patrol);
+      for (const n of pats) if (g.citizens.pos(n).distanceTo(pp) > 260) this.removeCop(n);
+      if (pats.length < 4) { const at = g.citizens.randomPoint(pp.clone().add(V((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300))); if (at.distanceTo(pp) > 60) { const n = this.makeCop(at); n.patrol = true; n.copMode = this.stars ? 'chase' : 'patrol'; } }
+    }
     if (this.stars) {
       if (!this.seen) {
         // they're searching: it only really counts once you're out of the area they last saw you in
@@ -307,6 +417,12 @@ export class Police {
       }
       if (!car.ai) continue;
       if (!aboard.length || !aboard.some(n => n.seat === 'driver')) { car.ai.throttle = 0; car.ai.brake = 1; car.ai.steer = 0; continue; }
+      if (c.investigate && !this.stars && this.suspect && !c.leaving) {
+        car.siren = false;
+        const d = car.pos.distanceTo(this.suspect.at);
+        if (d < 16) { this.disembark(c); for (const n of c.crew) if (n.state === 'cop') n.copMode = 'investigate'; continue; }
+        this.drive(c, this.suspect.at, dt, { stopAt: 10 }); continue;
+      }
       if (c.leaving || !this.stars) { car.siren = false; const away = c.away || (c.away = this.graph.nodes[Math.floor(Math.random() * this.graph.nodes.length)]); this.drive(c, away, dt); continue; }
       car.siren = true;
       const target = this.seen ? pp : (this.lastKnown || pp), d = car.pos.distanceTo(target);

@@ -372,6 +372,12 @@ export class Human {
         set('elbow' + k, -2.1 + e * (hook ? 0.6 : 1.95), 0, 0);
         set('spine', 0.14, sg * (-0.15 + e * 0.5), 0); set('chest', 0.04, sg * e * 0.4, 0);
       }
+      // on the phone (calling the police on you)
+      if (s.phone) { set('shoulderR', -0.75, 0, 0.45); set('elbowR', -2.45, 0, 0); set('wristR', 0, 0, 0.3); set('head', 0, 0, -0.15); }
+      // crouching: low, knees bent, leaning in
+      if (s.crouch) { const m = Math.min(1, spd / 1.4); hipsY = 0.66; set('hips', 0.0, 0, 0); set('spine', 0.42, 0, 0); set('chest', 0.1, 0, 0); set('neck', -0.25); set('head', -0.15, this.lookYaw, 0);
+        for (const [k, sg] of [['L', -1], ['R', 1]]) { const q = (sg < 0 ? this.phase : this.phase + Math.PI); set('hip' + k, -1.05 - Math.sin(q) * 0.35 * m, 0, -sg * 0.1); set('knee' + k, 1.75 + Math.max(0, Math.cos(q)) * 0.4 * m, 0, 0); set('ankle' + k, -0.6, 0, 0); }
+        if (!s.aim && !s.carry && !s.guard && !s.punch) { set('shoulderL', -0.55, 0, -0.1); set('elbowL', -0.9); set('shoulderR', -0.55, 0, 0.1); set('elbowR', -0.9); } }
       // hands up (surrendering, being robbed)
       if (s.handsUp) { set('shoulderL', -0.15, 0, 2.55); set('elbowL', -0.55, 0, 0); set('shoulderR', -0.15, 0, -2.55); set('elbowR', -0.55, 0, 0); set('wristL', 0, 0, 0); set('wristR', 0, 0, 0); }
       // aiming: arms out along the line of sight (e: how far up), a two-handed grip

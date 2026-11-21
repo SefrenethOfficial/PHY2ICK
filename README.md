@@ -69,7 +69,10 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - **A fatal crash** leaves you slumped over the wheel, the horn blaring.
 
 ### Crime and the police
-- **Wanted stars (five).** Witnessed crimes earn stars: hitting someone or firing a gun (one), killing someone, robbing a shop or kidnapping (two), attacking a cop (three), killing one (four), and doing it again while they're after you adds more. A cop or a passer-by has to see it (a robbery always gets reported: the till has an alarm).
+- **Witnesses, not mind-reading.** The police only come after you when they know it was you. A cop who sees a crime comes straight for you. Otherwise **witnesses** (anyone nearby who's facing you, with a clear view) pull out their phones and call it in a few seconds later: hit them or scare them off before they finish the call. Some crimes always get reported: a robbery (the till has an alarm), a fire. Crouching makes you much harder to spot.
+- **Reported.** A call makes you a **suspect**: hollow, blinking stars and *REPORTED* under them. A police car comes to the scene quietly, no siren, and the cops get out and search the area. If a cop sees you while you're reported, they recognise you from the description and the real chase starts. Stay out of sight and the report goes cold.
+- **Patrols.** A few cops walk the streets. Walk past with a weapon out and they'll tell you to put it away (then come for you if you don't); point it at one and they come straight for you. Now and then (more if you run about near them) a cop **stops and searches you**: stand still with your hands up for a few seconds. If they find a hatchet, a gun or bags of Physick, you're under arrest. Run off mid-search and they chase you anyway.
+- **Wanted stars (five).** Once they're after you, crimes earn stars: hitting someone or firing a gun (one), dealing or carrying drugs (one), killing someone, robbing a shop or kidnapping (two), attacking a cop (three), killing one (four), and doing it again while they're after you adds more.
 - **The police come for you**: one black-and-white **police car** per star (each arriving from a different direction), lights flashing and siren wailing, finding its way to you along the roads. Near you, each car pulls up at its own spot round you (no pile-ups: they slow as they arrive, and steer round other cars in the way), and two cops jump out and spread out round you, each keeping their own distance. At **one star** they try to arrest you; from **two** they shoot. In a car the nearest two chase and ram you while the rest follow behind; drive off and the cops get back in theirs.
 - **Lose them**: get out of sight, then out of the area. For the first few seconds after the call goes out they know where you are. Once they lose sight of you the stars blink and the area they're searching shows on the minimap, flashing red and blue (bigger with more stars). Get out of it and stay out of sight and they give up (about 40 seconds at two stars, longer with more). Hiding inside it works too, but much more slowly. Cop cars and cops on foot show on the minimap.
 - **The chase theme** plays while you're wanted (*Chase on Foot*, the one-to-two-star theme from PHYSICK), fading in and out.
@@ -84,6 +87,16 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - **Kidnapping**: `G` grabs someone in front of you: a **sack** over their head if you've bought one (shops sell them), a hand over their mouth if not. They struggle along with you; `F` by a car bundles them into the passenger seat, where they stay. `G` lets them go.
 - **Finishing people off**: someone badly hurt lies on the ground moaning for help. `Q` near them: a stamp, a stab, or a shot.
 
+### Physick (code name: Meridian)
+The drug the game is named after. It's made up, and the cook is a game, not chemistry.
+- **Supplies**: *Industrial Solvent* from the Home Improvements clerk ($30) and *Blue Salts* from the Pawn Shop ($45). One of each makes a batch.
+- **The cook**: hold `Space` to raise the heat and keep the needle in the green zone (which drifts about). When it flashes **STIR!**, hit `E`. Too hot for too long and it **boils over and blows up**. `Q` gives up (the supplies are wasted). The better you keep it in the green, the bluer it gets: **purity** is your score, and it sets the price.
+- **Where to cook**:
+  - **your kitchen stove** at Fairview Heights: small batches (4 bags), and the **fumes** build up. Take too long and a neighbour calls it in.
+  - **the camper**, rusting in the abandoned car park (locked: smash a window). Cook at its back door anywhere you like: 8 bags, no neighbours, a little smoke out of the vent. Boil over in there and the van goes up.
+  - **the superlab**, under Albuquerque Boiled Turkey. Buy into the business from the staff ($6,000), then take the STAFF ONLY door downstairs. 16-bag batches at the best purity, and you can **hire a cook** ($1,500) who makes a bag every 40 seconds while you're out (up to 30): collect it from them.
+- **Selling**: buyers hang about the **skatepark**, **the park**, the **beach washrooms** and outside the **nightclub** (the best price, but the bouncer takes 20%). Talk to them (`E`) and sell one or five. Or dump the lot on the **Pawn Shop** for a low price. Some buyers are **undercover cops**. Dealing in one spot too often gets you reported. Your bags show under your weapon.
+
 ### Blood
 - Wounds soak into people's clothes and skin where they're shot, stabbed or hit by a car (a head shot, a red head); exit wounds spray out behind. Explosions leave people scorched. Pools spread under bodies.
 
@@ -97,6 +110,7 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 |---|---|
 | `WASD` | move (in a car: drive, brake/reverse, steer) |
 | `Shift` | run |
+| `C` / `Ctrl` | crouch (on foot): sneak, harder to see |
 | `Space` | jump; vault something low; climb out of the water (in a car: handbrake) |
 | Hold `E` | talk to someone (the interaction wheel); at the rack: take / put back a weapon |
 | `Click` | punch / swing / shoot (pick up / drop a thing) |
@@ -108,7 +122,8 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 | `Q` | finish off someone who's down |
 | `Y` | give yourself up |
 | `F` | get in / out of a car (at any speed) |
-| `C` | inside view / chase camera |
+| `C` (in a car) | inside view / chase camera |
+| `Space` / `E` / `Q` (cooking) | heat / stir / give up |
 | `H` | hide the controls |
 | Mouse | look |
 
@@ -137,12 +152,13 @@ src/
   bake.js       merges everything that doesn't move into a few big meshes (fewer draw calls)
   parked.js     the parked cars: drawn in bulk, turned into real cars when you get in
   interior.js   rooms behind the front doors: the shell, the furniture for each kind of place, the people working there
+  drugs.js      Physick: the cook (a timing game), the labs, the hired cook, selling
   water.js      the sea: rolling waves, sliding ripples, the sky reflected
   buildings.js  building facades: windows, shopfronts, awnings, signs, balconies, cornices, rooftops
   apartment.js  your building at Fairview Heights: the lobby, the stair, your apartment, its things
   props.js      loose things: picking up, carrying, dropping, throwing
   weapons.js    fists, the hatchet, the butter knife, the plastic kiddie knife, the pistol, the shotgun: aiming, punching, swinging, shooting
-  police.js     wanted stars, crimes and witnesses, cop cars (A* along the roads), cops on foot, losing them, BUSTED
+  police.js     wanted stars, crimes, witnesses and their calls, reports, patrols and stop-and-searches, cop cars (A* along the roads), cops on foot, losing them, BUSTED
   fx.js         fire, smoke, sparks, muzzle flashes, tracers, explosions, debris
   sfx.js        the chase theme, and synthesized gunshots, punches, crashes, explosions, fire and sirens
   pickups.js    cash and guns on the ground

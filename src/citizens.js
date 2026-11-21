@@ -76,6 +76,7 @@ export class Citizens {
     n.shop = w.shop; n.shopKind = w.kind; n.products = w.products;
     n.body.setTranslation({ x: w.pos.x, y: w.pos.y + CENTRE + 0.05, z: w.pos.z }, true);
     n.state = 'post'; n.home = w.pos.clone(); n.homeYaw = w.yaw; n.yaw = w.yaw; n.lines = w.lines; n.role = w.role; n.mood = 30; n.target = null;
+    return n;
   }
 
   pos(n) { const t = n.body.translation(); return V(t.x, t.y - CENTRE, t.z); }
@@ -168,6 +169,10 @@ export class Citizens {
         if (n.downed) { n.moanT = (n.moanT ?? 2) - h; if (n.moanT <= 0) { n.moanT = 5 + Math.random() * 6; if (n.human.ragdoll.pelvis.distanceTo(pl.pos) < 25) this.say(n, pick(['Ugh… help…', 'Somebody… call an ambulance…', 'Please… no more…', 'Ow…']), 2.5); } }
         if (n.stateT <= 0 && n.human.ragdoll.speed < 0.6) { n.downed = false; this.getUp(n); }
         continue;
+      }
+      if (n.witness) { // on the phone to the police
+        n.witness.t -= h;
+        if (n.witness.t <= 0) { const w = n.witness; n.witness = null; g.police.reported(w.level, w.at, 'witness', n); }
       }
       if (n.punchT != null) { // a punch thrown at you lands halfway through
         n.punchT += h;
@@ -401,7 +406,7 @@ export class Citizens {
         talking: n.bubbleT > 0 && n.speed < 0.3, point: n.pointT > 0, wave: n.waveT > 0,
         handsUp: n.state === 'handsUp' || n.robbing, guard: n.state === 'angry' && dP < 5 && n.punchT == null,
         punch: n.punchT != null ? { a: Math.min(1, n.punchT / 0.45), side: n.punchSide ? 'R' : 'L' } : null,
-        aim, weapon: n.cop && !aim, struggle: !!n.hostage,
+        aim, weapon: n.cop && !aim, struggle: !!n.hostage, phone: !!n.witness,
       });
       n.pointT = Math.max(0, (n.pointT || 0) - dt); n.waveT = Math.max(0, (n.waveT || 0) - dt);
     }
@@ -412,9 +417,20 @@ export class Citizens {
   // ---- the interaction wheel's actions
   options(n) {
     const g = this.g;
+    const D = g.drugs;
     if (n.home && n.shop === 'Pawn Shop') return [
-      { id: 'talk', label: 'Talk' }, { id: 'buy:pistol', label: 'Pistol $250' }, { id: 'buy:shotgun', label: 'Shotgun $600' },
-      { id: 'buy:ammo', label: 'Ammo $40' }, { id: 'buy:sack', label: 'Sack $5' }, { id: 'insult', label: 'Insult' },
+      { id: 'buy:pistol', label: 'Pistol $250' }, { id: 'buy:shotgun', label: 'Shotgun $600' }, { id: 'buy:ammo', label: 'Ammo $40' },
+      { id: 'buy:sack', label: 'Sack $5' }, { id: 'buy:salts', label: 'Blue Salts $45' }, { id: 'sellall', label: D.count ? `Sell ${D.count} Physick` : 'Sell Physick' },
+    ];
+    if (n.role === 'buyer') return [
+      { id: 'talk', label: 'Talk' }, { id: 'sell1', label: 'Sell 1 Physick' }, { id: 'sell5', label: 'Sell 5' }, { id: 'insult', label: 'Insult' },
+    ];
+    if (n.home && n.shopKind === 'restaurant' && n.shop === 'Albuquerque Boiled Turkey' && !D.labOwned) return [
+      { id: 'talk', label: 'Talk' }, { id: 'buylab', label: 'Buy in $6000' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' },
+    ];
+    if (n.home && n.role === 'clerk' && n.products === 'tools') return [
+      { id: 'talk', label: 'Talk' }, { id: 'buy:solvent', label: 'Solvent $30' }, { id: 'buy:sack', label: 'Sack $5' },
+      { id: 'directions', label: 'Directions' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' },
     ];
     if (n.home && n.role === 'clerk') return [
       { id: 'talk', label: 'Talk' }, { id: 'buy:snack', label: 'Snack $3' }, { id: 'buy:sack', label: 'Sack $5' },
@@ -437,6 +453,9 @@ export class Citizens {
     pl.talkT = 1.4;
     const hostile = n.mood < -30, warm = n.mood >= 40;
     if (id.startsWith('buy:')) { this.buy(n, id.slice(4)); return; }
+    if (id === 'sell1' || id === 'sell5') { g.drugs.sell(n, n, id === 'sell1' ? 1 : 5); return; }
+    if (id === 'sellall') { g.drugs.sell(n, n, 999); return; }
+    if (id === 'buylab') { if (g.money < 6000) { this.say(n, "Six thousand. Cash. Come back when you've got it.", 3); return; } g.money -= 6000; g.drugs.labOwned = true; this.say(n, 'Welcome to the family. The door in the back. Staff only.', 4); g.hud.toast('You bought into Albuquerque Boiled Turkey. The superlab is through the STAFF ONLY door at the back.', '#5fd0ff'); return; }
     switch (id) {
       case 'talk': {
         let line;
@@ -490,12 +509,13 @@ export class Citizens {
 
   // buying things from a shopkeeper
   buy(n, what) {
-    const g = this.g, W = g.weapons, price = { pistol: 250, shotgun: 600, ammo: 40, sack: 5, snack: 3 }[what];
+    const g = this.g, W = g.weapons, price = { pistol: 250, shotgun: 600, ammo: 40, sack: 5, snack: 3, solvent: 30, salts: 45 }[what];
     if (g.money < price) { this.say(n, pick(["You can't afford it.", 'Come back with money.', 'Cash first.']), 2.5); return; }
     if (what === 'ammo' && !W.inv.has('pistol') && !W.inv.has('shotgun')) { this.say(n, 'Ammo for what? You don\'t have a gun.', 2.5); return; }
     g.money -= price; g.sfx?.cash(this.pos(n));
     if (what === 'pistol' || what === 'shotgun') { const fresh = !W.inv.has(what); W.give(what, what === 'pistol' ? 36 : 18); this.say(n, pick(["Pleasure doing business.", "I didn't sell you that.", 'Serial number? What serial number?']), 3); g.hud.toast(`${fresh ? 'Bought' : 'More rounds for'} the ${what === 'pistol' ? 'Pistol' : 'Pump Shotgun'} · 1–6 or the mouse wheel to switch · right mouse to aim`, '#ffd23f'); }
     else if (what === 'ammo') { if (W.inv.has('pistol')) W.ammo.pistol += 24; if (W.inv.has('shotgun')) W.ammo.shotgun += 12; this.say(n, 'Try not to use it all at once.', 2.5); g.hud.toast('Bought ammo', '#ffd23f'); }
+    else if (what === 'solvent' || what === 'salts') { const D = g.drugs; if (what === 'solvent') D.solvent++; else D.salts++; this.say(n, what === 'solvent' ? pick(['Industrial solvent. For… cleaning?', 'Gloves are aisle three.']) : pick(["Blue Salts. Don't ask where I got them.", 'Bath salts. Sure.']), 2.8); g.hud.toast(`Bought ${what === 'solvent' ? 'Industrial Solvent' : 'Blue Salts'} · you have ${D.solvent} solvent, ${D.salts} salts`, '#5fd0ff'); }
     else if (what === 'sack') { g.player.sacks = (g.player.sacks || 0) + 1; this.say(n, pick(['A sack. Sure. For… potatoes.', "I don't want to know.", 'Here you go.']), 2.8); g.hud.toast(`Bought a sack (you have ${g.player.sacks}) · G behind someone to put it over their head`, '#ffd23f'); }
     else { g.player.hp = Math.min(100, g.player.hp + 15); this.say(n, pick(['Enjoy.', 'Good choice.', 'Bag? No? Okay.']), 2); g.hud.toast('A snack: +15 health', '#7be08a'); }
   }

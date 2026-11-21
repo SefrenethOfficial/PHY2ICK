@@ -18,6 +18,7 @@ import { Fx } from './fx.js';
 import { Sfx } from './sfx.js';
 import { Police } from './police.js';
 import { Pickups } from './pickups.js';
+import { Drugs } from './drugs.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -71,6 +72,8 @@ class Game {
     this.citizens = new Citizens(this, this.map, 40);
     for (const w of this.workers || []) this.citizens.addWorker(w);
     this.police = new Police(this); this.police.warm(3);
+    this.drugs = new Drugs(this);
+    this.setupDrugs();
     // two lights that follow you indoors (cheaper than a light in every room)
     this.roomLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffe6c4, 0, 16, 1.5); this.scene.add(l); return l; });
     this.loadTimes.all = performance.now() - T0;
@@ -129,6 +132,9 @@ class Game {
         if (e.code === 'Escape' || e.code === 'KeyQ') this.wheel.close();
         return;
       }
+      if (this.drugs.cook) { this.drugs.key(e.code); return; }
+      if (e.code === 'KeyE') { const sp = this.spotNear(); if (sp) { sp.act(); return; } }
+      if ((e.code === 'KeyC' || e.code === 'ControlLeft') && !pl.car) { pl.crouch = !pl.crouch; }
       if (e.code === 'KeyE') {
         const slot = this.weapons.candidate();
         if (slot) this.weapons.take(slot);
@@ -187,8 +193,83 @@ class Game {
     }
   }
 
+  // ---- PHYSICK: where it's cooked, who buys it
+  setupDrugs() {
+    const C = this.citizens, D = this.drugs, P = (name) => { const k = name in this.places ? name : Object.keys(this.places).find(k => k.startsWith(name.toLowerCase())); return k ? this.places[k] : null; };
+    this.spots = [];
+    const spot = (pos, r, label, act, when = () => true) => this.spots.push({ pos, r, label, act, when });
+    // the kitchen stove
+    const st = this.apt.stove;
+    spot(st, 1.2, () => '<kbd>E</kbd> cook Physick at the stove', () => { this.player.yaw = Math.PI; D.start('kitchen', null); });
+    // a camper, rusting in the abandoned car park (locked)
+    const ab = P('the abandoned car park');
+    if (ab) { const q = ab.pos.clone().add(V(6, 0, 4)); this.camper = new Car(this, V(q.x, 0.03, q.z), 0.4, 0xe6dcc0, 'Camper', { camper: true }); this.camper.locked = true; this.cars.push(this.camper); }
+    // buyers
+    const buyerSpots = [['the skatepark', 'skatepark'], ['the park', 'bushes'], ['the beach washrooms', 'washrooms'], ['the nightclub', 'nightclub']];
+    const lines = ['You holding?', "I'm not a cop. Why would you ask that?", 'Got any of the blue?', 'Physick? You got Physick?', 'Keep it down, man.'];
+    for (const [name, id] of buyerSpots) {
+      const pl = P(name); if (!pl) continue;
+      for (let k = 0; k < (id === 'nightclub' ? 2 : 1 + (Math.random() < 0.5 ? 1 : 0)); k++) {
+        const a = Math.random() * 6.28, at = pl.pos.clone().add(V(Math.sin(a) * (2 + k * 2), 0, Math.cos(a) * (2 + k * 2)));
+        const n = C.addWorker({ pos: at, yaw: Math.random() * 6.28, lines, role: 'buyer' });
+        n.spot = id; n.undercover = Math.random() < 0.15;
+      }
+    }
+    // the superlab, under Albuquerque Boiled Turkey: in by the STAFF ONLY door
+    const R = this.rooms.find(r => r.name === 'Albuquerque Boiled Turkey');
+    if (R) {
+      const [a, b, c, d] = R.ring, L = (u, v) => V(a[0] + (b[0] - a[0]) * u + (d[0] - a[0]) * v, 0.05, a[1] + (b[1] - a[1]) * u + (d[1] - a[1]) * v);
+      const door = L(0.9, 0.93), lab = this.buildLab(L(0.5, 0.5).setY(-14), Math.atan2(d[0] - a[0], d[1] - a[1]));
+      spot(door, 1.4, () => D.labOwned ? '<kbd>E</kbd> STAFF ONLY: down to the lab' : 'STAFF ONLY (you need to buy into the business)', () => { if (D.labOwned) this.teleport(lab.entry, lab.yaw); });
+      spot(lab.exit, 1.5, () => '<kbd>E</kbd> back up to the restaurant', () => this.teleport(door.clone().add(V(0, 0.05, 0)), null));
+      spot(lab.station, 1.4, () => '<kbd>E</kbd> cook Physick (superlab)', () => D.start('superlab', null));
+      spot(lab.hire, 1.4, () => D.cookHired ? `<kbd>E</kbd> collect ${D.labStock.length} bag${D.labStock.length === 1 ? '' : 's'} from your cook` : '<kbd>E</kbd> hire a cook: $1500 (makes it while you\'re away)', () => {
+        if (!D.cookHired) { if (this.money < 1500) { this.hud.toast("You can't afford a cook yet"); return; } this.money -= 1500; D.cookHired = true; lab.cook.visible = true; this.hud.toast('You hired a cook. They\'ll have a bag ready every 40 seconds (up to 30).', '#5fd0ff'); }
+        else { const n = D.labStock.length; D.bags.push(...D.labStock.splice(0)); this.hud.toast(n ? `Collected ${n} bags of Physick` : 'Nothing ready yet', '#5fd0ff'); }
+      });
+    }
+  }
+  spotNear() {
+    const p = this.player.pos; if (this.player.car) return null;
+    for (const s of this.spots || []) if (s.pos.distanceTo(p) < s.r && s.when()) return s;
+    // the back of the camper
+    const c = this.camper; if (c && !c.wrecked && !c.driver && Math.abs(c.speed) < 0.5 && c.trunkPoint(0.2).distanceTo(p) < 1.6) return { label: () => '<kbd>E</kbd> cook Physick in the camper', act: () => this.drugs.start('van', c) };
+    return null;
+  }
+  teleport(at, yaw) {
+    const pl = this.player; this.hud.blackout(true);
+    setTimeout(() => { pl.body.setTranslation({ x: at.x, y: at.y + 1.0, z: at.z }, true); pl.body.setNextKinematicTranslation({ x: at.x, y: at.y + 1.0, z: at.z }); if (yaw != null) { pl.yaw = yaw; this.cam.yaw = yaw + Math.PI; } this.hud.blackout(false); }, 350);
+  }
+  // the lab: a concrete room underground, lit and kitted out
+  buildLab(o, yaw) {
+    const { world, R } = this, grp = new THREE.Group(); grp.position.copy(o); grp.rotation.y = yaw; this.scene.add(grp);
+    const W = 12, D = 10, H = 3.6;
+    const conc = new THREE.MeshStandardMaterial({ color: 0x8a8d90, roughness: 0.9 }), steel = new THREE.MeshStandardMaterial({ color: 0xc8ccd0, roughness: 0.3, metalness: 0.8 });
+    const yellow = new THREE.MeshStandardMaterial({ color: 0xd8b52a, roughness: 0.6 }), blue = new THREE.MeshStandardMaterial({ color: 0x2a6ad8, roughness: 0.5 }), white = new THREE.MeshStandardMaterial({ color: 0xe8e8e4, roughness: 0.6 });
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
+    const box = (w, h, d, x, y, z, m, col = true) => { const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); mesh.position.set(x, y, z); mesh.castShadow = mesh.receiveShadow = true; grp.add(mesh); if (col) { const p = V(x, y, z).applyQuaternion(q).add(o); world.createCollider(R.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(p.x, p.y, p.z).setRotation(q)); } return mesh; };
+    const cyl = (r, h, x, y, z, m) => { const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16), m); mesh.position.set(x, y, z); mesh.castShadow = true; grp.add(mesh); return mesh; };
+    box(W + 1, 0.4, D + 1, 0, -0.2, 0, conc); box(W + 1, 0.4, D + 1, 0, H + 0.2, 0, conc);
+    box(0.4, H, D, -W / 2 - 0.2, H / 2, 0, conc); box(0.4, H, D, W / 2 + 0.2, H / 2, 0, conc); box(W, H, 0.4, 0, H / 2, -D / 2 - 0.2, conc); box(W, H, 0.4, 0, H / 2, D / 2 + 0.2, conc);
+    // the kit: steel benches, the reactor, barrels, a drying rack of blue
+    box(4, 0.9, 1, -2, 0.45, -3.6, steel); box(4, 0.9, 1, 2.5, 0.45, 3.6, steel);
+    cyl(0.6, 1.8, 0, 0.9, -3.4, steel); cyl(0.65, 0.1, 0, 1.85, -3.4, steel); cyl(0.08, 1.4, 0.6, 2.4, -3.4, steel);
+    for (let i = 0; i < 5; i++) cyl(0.3, 0.9, -5 + i * 0.7, 0.45, 4.2, i % 2 ? yellow : blue);
+    for (let i = 0; i < 4; i++) { box(1.6, 0.04, 0.6, 4.6, 0.6 + i * 0.45, -1, steel, false); for (let k = 0; k < 4; k++) box(0.3, 0.04, 0.4, 4.0 + k * 0.4, 0.64 + i * 0.45, -1, new THREE.MeshStandardMaterial({ color: 0x5fd0ff, emissive: 0x1a6aa0, emissiveIntensity: 0.4, roughness: 0.2 }), false); }
+    box(1.2, 2.2, 0.1, -W / 2 + 0.8, 1.1, D / 2 - 0.05, new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.8 }), false); // (the door up)
+    for (const x of [-3, 3]) { const l = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 0.3), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xeaf6ff, emissiveIntensity: 2 })); l.position.set(x, H - 0.05, 0); grp.add(l); }
+    // the cook you can hire (in a yellow suit)
+    const cook = new THREE.Group(); grp.add(cook); cook.visible = false;
+    const suit = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.9, 4, 8), yellow); suit.position.set(2.5, 0.95, 2.8); cook.add(suit);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), white); head.position.set(2.5, 1.75, 2.8); cook.add(head);
+    const W2 = (x, z) => V(x, 0.05, z).applyQuaternion(q).add(o);
+    const ring = [[-W / 2, -D / 2], [W / 2, -D / 2], [W / 2, D / 2], [-W / 2, D / 2]].map(([x, z]) => { const p = W2(x, z); return [p.x, p.z]; });
+    this.rooms.push({ kind: 'lab', name: 'the lab', ring, y0: o.y - 1, y1: o.y + H + 1, lights: [W2(-3, 0).setY(o.y + H - 0.6), W2(3, 0).setY(o.y + H - 0.6)], tint: 0xeaf6ff, power: 24 });
+    return { entry: W2(-W / 2 + 1.6, D / 2 - 1.4), yaw: yaw + Math.PI, exit: W2(-W / 2 + 0.8, D / 2 - 0.6), station: W2(0, -2.3), hire: W2(2.5, 2.0), cook };
+  }
+
   // the boot: a car whose back end you're standing at
-  trunkCar() { const p = this.player.pos; let best = null, bd = 1.9; for (const c of this.cars) { if (c.inactive || c.wrecked) continue; const d = c.trunkPoint(0.3).distanceTo(p); if (d < bd) { bd = d; best = c; } } return best; }
+  trunkCar() { const p = this.player.pos; let best = null, bd = 1.9; for (const c of this.cars) { if (c.inactive || c.wrecked || c.camper) continue; const d = c.trunkPoint(0.3).distanceTo(p); if (d < bd) { bd = d; best = c; } } return best; }
   intoTrunk(car, n) {
     const pl = this.player, C = this.citizens;
     if (car.trunk.length >= 2) { this.hud.toast('The boot is full'); return; }
@@ -394,6 +475,7 @@ class Game {
     this.fx.update(dt);
     this.sfx.update(rdt);
     this.robbery(dt);
+    this.drugs.update(dt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);
     this.citizens.frame(dt);
@@ -407,8 +489,10 @@ class Game {
     else if (pl.car) prompt = (pl.car.passenger?.kidnapped ? '<kbd>G</kbd> let them go · ' : '') + `<kbd>F</kbd> get out · <kbd>C</kbd> ${this.cam.mode === 'chase' ? 'inside view' : 'chase camera'} · <kbd>Space</kbd> handbrake`;
     else if (!pl.ragdoll) {
       const slot = this.weapons.candidate(), n = !slot && this.wheel.candidate(), c = this.nearestCar() || this.parkedCars.nearest(pl.pos);
-      const fin = pl.finishTarget(), kc = this.kidnapCar();
-      if (pl.surrender) prompt = 'Hands up · <kbd>Y</kbd> change your mind';
+      const fin = pl.finishTarget(), kc = this.kidnapCar(), sp = this.spotNear();
+      if (this.drugs.cook) prompt = 'Cooking · hold <kbd>Space</kbd> heat · <kbd>E</kbd> stir · <kbd>Q</kbd> give up';
+      else if (pl.surrender) prompt = 'Hands up · <kbd>Y</kbd> change your mind';
+      else if (sp) prompt = sp.label();
       else if (pl.hostage) prompt = `Holding ${pl.hostage.mem.met ? pl.hostage.name : 'someone'} · <kbd>F</kbd> by a car door (or the boot) to put them in · <kbd>G</kbd> let go`;
       else if (fin) prompt = `<kbd>Q</kbd> finish ${fin.mem.met ? fin.name : 'them'} off`;
       else if (kc) prompt = '<kbd>G</kbd> let them out of the car';

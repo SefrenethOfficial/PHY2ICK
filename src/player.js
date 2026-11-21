@@ -56,7 +56,8 @@ export class Player {
       if (c && !c.smashed.driver && this.smashT < 0.4) { c.smash('driver'); g.police.crime('carjack', this.pos); }
       if (this.smashT <= 0 && c) { this.smashCar = null; if (!c.driver && c.pos.distanceTo(this.pos) < 4) this.enterCar(c); }
     }
-    const stuck = busy || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
+    if (this.swimming || this.car) this.crouch = false;
+    const stuck = busy || !!g.drugs?.cook || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
     if (!stuck) {
       if (k.has('KeyW')) want.z -= 1; if (k.has('KeyS')) want.z += 1;
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
@@ -64,7 +65,7 @@ export class Player {
     const run = (k.has('ShiftLeft') || k.has('ShiftRight')) && !this.hostage && !g.weapons.aiming;
     const t0 = this.body.translation(), feet = t0.y - CENTRE, wl = g.waterAt?.(t0.x, t0.z) ?? -99; this.wl = wl;
     this.swimming = feet < wl - 1.05;
-    if (want.lengthSq() > 0) want.normalize().multiplyScalar(this.swimming ? (run ? 3.4 : 2.2) : run ? 6.2 : this.hostage ? 1.5 : 1.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.cam.yaw);
+    if (want.lengthSq() > 0) want.normalize().multiplyScalar(this.swimming ? (run ? 3.4 : 2.2) : this.crouch ? (run ? 2.8 : 1.25) : run ? 6.2 : this.hostage ? 1.5 : 1.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.cam.yaw);
     // ease toward the wanted velocity (a little weight to it)
     const acc = this.grounded ? (want.lengthSq() > 0 ? 9 : 12) : 2;
     this.vel.x += (want.x - this.vel.x) * Math.min(1, acc * h);
@@ -244,7 +245,7 @@ export class Player {
       guard: W.cur === 'fists' && (W.aiming || W.guardT > 0) && W.punchPhase == null && !this.hostage && !this.surrender,
       punch: this.smashT > 0 ? { a: 1 - this.smashT / 0.75, side: 'R' } : W.punchPhase != null ? { a: W.punchPhase, side: W.combo % 2 ? 'L' : 'R', hook: W.combo === 2 } : null,
       aim: F && F.kind === 'shoot' ? { e: -0.9, kind: W.cur } : gunOut ? { e, kind: W.cur, recoil: W.recoil } : (W.aiming && W.cur !== 'fists' ? { e, kind: 'melee' } : null),
-      handsUp: this.surrender, hold: this.hostage ? (this.hostage.hostage?.bag ? 'bag' : 'mouth') : null,
+      handsUp: this.surrender || !!this.g.police.cops().find(n => n.frisking), crouch: this.crouch && !this.swimming, hold: this.hostage ? (this.hostage.hostage?.bag ? 'bag' : 'mouth') : null,
       stomp: F && F.kind === 'stomp' ? fa : null, stab: F && F.kind === 'stab' ? fa : null });
     this.talkT = Math.max(0, (this.talkT || 0) - dt);
   }

@@ -31,7 +31,7 @@ const arch = (c, r, yc, n = 10) => { const out = []; for (let i = 0; i <= n; i++
 
 export class Car {
   constructor(g, pos, yaw = 0, color = 0x9b1c1c, name = 'Sedan', opts = {}) {
-    this.g = g; this.name = name; this.police = !!opts.police;
+    this.g = g; this.name = name; this.police = !!opts.police; this.camper = !!opts.camper;
     this.hp = 1000; this.burning = false; this.wrecked = false; this.siren = false; this.ai = null; this.crew = []; this.flipT = 0; this.wreckFireT = 0; this.smokeT = 0;
     const { world, R } = g;
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
@@ -41,6 +41,7 @@ export class Car {
     this.col = world.createCollider(R.ColliderDesc.cuboid(0.88, 0.27, 2.25).setTranslation(0, 0.04, 0)
       .setMassProperties(1350, { x: 0, y: -0.32, z: 0.05 }, { x: 2700, y: 3000, z: 760 }, { x: 0, y: 0, z: 0, w: 1 })
       .setFriction(0.5).setRestitution(0.1).setSolverGroups(solver), this.body);
+    if (opts.camper) world.createCollider(R.ColliderDesc.cuboid(0.92, 0.68, 0.86).setTranslation(0, GY + 1.47, -1.56).setDensity(0).setSolverGroups(solver), this.body);
     this.roofCol = world.createCollider(R.ColliderDesc.cuboid(0.72, 0.26, 0.85).setTranslation(0, 0.56, -0.4).setDensity(0).setSolverGroups(solver), this.body);
 
     // the raycast vehicle
@@ -197,8 +198,26 @@ export class Car {
       return { g: w, spin: sp };
     });
     if (this.police) this.livery(RY);
+    if (this.camper) this.camperBox(RY);
     bakeStatic(this.shell, new Set([this.wheelGrp, this.barR, this.barB, this.doors.driver, this.doors.passenger, this.lidP, this.trunkIn].filter(Boolean))); // (the body's fixed parts: a handful of meshes, not dozens)
     this.paintMeshes = []; this.shell.traverse((m) => { if (m.isMesh && m.material === this.paint) this.paintMeshes.push(m); });
+  }
+
+  // the camper: a tall box on the back (with a door, a little window, a roof vent: the lab)
+  camperBox(RY) {
+    const add = (m) => { m.castShadow = m.receiveShadow = true; this.shell.add(m); return m; };
+    const cream = new THREE.MeshStandardMaterial({ color: 0xe6dcc0, roughness: 0.6 }), brown = new THREE.MeshStandardMaterial({ color: 0x7a5232, roughness: 0.6 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x1a1c1e, roughness: 0.4 }), win = new THREE.MeshStandardMaterial({ color: 0x24323c, roughness: 0.1, metalness: 0.4 });
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.86, 1.36, 1.72), cream)).position.set(0, 1.47, -1.56);
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.16, 1.74), brown)).position.set(0, 1.12, -1.56);
+    { const m = add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.06, 0.4), cream)); m.position.set(0, 2.12, -0.55); m.rotation.x = -0.35; } // (over the cab)
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.5, 0.5), cream)).position.set(0, 1.9, -0.6);
+    for (const sd of [-1, 1]) { const w = add(new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.36), win)); w.position.set(sd * 0.935, 1.6, -1.6); w.rotation.y = sd * Math.PI / 2; }
+    const door = add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.1, 0.03), cream)); door.position.set(0.35, 1.38, -2.43); const dw = add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.02), win)); dw.position.set(0.35, 1.68, -2.45); for (const [w, h, x, y] of [[0.74, 0.04, 0.35, 1.94], [0.74, 0.04, 0.35, 0.82], [0.04, 1.14, -0.02, 1.38], [0.04, 1.14, 0.72, 1.38]]) add(new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.03), brown)).position.set(x, y, -2.44);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.12), dark)).position.set(0.62, 1.35, -2.46);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.14, 0.4), dark)).position.set(0, 2.21, -1.6); // (the vent)
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, 0.2), dark)).position.set(-0.5, 2.18, -2.0);
+    this.lidP && (this.lidP.visible = false);
   }
 
   // black and white, POLICE on the doors, a light bar on the roof, a push bar on the nose

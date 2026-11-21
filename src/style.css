@@ -80,3 +80,9 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px; border: 1px soli
 #endtext.busted { color: #e8eef6; }
 #app canvas { transition: filter 1.6s; }
 #app.grey canvas { filter: grayscale(1) contrast(1.12) brightness(.92); }
+
+#cook { position: absolute; left: 20px; bottom: 20px; display: none; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+#cook canvas { display: block; }
+#stars.suspect { display: block; }
+#stars.suspect i.on { color: transparent; -webkit-text-stroke: 1.5px #fff; text-shadow: none; animation: starblink 1.4s steps(2) infinite; }
+#stars b { display: block; font: 700 11px Arial; letter-spacing: 1px; color: #ffb04a; text-align: right; margin-top: 2px; }

@@ -241,6 +241,7 @@ export function buildApartment(g) {
   return {
     spawn: V(3.4 + DX, F + 0.05, -72.6 + DZ), spawnYaw: Math.PI, // facing the rack
     door: V(DX, 0, ZF + 1.2 + DZ),
+    stove: V(-6.0 + DX, F + 0.05, ZB + T + 1.05 + DZ), // (standing at the hob)
     inside: (p) => p.x - DX > X0 && p.x - DX < X1 && p.z - DZ < ZF && p.z - DZ > ZB && p.y < Y2,
   };
 }
