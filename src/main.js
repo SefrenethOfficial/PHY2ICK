@@ -32,6 +32,7 @@ import { ChopShop } from './chopshop.js';
 import { Marcos } from './marcos.js';
 import { Missions } from './missions.js';
 import { Bikes } from './bikes.js';
+import { Inventory } from './inventory.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -56,6 +57,7 @@ class Game {
     this.hud = new Hud(this);
     this.props = new Props(this);
     this.weapons = new Weapons(this);
+    this.inv = new Inventory(this);
     this.blood = new Blood(this);
     this.fx = new Fx(this); this.sfx = new Sfx(this); this.pickups = new Pickups(this);
     const T0 = performance.now();
@@ -98,6 +100,8 @@ class Game {
     this.chop = new ChopShop(this);
     this.marcos = new Marcos(this);
     this.missions = new Missions(this);
+    // traffic cones about the place: roadworks by the construction site, the dock, the desert road
+    for (const [x, z] of [[-8, 101.6], [-4, 101.6], [0, 101.6], [4, 101.6], [8, 101.6], [12, 101.6], [130, -2262], [134, -2262], [138, -2262], [200, -2255], [124, -1000], [124, -1010], [124, -1020]]) { const y = this.desert?.inDesert(x, z) ? this.desert.groundY(x, z) + 0.05 : this.map.inRoad(x, z) ? 0.03 : 0.16; this.props.addCone(V(x, y, z), Math.random()); }
     this.spots.push({ pos: this.apt.clothes, r: 1.6, label: () => this.missions.canSleep() ? `<kbd>E</kbd> sleep till morning (it's day ${this.missions.day}${this.missions.cookedToday ? ', and you\'ve cooked' : ''})` : 'Your bed', act: () => this.missions.sleep(), when: () => this.story?.phase === 'free' });
     // two lights that follow you indoors (cheaper than a light in every room)
     this.roomLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffe6c4, 0, 16, 1.5); this.scene.add(l); return l; });
@@ -133,7 +137,7 @@ class Game {
     canvas.addEventListener('click', () => { if (!document.pointerLockElement && this.started && this.story?.phase !== 'creator') lock(); });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
-      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open ? 'none' : 'flex';
+      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open || this.inv?.open ? 'none' : 'flex';
       if (!this.locked) { this.keys.clear(); if (this.wheel.open) this.wheel.close(); }
     });
     addEventListener('contextmenu', (e) => e.preventDefault());
@@ -152,7 +156,7 @@ class Game {
       if (e.button === 2 && this.props.held) this.props.drop(true);
     });
     addEventListener('mouseup', (e) => { if (e.button === 2) this.mouseR = false; if (e.button === 0) this.mouseL = false; });
-    addEventListener('wheel', (e) => { if (!this.locked || this.wheel.open || this.player.car) return; this.weapons.cycle(e.deltaY > 0 ? 1 : -1); }, { passive: true });
+    addEventListener('wheel', (e) => { if (!this.locked || this.wheel.open || this.player.car) return; this.inv.cycle(e.deltaY > 0 ? 1 : -1); }, { passive: true });
     addEventListener('mousemove', (e) => {
       if (!this.locked) return;
       if (this.wheel.open) this.wheel.mouse(e.movementX, e.movementY);
@@ -164,6 +168,7 @@ class Game {
       this.keys.add(e.code);
       if (this.chop?.open) { this.chop.key(e.code); this.keys.delete(e.code); return; }
       if (this.marcos?.open) { this.marcos.key(e.code); this.keys.delete(e.code); return; }
+      if (this.inv?.open) { this.inv.key(e.code); this.keys.delete(e.code); return; }
       if (this.wren?.phoneOpen) { this.wren.phoneKey(e.code); this.keys.delete(e.code); return; }
       if (e.code === 'KeyP' && this.started && !this.story?.cine && this.story?.phase !== 'creator') { this.wren.openPhone(); this.keys.delete(e.code); return; }
       if (this.story?.key(e.code)) { if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) this.keys.delete(e.code); return; } // (a key held through a scene still counts once it's over)
@@ -182,11 +187,12 @@ class Game {
         if (slot) this.weapons.take(slot);
         else { const n = this.wheel.candidate(); if (n) this.wheel.show(n); }
       }
-      if (e.code === 'KeyV' && !pl.car) this.shopping.pocket();
+      if (e.code === 'KeyV' && !pl.car) this.inv.store();
+      if ((e.code === 'Tab' || e.code === 'KeyI') && !pl.car && !pl.bike) { this.inv.show(); return; }
       if (e.code === 'KeyE' && pl.car && this.chop.canUse()) { this.chop.show(); return; }
       if (e.code === 'KeyE' && this.marcos?.canOrder() && !this.wheel.open) { this.marcos.show(); return; }
       if (e.code === 'KeyX') { if (this.props.held) this.props.drop(false); else if (this.weapons.held) this.weapons.putAway(); }
-      if (/^Digit[1-6]$/.test(e.code) && !pl.car) this.weapons.select(+e.code.slice(5) - 1);
+      if (/^Digit[1-6]$/.test(e.code) && !pl.car) this.inv.select(+e.code.slice(5) - 1);
       if (e.code === 'KeyG' && !pl.car && !pl.hostage) { const tc = this.trunkCar(); if (tc) { if (tc.trunk.length) this.outOfTrunk(tc); else { const b = this.bodyNear(); if (b) this.intoTrunk(tc, b); else { tc.openLid(1.2); this.hud.toast('The boot is empty'); } } return; } }
       if (e.code === 'KeyG') { if (pl.car) { if (pl.car.passenger?.kidnapped) pl.freeKidnapped(pl.car); } else { const k = this.kidnapCar(); if (k && !pl.hostage) pl.freeKidnapped(k); else pl.grab(); } }
       if (e.code === 'KeyQ' && !pl.car) pl.finishOff();
@@ -515,6 +521,7 @@ class Game {
     this.chop?.update(rdt);
     this.marcos?.update(rdt);
     this.missions?.update(rdt);
+    this.inv?.update();
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);

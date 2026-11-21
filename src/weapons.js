@@ -12,11 +12,24 @@ export const WEAPONS = {
   fists: { name: 'Fists', melee: true, dmg: 9, reach: 1.25, swing: 0.34, force: 1.3, bleed: 0, threat: 0 },
   kiddie: { name: 'Plastic Kiddie Knife', melee: true, dmg: 0, reach: 1.3, swing: 0.34, force: 0.3, bleed: 0, threat: 0 },
   butter: { name: 'Butter Knife', melee: true, dmg: 16, reach: 1.35, swing: 0.36, force: 1.2, bleed: 10, threat: 1 },
+  cone: { name: 'Traffic Cone', melee: true, dmg: 4, reach: 1.55, swing: 0.5, force: 2.4, bleed: 0, threat: 0, cone: true },
   hatchet: { name: 'Hatchet', melee: true, dmg: 60, reach: 1.75, swing: 0.55, force: 3.2, bleed: 40, threat: 2 },
   pistol: { name: 'Pistol', gun: true, dmg: 34, range: 90, rate: 0.26, mag: 12, spread: 0.01, reload: 1.3, pellets: 1, threat: 3, price: 250, ammoPrice: 40, ammoPack: 24 },
   shotgun: { name: 'Pump Shotgun', gun: true, dmg: 15, range: 38, rate: 0.95, mag: 6, spread: 0.065, reload: 2.2, pellets: 8, threat: 4, price: 600, ammoPrice: 60, ammoPack: 12 },
 };
-export const ORDER = ['fists', 'kiddie', 'butter', 'hatchet', 'pistol', 'shotgun'];
+export const ORDER = ['fists', 'kiddie', 'butter', 'cone', 'hatchet', 'pistol', 'shotgun'];
+
+// a traffic cone: orange, two white reflective bands, a square black base (built standing, base at y = 0)
+export function coneMesh() {
+  const g = new THREE.Group(), orange = std(0xff5a10, 0.55), white = std(0xf4f4f0, 0.3, { emissive: 0x444444 }), black = std(0x18181a, 0.8);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.035, 0.36), black); base.position.y = 0.0175; g.add(base);
+  const H = 0.62, r0 = 0.15, r1 = 0.028, rAt = (y) => r0 + (r1 - r0) * (y / H);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, H, 20, 1, true), orange); body.position.y = 0.035 + H / 2; g.add(body);
+  const top = new THREE.Mesh(new THREE.CircleGeometry(r1, 12), orange); top.rotation.x = -Math.PI / 2; top.position.y = 0.035 + H; g.add(top);
+  for (const [y0, y1] of [[0.3, 0.38], [0.45, 0.51]]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(rAt(y1) + 0.003, rAt(y0) + 0.003, y1 - y0, 20, 1, true), white); b.position.y = 0.035 + (y0 + y1) / 2; g.add(b); }
+  g.traverse(m => { if (m.isMesh) m.castShadow = true; });
+  return g;
+}
 
 // the models: built along +Y from the grip (the hand holds it at the origin)
 export function model(id) {
@@ -33,6 +46,8 @@ export function model(id) {
     add(new THREE.BoxGeometry(0.018, 0.1, 0.012), steel, 0, 0.0, 0);
     const blade = new THREE.Shape(); blade.moveTo(-0.011, 0); blade.lineTo(0.011, 0); blade.lineTo(0.011, 0.1); blade.quadraticCurveTo(0.011, 0.125, -0.004, 0.128); blade.lineTo(-0.011, 0.11); blade.closePath();
     add(new THREE.ExtrudeGeometry(blade, { depth: 0.003, bevelEnabled: false }), steel, 0, 0.05, -0.0015);
+  } else if (id === 'cone') { // (held by the tip, the wide end out)
+    const c = coneMesh(); c.rotation.x = Math.PI; c.position.y = 0.62; c.scale.setScalar(0.85); g.add(c);
   } else if (id === 'kiddie') {
     const pink = std(0xff7ab6, 0.45), blue = std(0x5ab8ff, 0.45);
     add(new THREE.CapsuleGeometry(0.014, 0.07, 4, 8), blue, 0, 0.0, 0);

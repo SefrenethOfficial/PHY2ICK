@@ -1,6 +1,7 @@
 // Loose things: real physics bodies you can pick up (left click), carry, drop (left click) or throw (right click).
 import * as THREE from 'three';
 import { G_WORLD, G_CAR, G_PROP, G_RAG, G_HELD, groups } from './world.js';
+import { coneMesh } from './weapons.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 
@@ -26,6 +27,12 @@ export class Props {
     return p;
   }
 
+  // a traffic cone, standing (pick it up, or V to put it in your bag: it's a weapon, of sorts)
+  addCone(pos, ry = 0) {
+    const { R } = this.g, m = coneMesh(), wrap = new THREE.Group(); m.position.y = -0.33; wrap.add(m);
+    const p = this.add(wrap, R.ColliderDesc.cone(0.33, 0.16).setDensity(160), V(pos.x, pos.y + 0.34, pos.z), 'a traffic cone', ry);
+    p.cone = true; return p;
+  }
   sync(p) { const t = p.body.translation(), r = p.body.rotation(); p.mesh.position.set(t.x, t.y, t.z); p.mesh.quaternion.set(r.x, r.y, r.z, r.w); }
 
   // what you're looking at, within reach
@@ -42,6 +49,7 @@ export class Props {
       const f = g.cam.forward, base = pl.pos;
       let best = null, bd = 1.6;
       for (const q of this.list) {
+        if (q.stored) continue;
         const t = q.body.translation(), d = Math.hypot(t.x - base.x, t.z - base.z);
         if (d < bd && Math.abs(t.y - base.y - 0.6) < 1.2 && ((t.x - base.x) * f.x + (t.z - base.z) * f.z) / Math.max(d, 0.01) > 0.5) { bd = d; best = q; }
       }

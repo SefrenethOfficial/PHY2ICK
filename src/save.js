@@ -42,7 +42,7 @@ export class Save {
       wren: wl,
       tenants: (g.tenants?.list || []).map(n => ({ id: n.tenant.id, mood: n.mood, met: n.mem.met, talks: n.mem.talks })),
       camper: g.camper && !g.camper.wrecked ? { pos: arr(g.camper.pos), yaw: g.camper.yaw, kitchen: !!g.camper.kitchen, plate: g.camper.plate, owned: !!g.camper.owned } : null,
-      cars, loot: g.shopping?.loot || [], missions: g.missions?.state(),
+      cars, loot: g.shopping?.loot || [], missions: g.missions?.state(), inv: g.inv?.state(),
     };
   }
   save() {
@@ -66,6 +66,7 @@ export class Save {
       // your things
       Wp.inv = new Set(s.weapons?.inv || ['fists']); Object.assign(Wp.ammo, s.weapons?.ammo || {}); Object.assign(Wp.clip, s.weapons?.clip || {});
       for (const sl of Wp.slots) sl.taken = Wp.inv.has(sl.id);
+      g.inv?.restore(s.inv);
       Object.assign(D, { solvent: s.drugs?.solvent || 0, salts: s.drugs?.salts || 0, bags: s.drugs?.bags || [], vanKeys: !!s.drugs?.vanKeys, big: !!s.drugs?.big });
       if (g.shopping) g.shopping.loot = s.loot || [];
       // the van

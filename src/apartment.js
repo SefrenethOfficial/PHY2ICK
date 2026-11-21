@@ -303,7 +303,7 @@ export function buildApartment(g) {
   for (let i = 0; i < 2; i++) prop(new THREE.Mesh(new THREE.CylinderGeometry(0.033, 0.033, 0.12, 12), std([0xc8202a, 0x2a6ac8][i], 0.3, { metalness: 0.7 })), R.ColliderDesc.cylinder(0.06, 0.033).setDensity(800), 3.8 + i * 0.12, F + 0.92, -65.6, 'a can');
   prop(new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 14), std(0xd8682a, 0.7)), R.ColliderDesc.ball(0.12).setDensity(80).setRestitution(0.75), 5.6, F + 0.2, -63.2, 'a basketball');
   prop(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.35), std(0xd8c4a0, 1)), R.ColliderDesc.cuboid(0.25, 0.07, 0.175).setDensity(60), 6.65, F + 0.65, -60.7, 'a pillow', 0.1);
-  { const cone = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 14), std(0xff6a1a, 0.6)); prop(cone, R.ColliderDesc.cone(0.25, 0.16).setDensity(200), 6.7, F + 0.26, -63.6, 'a traffic cone'); }
+  P.addCone(V(6.7 + DX, F, -63.6 + DZ)); // (don't ask)
   const cardT = canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#b48a5a'; c.fillRect(0, 0, w, h); c.fillStyle = '#d9c8a0'; c.fillRect(0, h / 2 - 8, w, 16); c.fillStyle = '#5a3a1e'; c.font = 'bold 14px Arial'; c.fillText('STUFF', 38, 40); });
   for (const [x, y, z, s] of [[4.0, 0.22, -66.75, 0.44], [4.0, 0.62, -66.75, 0.36]]) prop(new THREE.Mesh(new THREE.BoxGeometry(s, s, s), std(0xffffff, 0.9, { map: cardT })), R.ColliderDesc.cuboid(s / 2, s / 2, s / 2).setDensity(120), x, F + y, z, 'a box');
 

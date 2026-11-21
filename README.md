@@ -85,6 +85,11 @@ Your room is **1E**, on the first floor of your building at **Fairview Heights**
 
 - **Pick things up.** A mug, books, cans, a pillow, the boxes, a basketball, and a traffic cone (don't ask). `Click` to pick something up and carry it, `Click` again to put it down, `Right-click` to throw it.
 - **The dresser** against your back wall. Press `E` to slide the top drawer open: inside is a **Butter Knife**, and that's all you own to start with. `E` again to take it (the drawer shuts), or to put it back. `Click` to swing, `X` to put it away. It makes people bleed and run. Anything better you buy (a hatchet or guns from Halyard Arms).
+- **A traffic cone** (don't ask): orange, two white reflective bands, a square black base. There are more about the island (roadworks by the construction site, the dock, the desert road). Pick one up and press `V` and it's a weapon: equip it from the hotbar and hit people with it. It doesn't hurt much. They take it very personally.
+
+### Your hotbar and your bag
+- **The hotbar** (along the bottom of the screen): six slots, fists always first. `1`–`6` or the mouse wheel picks one, and you can see which you've got. Weapons you get go into the first free slot (the bag, if it's full); guns show their ammo.
+- **The bag** (`Tab`): twelve more slots. `V` puts what you're holding in it (shop things go in your pockets, as before; a traffic cone becomes a weapon; anything too big won't fit). Click a thing, then click a slot to move it there (between the bag and the hotbar too), or *Equip* / *Hold it* / *Drop* it. Underneath, your pockets: Physick, solvent, salts, sacks and anything you've stolen.
 
 ### Moving about
 - **Swimming**: go into the water and you swim (front crawl when moving, treading water when still). `Space` at a low edge pulls you out. Under the surface everything goes murky green-blue, and the sea floor is sand all the way round (shelving down gently off the desert's beaches, deep off North Quay).
@@ -177,7 +182,9 @@ The drug the game is named after. It's made up, and the cook is a game, not chem
 | Hold `E` | talk to someone (the interaction wheel); at your dresser: open the drawer, take / put back the butter knife |
 | `Click` | punch / swing / shoot (pick up / drop a thing) |
 | Hold right mouse | aim (with a thing: throw it) |
-| `1`–`6`, mouse wheel | switch weapon |
+| `1`–`6`, mouse wheel | pick a hotbar slot |
+| `Tab` | your bag |
+| `V` | put what you're holding in your bag (shop things: your pocket) |
 | `R` | reload (in a car: flip it back over) |
 | `X` | fists (or drop what you're carrying) |
 | `G` | grab someone / let them go (from a car: let your captive out) |
@@ -232,6 +239,7 @@ src/
   desert.js     the Dry: the desert north over the causeway (ground, mesas, scrub, highway and tracks, poles), North Quay and the Saltline Apartments
   traffic.js    cars driving about (sedans, taxis, delivery vans, convertibles), carjacking (dragging drivers out, the passenger door)
   bikes.js      bicycles: people riding them, taking one, riding it
+  inventory.js  the hotbar and the bag
   save.js       saving to the browser, Continue
   marcos.js     MARCOS, the burger place on the desert road: the building, the crew, ordering
   missions.js   the jobs after the first cook (Three More, Saltline), the day and sleeping, the rival crew's gunmen

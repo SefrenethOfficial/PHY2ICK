@@ -652,6 +652,13 @@ export class Citizens {
       if (!n.human.ragdoll) { n.mood -= 8; n.human.express('surprised', 2.5); n.state = 'talk'; n.stateT = 3; this.say(n, pick(['…Was that a plastic knife?', 'Did you just… poke me?', "Ha! Is that from a kids' meal?", 'Okay. Weird. Bye.']), 3); }
       return;
     }
+    if (W.cone && !n.human.ragdoll) { // the traffic cone: a hollow *bonk*. It doesn't hurt much. It's very insulting.
+      n.hp -= W.dmg; n.mood -= 45; n.mem.hitBy++; this.crimeAt(n, false); g.sfx?.thunk?.(chest);
+      n.human.express('surprised', 2); this.say(n, pick(['Did you just hit me with a traffic cone?!', '*BONK*', 'Ow! A CONE?!', 'Is that a cone? Are you serious?']), 2.8);
+      if (n.cop || n.gunman) return;
+      if (n.brave > 0.5) { n.state = 'angry'; n.stateT = 8; } else { n.state = 'flee'; n.stateT = 6; }
+      return;
+    }
     n.hp -= W.dmg; n.mood -= 80; n.mem.hitBy++; this.crimeAt(n, n.hp <= 0);
     if (n.companion) g.wren?.hurtBy('struck');
     if (n.human.ragdoll) { if (n.hp <= 0) this.die(n); else n.human.ragdoll.push(dir.clone().multiplyScalar(W.force * 0.5)); g.blood.spray(chest, dir.clone().setY(0.3).normalize(), W.bleed, 2.5); return; }
