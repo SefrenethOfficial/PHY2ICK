@@ -68,7 +68,7 @@ export class VanInterior {
     if (this.inside) return;
     this.inside = true;
     // Wren waits outside, leaning on the van
-    if (W && W.following && W.state !== 'dead' && g.citizens.pos(W).distanceTo(pl.pos) < 14 && !g.story.cine) this.wrenLean(W);
+    if (W && W.following && W.state !== 'dead' && g.citizens.pos(W).distanceTo(pl.pos) < 14 && !g.story.cine) { this.wrenLean(W); g.wren?.react('cookIn', 0, 30); }
     this.go(this.entry, this.entryYaw);
   }
   exit(quick = false) {

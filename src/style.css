@@ -129,3 +129,13 @@ body.cine #objective { opacity: 0; }
 #splash.ready:not(.playing) .sub { display: none; }
 #splash.ready:not(.playing) .modes button { font-size: 20px; padding: 13px 54px; background: rgba(10,12,16,.55); backdrop-filter: blur(3px); }
 body.title #hud, body.title #objective { opacity: 0; pointer-events: none; }
+
+/* the phone, live: Wren's thread and what you can do */
+#phone.live { width: 320px; max-height: 94vh; overflow-y: auto; }
+#phone.live .thread { max-height: 32vh; }
+#phone .thread { max-height: 250px; overflow-y: auto; margin-bottom: 8px; }
+#phone .msg.me { background: #1d3a5a; margin-left: 40px; } #phone .msg.me b { color: #9ad0ff; }
+#phone .acts { display: flex; flex-direction: column; gap: 4px; }
+#phone .acts button { text-align: left; font: 13px Arial; color: #fff; background: #1f2630; border: 1px solid #2e3844; border-radius: 10px; padding: 6px 9px; cursor: pointer; }
+#phone .acts button:hover:not([disabled]) { background: #2a3a4c; } #phone .acts button[disabled] { opacity: .4; cursor: default; }
+#phone .acts button small { color: #ffb27a; margin-right: 7px; }

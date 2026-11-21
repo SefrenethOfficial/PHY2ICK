@@ -70,7 +70,7 @@ export class Player {
       if (this.smashT <= 0 && c) { this.smashCar = null; if (!c.driver && c.pos.distanceTo(this.pos) < 4) this.enterCar(c); }
     }
     if (this.swimming || this.car) this.crouch = false;
-    const stuck = busy || !!g.drugs?.cook || !!g.story?.locked || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
+    const stuck = busy || !!g.drugs?.cook || !!g.story?.locked || !!g.wren?.phoneOpen || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
     if (!stuck) {
       if (k.has('KeyW')) want.z -= 1; if (k.has('KeyS')) want.z += 1;
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
@@ -163,7 +163,7 @@ export class Player {
     const p = this.pos, f = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)), cf = g.cam.forward;
     let best = null, bd = 1.9;
     for (const n of g.citizens.list) {
-      if (['dead', 'seated'].includes(n.state) || n.human.ragdoll || n.cop) continue;
+      if (['dead', 'seated', 'scripted'].includes(n.state) || n.human.ragdoll || n.cop || n.companion || n.storyNpc) continue;
       const q = g.citizens.pos(n), d = q.distanceTo(p); if (d > bd) continue;
       const dir = q.clone().sub(p).setY(0).normalize(); if (dir.dot(cf) < 0.2 && dir.dot(f) < 0.2) continue;
       bd = d; best = n;

@@ -31,9 +31,10 @@ export class Drugs {
   start(kind, where) {
     const g = this.g;
     if (this.cook) return;
+    const big = this.big && this.solvent >= 2 && this.salts >= 2;
     if (this.solvent < 1 || this.salts < 1) { g.hud.toast(`You need Industrial Solvent (Home Improvements) and Blue Salts (the Pawn Shop) · you have ${this.solvent} and ${this.salts}`, '#ffd23f'); return; }
-    this.solvent--; this.salts--;
-    const L = LAB[kind];
+    this.solvent -= big ? 2 : 1; this.salts -= big ? 2 : 1;
+    const L = big ? { ...LAB[kind], batch: LAB[kind].batch * 2, time: LAB[kind].time + 6 } : LAB[kind];
     this.cook = { kind, L, where, start: true, t: 0, heat: 0.2, zone: 0.45, zoneV: 0.05, good: 0, total: 0, stirAt: 3 + Math.random() * 2, stirWin: 0, stirMiss: 0, stirs: 0, fumes: 0, boil: 0, done: false, color: 0 };
     this.el.style.display = 'block';
     g.hud.toast(`Cooking at ${L.name} · hold Space for heat, keep it in the green · E when it says STIR · Q to give up`, '#5fd0ff');
@@ -51,7 +52,7 @@ export class Drugs {
     const hold = g.keys.has('Space') || g.mouseL;
     c.heat = THREE.MathUtils.clamp(c.heat + (hold ? 0.32 : -0.22) * dt, 0, 1);
     // the green zone drifts about
-    c.zone += c.zoneV * dt; if (c.zone < 0.25 || c.zone > 0.72) c.zoneV *= -1; if (Math.random() < dt * 0.4) c.zoneV = (Math.random() - 0.5) * 0.16;
+    c.zone += c.zoneV * dt * (c.L.batch > 8 ? 1.6 : 1); if (c.zone < 0.25 || c.zone > 0.72) c.zoneV *= -1; if (Math.random() < dt * 0.4) c.zoneV = (Math.random() - 0.5) * 0.16;
     const W = 0.16, inZone = c.heat > c.zone && c.heat < c.zone + W;
     c.total += dt; if (inZone) c.good += dt;
     // stirring
@@ -73,11 +74,13 @@ export class Drugs {
     if (quit) { g.hud.toast('You gave up on the batch. The supplies are wasted.'); return; }
     const n = Math.max(1, Math.round(c.L.batch * (0.6 + p * 0.4)));
     for (let i = 0; i < n; i++) this.bags.push(THREE.MathUtils.clamp(p + (Math.random() - 0.5) * 0.02, 0.2, 0.99));
+    g.wren?.onCook(p, n);
     g.hud.toast(`${n} bags of Physick, ${Math.round(p * 100)}% pure${p > 0.9 ? '. Beautiful. Blue as the sea.' : p > 0.75 ? '. Good stuff.' : p > 0.55 ? '. It\'ll do.' : '. Cloudy. Nobody will pay much.'}`, '#5fd0ff');
   }
   fire() {
     const g = this.g, c = this.cook; this.cook = null; this.el.style.display = 'none';
     if (c.kind === 'van' && g.van?.inside) g.van.exit(true); // (out of the back as it goes up)
+    g.wren?.react('boil', 0, 1);
     const at = c.kind === 'van' && c.where ? c.where.pos.clone() : g.player.pos.clone().add(V(Math.sin(g.player.yaw) * 0.7, 1, Math.cos(g.player.yaw) * 0.7));
     g.fx.explosion(at); g.sfx.explosion(at);
     g.player.hurt(28, V(-Math.sin(g.player.yaw), 0, -Math.cos(g.player.yaw)), 'explosion', true);
@@ -122,7 +125,7 @@ export class Drugs {
       g.hud.toast('It was an undercover cop!', '#ff5a5a');
       return;
     }
-    const spot = who.spot || 'pawn', base = { nightclub: 95, skatepark: 70, bushes: 60, washrooms: 65, pawn: 38 }[spot] ?? 60;
+    const spot = who.spot || 'pawn', base = { nightclub: 95, skatepark: 70, bushes: 60, washrooms: 65, pawn: 38, site: 140 }[spot] ?? 60;
     let sold = 0, cash = 0;
     this.bags.sort((a, b) => b - a);
     for (let i = 0; i < howMany && this.bags.length; i++) { const p = this.bags.shift(); cash += this.price(p, base); sold++; }

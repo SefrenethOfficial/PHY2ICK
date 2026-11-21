@@ -575,6 +575,7 @@ export class Citizens {
   hitByCar(n, dir, force) {
     if (n.state === 'seated' || n.state === 'dead') return;
     n.mem.hitBy++; n.mood -= 60;
+    if (n.companion) this.g.wren?.hurtBy(force > 4 ? 'car' : 'bump');
     const v = dir.clone().setY(0).normalize().multiplyScalar(Math.min(force, 18) * 0.85); v.y = Math.min(6, 1.2 + force * 0.3);
     this.knock(n, v, 3 + force * 0.4);
     n.hp -= force * 6.5;
@@ -594,13 +595,14 @@ export class Citizens {
       return;
     }
     n.hp -= W.dmg; n.mood -= 80; n.mem.hitBy++; this.crimeAt(n, n.hp <= 0);
+    if (n.companion) g.wren?.hurtBy('struck');
     if (n.human.ragdoll) { if (n.hp <= 0) this.die(n); else n.human.ragdoll.push(dir.clone().multiplyScalar(W.force * 0.5)); g.blood.spray(chest, dir.clone().setY(0.3).normalize(), W.bleed, 2.5); return; }
     g.blood.spray(chest, dir.clone().setY(0.3).normalize(), W.bleed, 2.5);
     if (W.bleed) n.human.wound(chest.clone().addScaledVector(dir, -0.12), W.dmg > 40 ? 0.11 : 0.06, 1);
     this.panic(this.pos(n), n);
     if (n.hp <= 0) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1), 3); this.die(n); return; }
     if (W.dmg >= 40 || n.hp < 35) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1.5), 3); if (n.hp < 40) this.downed(n); this.after(n, true); }
-    else if (!n.human.ragdoll) { // a stab that doesn't drop them
+    else if (!n.human.ragdoll && !n.companion) { // a stab that doesn't drop them
       n.state = n.brave > 0.75 ? 'angry' : 'flee'; n.stateT = n.state === 'angry' ? 7 : 9; n.following = false;
       this.say(n, n.state === 'angry' ? pick(['You STABBED me?!', 'Oh, you are going to regret that.']) : pick(['Aaah! Help!', 'He stabbed me! Somebody help!', 'Get away from me!']), 3);
     }
@@ -617,13 +619,14 @@ export class Citizens {
     const g = this.g;
     if (n.state === 'dead' || n.state === 'seated') return;
     n.mem.hitBy++; n.mood -= 30; n.hp -= dmg;
+    if (n.companion) g.wren?.hurtBy('punch');
     if (n.human.ragdoll) { n.human.ragdoll.push(dir.clone().multiplyScalar(1.6).setY(0.6)); if (n.hp <= 0) { this.die(n); this.crimeAt(n, true); } return; }
     n.human.express('hurt', 1.2);
     this.crimeAt(n, n.hp <= 0);
     if (n.hp <= 0) { this.knock(n, dir.clone().multiplyScalar(3).setY(1.2), 3); this.die(n); return; }
     if (heavy || n.hp < 35) { this.knock(n, dir.clone().multiplyScalar(heavy ? 3.4 : 2.2).setY(1.5), 3.5); if (n.hp < 35) this.downed(n); else n.stateT = 2.2; this.after(n, false); return; }
     n.flinchT = 0.22; n.flinchDir = dir.clone();
-    if (n.cop) return;
+    if (n.cop || n.companion) return;
     if (n.state === 'handsUp' || n.hostage) return;
     if (n.brave > 0.45 && n.state !== 'angry') { n.state = 'angry'; n.stateT = 14; n.following = false; this.say(n, pick(['Oh, you want to fight?', 'Big mistake.', 'Come on then!', 'You hit like my nan.']), 2.5); }
     else if (n.brave <= 0.45 && n.state !== 'flee') { n.state = 'flee'; n.stateT = 9; n.following = false; this.say(n, pick(['Ow! Stop!', 'Help!', 'Leave me alone!']), 2.5); }
@@ -640,6 +643,7 @@ export class Citizens {
     } else if (n.state === 'seated') return;
     if (n.hostage) g.player.releaseHostage(false);
     n.hp -= dmg; n.mood = -100; n.mem.hitBy++;
+    if (n.companion) g.wren?.hurtBy('shot');
     g.blood.spray(at, dir.clone().setY(0.2).normalize(), head ? 34 : 16, 2.6);
     n.human.wound(at, head ? 0.1 : 0.09, 1); if (Math.random() < 0.6) g.blood.spray(at.clone().addScaledVector(dir, 0.25), dir, head ? 20 : 8, 4); // (the exit wound)
     const killed = n.hp <= 0;
@@ -648,13 +652,14 @@ export class Citizens {
     if (killed) { this.knock(n, v, 4); this.die(n); return; }
     if (n.human.ragdoll) { n.human.ragdoll.push(v.multiplyScalar(0.4)); return; }
     if (n.hp < 45 || dmg > 30) { this.knock(n, v, 3); if (n.hp < 45 && !n.cop) this.downed(n); else n.stateT = 2.2; this.after(n, true); }
-    if (!n.cop) this.panic(at, n);
+    if (!n.cop && !n.companion) this.panic(at, n);
   }
 
   // something pointed at them: hands up (and a wallet, after a moment)
   threaten(n, dt) {
     const g = this.g;
     if (n.cop || ['dead', 'seated'].includes(n.state) || n.human.ragdoll || n.hostage) return;
+    if (n.companion || n.storyNpc) { if (n.companion) g.wren?.react('aim', -1, 6); return; } // (Wren doesn't put her hands up for you)
     if (n.state !== 'handsUp') { n.state = 'handsUp'; n.robT = 0; n.following = false; if (n.bench) { n.bench.taken = null; n.bench = null; } n.human.express('scared', 6); this.say(n, pick(['Whoa whoa whoa!', "Okay! Okay! Don't hurt me!", 'Please, I have kids!', 'Take it, take it!']), 2.5); g.police?.crime('threat', this.pos(n)); }
     n.stateT = Math.max(n.stateT, 1.8); n.robT += dt;
     if (n.robT > 2.0 && !n.mugged && !n.home) { n.mugged = true; const p = this.pos(n), amt = 10 + Math.floor(Math.random() * 70); g.pickups.cash(p.clone().add(V(Math.sin(n.yaw) * 0.7, 0, Math.cos(n.yaw) * 0.7)), amt); this.say(n, pick(["Here! It's all I've got!", 'Take it! Just go!', "That's everything, I swear!"]), 2.5); }
@@ -665,7 +670,7 @@ export class Citizens {
     for (const o of this.list) {
       if (o === except || ['dead', 'seated'].includes(o.state) || o.human.ragdoll) continue;
       const d = this.pos(o).distanceTo(at);
-      if (o.cop || o.hostage || o.state === 'handsUp' || o.home && o.state === 'post' && d > 12) continue;
+      if (o.cop || o.hostage || o.companion || o.storyNpc || o.state === 'handsUp' || o.home && o.state === 'post' && d > 12) continue;
       if (d < R) { o.state = 'flee'; o.stateT = 8 + Math.random() * 6; o.following = false; if (o.bench) { o.bench.taken = null; o.bench = null; } if (d < 12 && Math.random() < 0.5) this.say(o, pick(['Oh my god!', 'Run!', 'Somebody call the police!', 'No no no no']), 2.5); }
     }
   }
@@ -684,6 +689,7 @@ export class Citizens {
     const at = { x: p.x, y: gy + CENTRE + 0.05, z: p.z };
     n.body.setTranslation(at, true); n.body.setNextKinematicTranslation(at); n.col.setEnabled(true);
     n.vel.set(0, 0, 0);
+    if (n.companion) { n.state = n.following ? 'follow' : n.home ? 'post' : 'idle'; n.stateT = 99; return; }
     if (n.brave > 0.6 && !n.afterBad) { n.state = 'angry'; n.stateT = 8; this.say(n, n.mem.hitBy ? 'You hit me with your CAR?!' : 'Right. That does it.', 3); }
     else { n.state = 'flee'; n.stateT = 8; this.say(n, pick(['Somebody call the police!', 'Are you insane?!', 'Ow… my leg…']), 3); }
   }

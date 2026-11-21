@@ -30,7 +30,7 @@ export class Wheel {
     this.open = true; this.target = n; this.sel = -1; this.sx = this.sy = 0;
     this.opts = g.citizens.options(n);
     g.timeScale = 0.2;
-    const mood = n.mood < -30 ? ['Hostile', '#ff6a5a'] : n.mood < 10 ? ['Wary', '#ffd166'] : n.mood < 40 ? ['Friendly', '#c8e6a0'] : ['Likes you', '#7be08a'];
+    const mood = n.companion && g.wren?.unlocked ? g.wren.levelInfo() : n.mood < -30 ? ['Hostile', '#ff6a5a'] : n.mood < 10 ? ['Wary', '#ffd166'] : n.mood < 40 ? ['Friendly', '#c8e6a0'] : ['Likes you', '#7be08a'];
     const N = this.opts.length, R = 118;
     let html = `<div class="wh-centre"><b>${n.mem.met ? n.name : 'Stranger'}</b><span style="color:${mood[1]}">${mood[0]}</span></div>`;
     this.opts.forEach((o, i) => {

@@ -23,6 +23,7 @@ import { Tenants } from './tenants.js';
 import { Story } from './story.js';
 import { VanInterior } from './van.js';
 import { Title } from './title.js';
+import { WrenLife } from './wren.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -81,6 +82,7 @@ class Game {
     this.tenants = new Tenants(this, this.apt.tenants);
     this.story = new Story(this);
     this.title = new Title(this);
+    this.wren = new WrenLife(this);
     // two lights that follow you indoors (cheaper than a light in every room)
     this.roomLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffe6c4, 0, 16, 1.5); this.scene.add(l); return l; });
     this.loadTimes.all = performance.now() - T0;
@@ -113,7 +115,7 @@ class Game {
     canvas.addEventListener('click', () => { if (!document.pointerLockElement && this.started && this.story?.phase !== 'creator') lock(); });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
-      splash.style.display = this.locked || this.story?.phase === 'creator' ? 'none' : 'flex';
+      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen ? 'none' : 'flex';
       if (!this.locked) { this.keys.clear(); if (this.wheel.open) this.wheel.close(); }
     });
     addEventListener('contextmenu', (e) => e.preventDefault());
@@ -142,6 +144,8 @@ class Game {
       if (['Space', 'Tab'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
       this.keys.add(e.code);
+      if (this.wren?.phoneOpen) { this.wren.phoneKey(e.code); this.keys.delete(e.code); return; }
+      if (e.code === 'KeyP' && this.started && !this.story?.cine && this.story?.phase !== 'creator') { this.wren.openPhone(); this.keys.delete(e.code); return; }
       if (this.story?.key(e.code)) { if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) this.keys.delete(e.code); return; } // (a key held through a scene still counts once it's over)
       if (!this.locked) return;
       const pl = this.player;
@@ -273,7 +277,7 @@ class Game {
     }
   }
   // someone lying on the ground near you (downed or dead)
-  bodyNear() { const p = this.player.pos; let best = null, bd = 2.6; for (const n of this.citizens.list) { const r = n.human.ragdoll; if (!r || (!n.downed && n.state !== 'dead') || n.trunkCar) continue; const d = r.pelvis.distanceTo(p.clone().setY(r.pelvis.y)); if (d < bd) { bd = d; best = n; } } return best; }
+  bodyNear() { const p = this.player.pos; let best = null, bd = 2.6; for (const n of this.citizens.list) { const r = n.human.ragdoll; if (!r || (!n.downed && n.state !== 'dead') || n.trunkCar || n.companion) continue; const d = r.pelvis.distanceTo(p.clone().setY(r.pelvis.y)); if (d < bd) { bd = d; best = n; } } return best; }
 
   // a car near you with someone tied up in it
   kidnapCar() { const p = this.player.pos; return this.cars.find(c => c.passenger?.kidnapped && c.pos.distanceTo(p) < 3.5); }
@@ -320,6 +324,7 @@ class Game {
     if (car === pl.car) {
       car.lastHitBy = 'player';
       if (mag > 9) pl.hurt((mag - 9) * 2.5, V(0, 1, 0), 'crash');
+      if (mag > 11 && car.passenger && car.passenger === this.wren?.n) this.wren.react('crash', mag > 18 ? -3 : -1, 10);
       this.shake = Math.max(this.shake || 0, Math.min(1, mag / 20));
       // a big head-on stop: out through the windscreen
       const loc = car.group.worldToLocal(at.clone());
@@ -458,6 +463,7 @@ class Game {
     this.drugs.update(dt);
     this.tenants?.update(dt);
     this.story?.update(rdt);
+    this.wren?.update(rdt);
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);

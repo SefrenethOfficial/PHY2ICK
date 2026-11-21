@@ -82,7 +82,7 @@ export class Police {
   witnessesOf(at, loud) {
     const g = this.g, C = g.citizens, crouch = g.player.crouch, R = loud ? 40 : crouch ? 13 : 30, to = at.clone().add(V(0, 1.1, 0)), out = [];
     for (const n of C.list) {
-      if (n.cop || n.state === 'dead' || n.state === 'seated' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
+      if (n.cop || n.companion || n.storyNpc || n.state === 'dead' || n.state === 'seated' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
       const q = C.pos(n), d = q.distanceTo(at); if (d > R || d < 0.3) continue;
       const f = V(Math.sin(n.yaw), 0, Math.cos(n.yaw)), dir = at.clone().sub(q).setY(0).normalize();
       if (!loud && d > 5 && f.dot(dir) < -0.25) continue; // (behind them, and quiet)
@@ -94,6 +94,7 @@ export class Police {
   crime(kind, at, always = false, known = false) {
     const g = this.g, base = CRIMES[kind] ?? 1, C = g.citizens;
     if (g.player.dead || g.busted) return;
+    g.wren?.onCrime(kind, at);
     // a cop saw it (or they're already after you and watching): straight to stars
     if (known || (this.stars && this.seen) || this.copSees(at)) { this.escalate(base); return; }
     // an alarm, or the victim: a call that goes out on its own
@@ -121,6 +122,7 @@ export class Police {
   reported(level, at, why = 'witness', who = null) {
     const g = this.g;
     if (g.player.dead || g.busted) return;
+    if (!this.stars) g.wren?.react('reported', -1, 20);
     if (this.stars) { this.escalate(level); return; }
     const was = this.suspect;
     this.suspect = { level: Math.max(level, was?.level || 0), at: at.clone(), t: 100 + level * 30 };
@@ -322,7 +324,7 @@ export class Police {
       n.frisking = true;
       if (n.friskT > 2.6) {
         n.frisking = false; n.copMode = n.patrol ? 'patrol' : 'investigate';
-        const found = this.illegalOnYou();
+        const found = this.illegalOnYou(); g.wren?.react(found.length ? 'friskFound' : 'friskClean', found.length ? -2 : 0, 10);
         if (found.length) { C.say(n, `Well, well. ${found[0][0].toUpperCase() + found[0].slice(1)}. You're under arrest.`, 3); g.hud.toast(`They found ${found.join(', ')}`, '#ff5a5a'); this.escalate(1); }
         else C.say(n, pick(["You're clean. Move along.", 'Alright. Off you go.', 'Nothing. Have a nice day.']), 2.5);
       }

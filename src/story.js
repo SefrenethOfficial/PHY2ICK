@@ -216,7 +216,7 @@ export class Story {
     const step = A.stairStep(14), seat = V(step.x + 0.6, step.y, step.z + 0.2);
     const n = C.spawn('Wren', { at: seat, look: { ...randomLook(), female: true, hairStyle: 'long', hair: 0x5a2416, skin: 0xe8b898, shirt: 0x4a5a3a, longSleeves: true, pants: 0x2a3040, shoes: 0x5a1d1d, height: 1.68, build: 0.95 } });
     n.body.setTranslation({ x: seat.x, y: seat.y + 1.2, z: seat.z }, true);
-    n.storyNpc = true; n.mood = 60; n.mem.met = true; n.home = null;
+    n.storyNpc = true; n.companion = true; n.mood = 60; n.mem.met = true; n.home = null;
     n.lines = ["I keep looking at my phone like he's going to text.", "Vic still isn't picking up.", 'Just drive. Please.', "Don't. I can't talk about it yet."];
     n.state = 'scripted'; n.script = { pos: V(seat.x, seat.y + 0.1 - 0.95 * (1.68 / 1.75), seat.z), yaw: 0, pose: { pose: 'stairsit', phone: true } };
     this.wren = n;
@@ -228,8 +228,8 @@ export class Story {
     this.phase = 'stairs'; this.objective(null); this.waypoint(null);
     const up = A.stairStep(18), me = V(up.x - 0.45, up.y, up.z); this.stairMe = me;
     pl.scripted = { pos: me, yaw: 0, pose: { pose: 'stand' } };
-    W.human.root.updateMatrixWorld(true);
-    const wHead = W.human.b.head.getWorldPosition(V()).add(V(0, 0.1, 0)), myHead = me.clone().add(V(0, 1.66, 0));
+    // (aimed from where she's sitting, not from her drawn head: she may not have been drawn yet)
+    const wHead = Ws.pos.clone().add(V(0, 1.52, 0.16)), myHead = me.clone().add(V(0, 1.66, 0));
     const low = A.stairStep(8).add(V(-0.9, 1.0, 0)), front = wHead.clone().add(V(-0.3, -0.05, 1.1)), over = wHead.clone().add(V(0.45, 0.3, -0.45));
     const onW = () => this.shotS(front, front.clone().add(V(-0.05, 0, -0.12)), wHead, null, 5, 42), onMe = () => this.shotS(over, over.clone().add(V(0.05, 0.02, 0.05)), myHead, null, 5, 42);
     const wLook = (y) => this.call(() => { Ws.look = y; });
@@ -483,6 +483,7 @@ export class Story {
   // talking to Wren (and Vic): the story's own options
   options(n) {
     if (n !== this.wren) return [{ id: 'talk', label: 'Talk' }];
+    if (this.phase === 'free' && this.g.wren?.unlocked) return this.g.wren.options(n);
     const o = [{ id: 'talk', label: 'Talk' }], D = this.g.drugs;
     if (['giveBags', 'free'].includes(this.phase)) {
       if (D.count) o.push({ id: 'wrengive', label: `Give her ${D.count} bag${D.count > 1 ? 's' : ''} to sell` });
@@ -492,15 +493,15 @@ export class Story {
   }
   act(n, id) {
     const g = this.g, C = g.citizens, D = g.drugs;
+    if (n === this.wren && this.phase === 'free' && g.wren?.unlocked) { g.wren.act(n, id); return true; }
     if (id === 'talk') {
-      const lines = n === this.vic ? ["I'm trying, okay?"] : this.phase === 'free' ? (this.stock.length ? [`I've got ${this.stock.length} left. His people are… keen.`, "Pratt left another voicemail. I didn't listen to it.", 'Mrs. Okafor brought soup. I cried in front of her. It was fine.'] : ["I'm out. Cook me some more?", "Kit's people keep asking when there's more.", "Vic texted. Just a thumbs up. To a funeral."]) : n.lines;
+      const lines = n === this.vic ? ["I'm trying, okay?"] : this.phase === 'free' ? (g.wren.stock.length ? [`I've got ${g.wren.stock.length} left. His people are… keen.`, "Pratt left another voicemail. I didn't listen to it.", 'Mrs. Okafor brought soup. I cried in front of her. It was fine.'] : ["I'm out. Cook me some more?", "Kit's people keep asking when there's more.", "Vic texted. Just a thumbs up. To a funeral."]) : n.lines;
       C.say(n, lines[Math.floor(Math.random() * lines.length)], 3.2); return true;
     }
     if (id === 'wrengive') {
-      const k = D.count; this.stock.push(...D.bags.splice(0)); this.sellT = 20;
+      const k = D.count; g.wren.stock.push(...D.bags.splice(0)); g.wren.sellT = 20;
       C.say(n, k >= 8 ? `${k}? Kit never made more than five in a go.` : 'Leave it with me.', 3);
       if (this.phase === 'giveBags') this.moveIn();
-      else g.hud.toast(`Wren's got ${this.stock.length} bags to sell`, '#5fd0ff');
       return true;
     }
     if (id === 'wrencome') { n.following = true; n.state = 'follow'; n.home = null; C.say(n, 'Yeah. Okay. Where are we going?', 2.6); return true; }
@@ -520,7 +521,7 @@ export class Story {
     ]);
     this.onDone = () => {
       this.phase = 'free'; W.storyLean = false;
-      g.apt.wrenBed.visible = true; this.wrenHome(true);
+      g.apt.wrenBed.visible = true; this.wrenHome(true); g.wren.unlock();
       g.hud.toast("Wren's selling for you. Bring her more bags at home (1E), or take her along.", '#5fd0ff');
       setTimeout(() => g.hud.toast('The story continues soon.', '#ffb27a'), 4000);
     };
@@ -567,17 +568,10 @@ export class Story {
       if (!D.cook && D.count > 0) { this.phase = 'giveBags'; this.objective('Give <b>Wren</b> the bags · she\'s outside, by the van'); g.hud.toast('Hold E on Wren to give her the bags', '#5fd0ff'); }
       else if (!D.cook && D.solvent < 1 && D.salts < 1 && D.count === 0) { D.solvent = 1; D.salts = 1; g.hud.toast("There's one more lot under the sink. Try again.", '#5fd0ff'); }
     }
-    // Wren sells what you give her, a bag at a time, while she's not with you
     if (this.phase === 'free' && W) {
-      if (this.stock.length && !W.following && W.state !== 'dead' && (this.sellT -= dt) <= 0) {
-        this.sellT = 35 + Math.random() * 20;
-        const p = this.stock.shift(), cash = Math.round(85 * (0.45 + p * 0.9)); g.money += cash; this.earned = (this.earned || 0) + cash;
-        g.hud.toast(`Wren sold a bag of Physick: $${cash}${this.stock.length ? ` · ${this.stock.length} left` : " · she's out"}`, '#7be08a');
-      }
       // (for now, if Wren dies she's patched up at the hospital and back at yours a minute later)
       if ((W.state === 'dead' || !g.citizens.list.includes(W)) && !this.wrenBackT) this.wrenBackT = 60;
       if (this.wrenBackT && (this.wrenBackT -= dt) <= 0) { this.wrenBackT = 0; if (g.citizens.list.includes(W)) g.citizens.remove(W); this.spawnWren(); this.wren.script = null; this.wrenHome(true); g.hud.toast("Wren's out of hospital. She's back at yours.", '#ffb27a'); }
     }
   }
-  stock = [];
 }

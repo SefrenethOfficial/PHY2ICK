@@ -38,6 +38,13 @@ At the hospital she goes in alone. An hour later she comes out, and you put a ha
 
 In the van: Kit's hoodie, a burnt pan, a notebook that says **MERIDIAN**. Kit was making it. He made what you two took. His phone won't stop buzzing with people who want more, the funeral needs paying for, and a man called **Pratt** has left four voicemails about what Kit owed him. The deal: **you cook, Wren sells**, and Vic never finds out. There's enough under the sink for one batch. Wren waits outside, leaning on the van, talking to you through the wall. Give her the bags and she moves in with you (a mattress on your floor in 1E) and sells them to Kit's buyers, a bag at a time, while you're out. Bring her more at home, or take her along (hold `E` on her).
 
+### Wren
+Once she's moved in, Wren is your partner, not a passer-by: she never calls the police on you, doesn't run off or put her hands up, and can't be mugged, grabbed or put in a boot. She reacts in her own words instead: to fights, guns, stolen cars, chases, frisks, your driving, your cooking.
+- **Trust** (Strained, Guarded, Okay, Close, Family) goes up when you talk to her, hang out, take the bags to her yourself, answer her texts and cook clean batches; it drops when you commit crimes in front of her, get her chased, hurt her, ignore her or snap at her. Closer, she says more (Kit, Vic, Pratt), texts you first, and gets better prices from her buyers.
+- **Hold `E` on her**: *Talk* (how she's holding up, Kit, Vic, the business, Pratt, just chat), *Hang out*, *Give her the bags*, *Come with me* / *Head home*, *Thank her* / *Say sorry*, *Snap at her*.
+- **Your phone (`P`)**, after the first cook: text her to *come and get* the bags (she turns up where you are), or say you'll *bring them to her* (she tells you where she is: home, the pier, outside the nightclub, the beach by the van). Quick texts, a call, and her texts to you: sales, worries, Pratt, Vic. Leave her on read too long and she notices.
+- **After the third cook** she changes: louder, faster, prouder, and she calls you **Chef** (*"Yeah, Chef! Blue magic!"*). She has **ideas**, and you can say yes or no: a night at the nightclub, a buyer at the construction site who pays double, bigger batches, higher prices, *KIT'S KITCHEN* painted on the van, riding along with you for the day. Each one has a catch. Her mood changes through the day (buzzing, flat, wrecked) and with it how she talks and how fast she sells.
+
 It isn't a run of missions: a few scenes, a line in the corner telling you what's going on, and the rest is the city. (Kit left debts. Pratt wants them paid. Vic, their older brother, is too busy with his midlife crisis to help. That's all still to come.) If the car blows up with Wren in it (or she dies) before she's moved in, that part starts again from the last checkpoint: the stairs, the hospital, or the van. (Once she's living with you, she's patched up at the hospital and back home a minute later.) People who follow you follow the way you went: through doors, down stairs, round corners, and they catch up if they get stuck. `Enter`, `Space` or `Escape` skips a scene.
 
 ### Home: Fairview Heights
@@ -175,6 +182,8 @@ src/
   drugs.js      Physick: the cook (a timing game) in the camper, selling
   van.js        inside Kit's camper: the room, getting in and out, Wren waiting outside
   title.js      the title screen: the timelapse, the title theme
+  wren.js       Wren after she moves in: trust, her wheel, the phone, selling, texts, moods, ideas, reactions
+  wrenlines.js  everything Wren says
   story.js      the story: the scenes (camera moves, subtitles, letterbox), choosing your look, the opening
   tenants.js    your neighbours: who they are, making friends, their favours
   water.js      the sea: rolling waves, sliding ripples, the sky reflected
