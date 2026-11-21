@@ -146,6 +146,9 @@ The drug the game is named after. It's made up, and the cook is a game, not chem
 |---|---|
 | `WASD` | move (in a car: drive, brake/reverse, steer) |
 | `Shift` | run |
+| `V` | put what you're holding in your pocket |
+| `P` | your phone (after the first cook) |
+| `E` (in a car, in Rusty's bay) | register, respray, new plates |
 | `C` / `Ctrl` | crouch (on foot): sneak, harder to see |
 | `Space` | jump; vault something low; climb out of the water (in a car: handbrake) |
 | Hold `E` | talk to someone (the interaction wheel); at the rack: take / put back a weapon |
