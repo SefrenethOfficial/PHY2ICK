@@ -38,7 +38,7 @@ export class Story {
   next() {
     this.cur?.end?.();
     this.cur = this.steps[++this.i] || null; this.t = 0;
-    if (!this.cur) { this.steps = null; this.cine = false; this.shot = null; document.body.classList.remove('cine'); el('letterbox').classList.remove('on'); this.sub(null); const done = this.onDone; this.onDone = null; done?.(); return; }
+    if (!this.cur) { this.steps = null; this.cine = false; this.locked = false; this.shot = null; document.body.classList.remove('cine'); el('letterbox').classList.remove('on'); this.sub(null); const done = this.onDone; this.onDone = null; done?.(); return; }
     this.cur.start?.();
     if (!this.cur.dur && !this.cur.until) this.next();
   }

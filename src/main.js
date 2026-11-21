@@ -138,7 +138,7 @@ class Game {
       if (['Space', 'Tab'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
       this.keys.add(e.code);
-      if (this.story?.key(e.code)) { this.keys.delete(e.code); return; }
+      if (this.story?.key(e.code)) { if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) this.keys.delete(e.code); return; } // (a key held through a scene still counts once it's over)
       if (!this.locked) return;
       const pl = this.player;
       if (this.wheel.open) {
