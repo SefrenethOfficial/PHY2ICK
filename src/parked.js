@@ -33,7 +33,7 @@ export class ParkedCars {
     const paintM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.28, metalness: 0.5 }); // (cheaper than the driven cars' clearcoat)
     if (glassM) glassM = new THREE.MeshStandardMaterial({ color: glassM.color, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false });
     const meshes = [[bucket.paint, paintM], [bucket.rest, restM], [bucket.glass, glassM]].filter(([l, m]) => l.length && m).map(([l, mat]) => { const mm = new THREE.Mesh(mergeGeometries(l, false), mat); mm.castShadow = mat !== glassM; return mm; });
-    this.cars = spots.map(([x, z, yaw], i) => ({ x, z, yaw, color: PAINTS[i % PAINTS.length], gone: false }));
+    this.cars = spots.map(([x, z, yaw], i) => ({ x, z, yaw, color: PAINTS[i % PAINTS.length], gone: false, locked: Math.random() < 0.5 })); // (half of them locked: smash a window)
     // drawn in neighbourhood-sized batches, so the ones off screen (or out of the sun's shadow box) are skipped whole
     const carM = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), CELL = 110;
     const cells = new Map();
@@ -69,6 +69,7 @@ export class ParkedCars {
     for (const im of c.cell.parts) { im.setMatrixAt(c.idx, zero); im.instanceMatrix.needsUpdate = true; }
     g.world.removeCollider(c.col, true);
     const car = new Car(g, new THREE.Vector3(c.x, 0.03, c.z), c.yaw, c.color);
+    car.locked = c.locked;
     g.cars.push(car);
     return car;
   }

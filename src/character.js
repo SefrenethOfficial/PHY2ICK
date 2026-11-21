@@ -172,6 +172,14 @@ export class Human {
       case 'bob': cap(1.09, Math.PI * 0.56, -0.55); rb(0.26, 0.15, 0.17, 0, 0.0, -0.035); rb(0.17, 0.04, 0.05, 0, 0.1, 0.07, { rx: 0.5 }); break;
       case 'bun': cap(1.06, Math.PI * 0.56, -0.5); blob(0.05, 0, 0.1, -0.1); break;
       case 'ponytail': cap(1.06, Math.PI * 0.56, -0.5); blob(0.024, 0, 0.05, -0.118); add('head', new THREE.CapsuleGeometry(0.034, 0.16, 4, 10), col, 0, cy - 0.06, -0.14, { rx: 0.22 }); break;
+      case 'beanie': { // a knitted beanie, pulled down, a turned-up cuff, hair showing at the sides and back
+        const knit = this.look.beanie ?? 0x2c3036, rib = new THREE.Color(knit).multiplyScalar(0.8).getHex();
+        add('head', new THREE.SphereGeometry(r * 1.1, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), knit, 0, cy + 0.008, -0.006, { rx: -0.3, sx: 0.96, sy: 1.12 });
+        add('head', new THREE.CylinderGeometry(r * 1.115, r * 1.125, 0.05, 24, 1, true), rib, 0, cy + 0.04, -0.01, { rx: -0.3, sx: 0.97 });
+        add('head', new THREE.CylinderGeometry(r * 1.13, r * 1.13, 0.012, 24, 1, true), knit, 0, cy + 0.066, -0.005, { rx: -0.3, sx: 0.97 });
+        for (const sx of [-1, 1]) rb(0.03, 0.06, 0.07, sx * 0.105, 0.0, -0.02); // (hair at the sides)
+        rb(0.17, 0.06, 0.04, 0, -0.03, -0.1);                                       // (and the back)
+        break; }
       case 'cap': { // a police cap: crown, band, peak, badge
         const navy = 0x1b2438; cap(1.05, Math.PI * 0.5, -0.5);
         add('head', new THREE.CylinderGeometry(r * 1.1, r * 1.04, 0.07, 18), navy, 0, cy + 0.075, -0.005, { rx: -0.12 });
@@ -188,6 +196,30 @@ export class Human {
   setMood(name) { this.base = name; }
 
   setHeadVisible(v) { this.headHidden = !v; }
+
+  // ---- gore: blood soaks into the body where it's hurt (painted onto the vertex colours, around the wound)
+  wound(at, r = 0.07, k = 1) {
+    const mesh = this.body, geo = mesh.geometry, pos = geo.attributes.position, col = geo.attributes.color, si = geo.attributes.skinIndex;
+    if (!pos || !col) return;
+    mesh.updateMatrixWorld(true);
+    const bones = mesh.skeleton.bones, inv = mesh.skeleton.boneInverses;
+    // the nearest bone to the wound, and the wound in that bone's bind pose
+    let bi = 0, bd = Infinity; const w = new THREE.Vector3();
+    for (let i = 0; i < bones.length; i++) { bones[i].getWorldPosition(w); const d = w.distanceToSquared(at); if (d < bd) { bd = d; bi = i; } }
+    const m = new THREE.Matrix4().multiplyMatrices(bones[bi].matrixWorld, inv[bi]).invert();
+    const pb = at.clone().applyMatrix4(m); // (back to the body's bind pose: the skin follows bone × inverse-bind)
+    const sc = this.rig.scale.x, rr = r / sc, red = [0.36, 0.015, 0.02];
+    let n = 0;
+    for (let i = 0; i < pos.count; i++) {
+      const dx = pos.getX(i) - pb.x, dy = pos.getY(i) - pb.y, dz = pos.getZ(i) - pb.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (d > rr * 1.6) continue;
+      const f = Math.min(1, k * (1 - d / (rr * 1.6)) * 1.4) * (0.75 + 0.25 * Math.sin(i * 12.9898));
+      col.setXYZ(i, col.getX(i) + (red[0] - col.getX(i)) * f, col.getY(i) + (red[1] - col.getY(i)) * f, col.getZ(i) + (red[2] - col.getZ(i)) * f); n++;
+    }
+    if (n) col.needsUpdate = true;
+  }
+  // burnt (an explosion): everything darker
+  char(k = 0.55) { const col = this.body.geometry.attributes.color; for (let i = 0; i < col.count; i++) col.setXYZ(i, col.getX(i) * k, col.getY(i) * k * 0.92, col.getZ(i) * k * 0.88); col.needsUpdate = true; }
 
   // a sack over the head (kidnapping)
   addBag() {
@@ -241,15 +273,20 @@ export class Human {
     const set = (k, x = 0, y = 0, z = 0) => { T[k] = [x, y, z]; };
     const spd = s.speed || 0;
     let hipsY = 0.95, hipsZ = 0, rootTilt = 0;
-    if (s.pose === 'drive' || s.pose === 'passenger') {
+    if (s.pose === 'slump') { // dead at the wheel
+      hipsY = 0.95;
+      set('hips'); set('spine', 0.5); set('chest', 0.25); set('neck', 0.45); set('head', 0.35, 0.3, 0.2);
+      for (const k of ['L', 'R']) { set('hip' + k, -1.48, 0, k === 'L' ? 0.12 : -0.12); set('knee' + k, 0.3); set('ankle' + k, 0.9); }
+      set('shoulderL', -0.55, 0, -0.05); set('elbowL', -0.5); set('wristL', 0.3); set('shoulderR', -0.6, 0, 0.1); set('elbowR', -0.3); set('wristR', 0.4);
+    } else if (s.pose === 'drive' || s.pose === 'passenger') {
       hipsY = 0.95; // the seat sets the height
-      set('hips'); set('spine', -0.2); set('chest'); set('neck', 0.12); set('head', 0.04, this.lookYaw * 0.6);
-      for (const k of ['L', 'R']) { set('hip' + k, -1.5, 0, k === 'L' ? 0.05 : -0.05); set('knee' + k, 1.4); set('ankle' + k, 0.1); }
+      set('hips'); set('spine', -0.26); set('chest'); set('neck', 0.16); set('head', 0.04, this.lookYaw * 0.6);
+      for (const k of ['L', 'R']) { set('hip' + k, -1.48, 0, k === 'L' ? 0.06 : -0.06); set('knee' + k, 0.16); set('ankle' + k, 0.95); } // (legs out into the footwell, feet on the floor)
       if (s.pose === 'drive') {
         const st = s.steer || 0;
         // hands at ten to two on the wheel; they follow it round as it turns
-        set('shoulderL', -1.12 - st * 0.22, 0, -0.1 + st * 0.08); set('elbowL', -0.62 + st * 0.15, 0, 0); set('wristL', 0.3);
-        set('shoulderR', -1.12 + st * 0.22, 0, 0.1 + st * 0.08); set('elbowR', -0.62 - st * 0.15, 0, 0); set('wristR', 0.3);
+        set('shoulderL', -0.98 - st * 0.22, 0, -0.1 + st * 0.08); set('elbowL', -0.78 + st * 0.15, 0, 0); set('wristL', 0.3);
+        set('shoulderR', -0.98 + st * 0.22, 0, 0.1 + st * 0.08); set('elbowR', -0.78 - st * 0.15, 0, 0); set('wristR', 0.3);
       } else {
         set('shoulderL', -0.35, 0, 0.12); set('elbowL', -1.1); set('wristL');
         set('shoulderR', -0.35, 0, -0.12); set('elbowR', -1.1); set('wristR');

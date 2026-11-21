@@ -114,7 +114,7 @@ export class Police {
     // a road node out of sight, 90–160 m away
     const cam = g.camera; cam.updateMatrixWorld(); const fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     const cands = [];
-    for (let i = 0; i < G.nodes.length; i++) { const q = G.nodes[i], d = q.distanceTo(pp.clone().setY(0)); if (d > 90 && d < 170 && !fr.containsPoint(q.clone().setY(1)) && G.adj[i].length) cands.push(i); }
+    for (let i = 0; i < G.nodes.length; i++) { const q = G.nodes[i], d = q.distanceTo(pp.clone().setY(0)); if (d > 90 && d < 170 && !fr.containsPoint(q.clone().setY(1)) && G.adj[i].length && !this.cars.some(c => c.car.pos.distanceTo(q) < 45)) cands.push(i); } // (not on top of another one)
     if (!cands.length) return;
     const i = pick(cands), q = G.nodes[i], nb = G.nodes[pick(G.adj[i])[0]];
     const yaw = Math.atan2(nb.x - q.x, nb.z - q.z);
@@ -122,6 +122,7 @@ export class Police {
     const qq = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
     car.body.setGravityScale(1, true); car.body.setTranslation({ x: q.x, y: 0.75, z: q.z }, true); car.body.setRotation(qq, true);
     car.body.setLinvel({ x: 0, y: 0, z: 0 }, true); car.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    car.group.position.set(q.x, 0.75, q.z); car.group.quaternion.copy(qq); car.group.updateMatrixWorld(true); // (right away: it's checked before it's next drawn)
     car.inactive = false; car.group.visible = true; car.hp = 1000; car.burning = false; car.siren = true; car.lastV.set(0, 0, 0);
     car.ai = { throttle: 0, brake: 0, steer: 0 };
     const crew = [this.makeCop(q.clone()), this.makeCop(q.clone())];
@@ -135,7 +136,7 @@ export class Police {
     const g = this.g;
     for (const n of c.crew) {
       if (n.state !== 'seated' || n.car !== c.car) continue;
-      c.car.unseat(n.human); g.scene.add(n.human.root);
+      c.car.unseat(n.human); g.scene.add(n.human.root); c.car.openDoor(n.seat, 0.9);
       const out = c.car.doorPoint(n.seat, 0.9);
       n.body.setTranslation({ x: out.x, y: out.y + 1.0, z: out.z }, true); n.body.setNextKinematicTranslation({ x: out.x, y: out.y + 1.0, z: out.z });
       n.col.setEnabled(true); n.state = 'cop'; n.copMode = this.stars ? 'chase' : 'leave'; n.vy = 0;
@@ -143,7 +144,7 @@ export class Police {
     c.car.ai.throttle = 0; c.car.ai.brake = 1; c.car.siren = this.stars > 0;
   }
   embark(c, n) {
-    n.state = 'seated'; n.col.setEnabled(false); n.car = c.car; c.car.seatPerson(n.human, n.seat);
+    n.state = 'seated'; n.col.setEnabled(false); n.car = c.car; c.car.seatPerson(n.human, n.seat); c.car.openDoor(n.seat, 0.7);
   }
 
   // ---- driving: along the roads to the target, straight at it when it's close
@@ -169,9 +170,19 @@ export class Police {
     let want = 26 * (1 - Math.min(0.75, Math.abs(ang) / 1.1));
     { const nx = c.route?.[c.wpI + 1]; if (nx && dT > 40) { const dw = Math.hypot(wp.x - pos.x, wp.z - pos.z); const a2 = Math.abs(Math.atan2(nx.x - wp.x, nx.z - wp.z) - Math.atan2(wp.x - pos.x, wp.z - pos.z)); const turn = Math.min(Math.PI, Math.min(a2, Math.PI * 2 - a2)); if (dw < 35) want = Math.min(want, 26 - turn * 9); } } // (slow for the corner coming up)
     if (stopAt) want = Math.min(want, Math.max(0, (dT - stopAt) * 0.9));
+    if (!ram) want = Math.min(want, 5 + dT * 0.32); // (ease off as it gets close: no ploughing in)
     if (ram && dT < 30) want = Math.max(want, 22);
     if (Math.abs(ang) > 1.9 && dT < 25) { ai.throttle = -0.7; ai.steer = -Math.sign(ang); ai.brake = 0; return; } // (it's behind: back round)
     ai.steer = THREE.MathUtils.clamp(ang * (spd > 15 ? 1.4 : 2.2), -1, 1);
+    // other cars in the way (not the one it's ramming): slow down, and steer round them
+    const look = 5 + Math.max(0, spd) * 0.9;
+    for (const o of g.cars) {
+      if (o === car || o.inactive || (ram && o === g.player.car)) continue;
+      const l = car.group.worldToLocal(o.pos.clone()); if (l.z < 0 || l.z > look || Math.abs(l.x) > 3.2) continue;
+      const k = 1 - l.z / look;
+      want = Math.min(want, Math.max(o === g.player.car ? 0 : 2, Math.abs(o.speed) * 0.8 + (l.z - 5) * 0.8));
+      ai.steer = THREE.MathUtils.clamp(ai.steer - Math.sign(l.x || 1) * k * 0.9, -1, 1);
+    }
     ai.throttle = spd < want - 1 ? 1 : 0; ai.brake = spd > want + 3 ? 1 : 0; ai.handbrake = false;
     if (ai.throttle > 0 && Math.abs(spd) < 1) { c.stuckT += dt; if (c.stuckT > 1.4) { c.stuckT = 0; c.revT = 1.1; } } else c.stuckT = 0;
   }
@@ -220,9 +231,12 @@ export class Police {
     if (see && d < 45) {
       n.aimAt = tp;
       if (n.shootT <= 0) { n.shootT = 0.9 + Math.random() * 0.9 - this.stars * 0.06; this.copShoot(n, from, tp, d); }
-      if (d < 7) return { goal: p.clone().add(p.clone().sub(pp).setY(0).normalize().multiplyScalar(3)), spd: 2.2, face: pp };
-      if (d < 16) return { goal: null, spd: 0, face: pp };
-      return { goal: pp, spd: 3.2, face: pp };
+      // each keeps their own distance and angle, so they spread round you instead of bunching up
+      if (n.prefD == null) { n.prefD = 8 + Math.random() * 8; n.flank = (Math.random() - 0.5) * 1.6; }
+      const away = Math.atan2(p.x - pp.x, p.z - pp.z), want = away + n.flank * 0.25;
+      const spot = pp.clone().add(V(Math.sin(want) * n.prefD, 0, Math.cos(want) * n.prefD));
+      if (d < n.prefD - 3 || d > n.prefD + 4 || spot.distanceTo(p) > 3) return { goal: spot, spd: d > n.prefD + 6 ? 4 : 2.2, face: pp };
+      return { goal: null, spd: 0, face: pp };
     }
     const lk = this.lastKnown || pp;
     return { goal: see ? pp : lk, spd: 5.4 };
@@ -281,6 +295,7 @@ export class Police {
       if (have < want && this.spawnT <= 0) { this.spawnT = 3.5; this.spawnCar(); }
     }
     // drive the cars
+    const active = this.cars.filter(c => !c.car.wrecked && !c.car.inactive && !c.leaving).sort((a, b) => a.car.pos.distanceTo(pp) - b.car.pos.distanceTo(pp));
     for (let i = this.cars.length - 1; i >= 0; i--) {
       const c = this.cars[i], car = c.car;
       const aboard = c.crew.filter(n => n.state === 'seated' && n.car === car);
@@ -295,9 +310,22 @@ export class Police {
       if (c.leaving || !this.stars) { car.siren = false; const away = c.away || (c.away = this.graph.nodes[Math.floor(Math.random() * this.graph.nodes.length)]); this.drive(c, away, dt); continue; }
       car.siren = true;
       const target = this.seen ? pp : (this.lastKnown || pp), d = car.pos.distanceTo(target);
-      if (!pl.car && d < 16 && this.seen) { this.disembark(c); continue; }
-      if (!this.seen && d < 12) { this.disembark(c); continue; } // (search on foot)
-      this.drive(c, pl.car && this.seen ? target.clone().addScaledVector(V(pl.car.body.linvel().x, 0, pl.car.body.linvel().z), 0.4) : target, dt, { ram: !!pl.car && this.stars >= 2 });
+      const rank = active.indexOf(c); // (how close it is, of all of them: only the nearest two go in hard)
+      if (!pl.car) {
+        // on foot: each car pulls up at its own spot round you (not all in a heap), and out they get
+        if (!c.slot || c.slotT <= 0) { const a0 = Math.atan2(car.pos.x - target.x, car.pos.z - target.z) + (rank % 2 ? 0.7 : -0.7) * Math.ceil(rank / 2); c.slot = a0; c.slotT = 6; }
+        c.slotT -= dt;
+        const r = 11 + rank * 2.5, spot = target.clone().add(V(Math.sin(c.slot) * r, 0, Math.cos(c.slot) * r));
+        const sd = car.pos.distanceTo(spot);
+        if ((this.seen && (sd < 5 || (d < 18 && Math.abs(car.speed) < 3))) || (!this.seen && d < 14)) { this.disembark(c); continue; }
+        this.drive(c, d < 45 ? spot : target, dt, { stopAt: d < 45 ? 2 : 0 });
+      } else {
+        // in a car: the nearest two chase and ram; the rest follow a little back
+        const v = pl.car.body.linvel(), lead = target.clone().addScaledVector(V(v.x, 0, v.z), 0.4);
+        if (!this.seen) { if (d < 14) { this.disembark(c); continue; } this.drive(c, target, dt); }
+        else if (rank < 2) this.drive(c, lead, dt, { ram: this.stars >= 2 });
+        else this.drive(c, lead.clone().addScaledVector(pl.car.forward, -12 - rank * 6), dt);
+      }
     }
     // cops who've walked off once it's over
     for (const n of this.cops()) if (n.copMode === 'leave' && n.state !== 'seated' && (n.leaveT || 0) > 6 && g.citizens.pos(n).distanceTo(pp) > 45) this.removeCop(n);

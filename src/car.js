@@ -67,6 +67,7 @@ export class Car {
     this.build(this.police ? 0x16181c : color);
     g.scene.add(this.group);
     this.lastV = V();
+    { const t = this.body.translation(), r = this.body.rotation(); this.group.position.set(t.x, t.y, t.z); this.group.quaternion.set(r.x, r.y, r.z, r.w); this.group.updateMatrixWorld(true); } // (in place from the start)
   }
 
   build(color) {
@@ -79,39 +80,53 @@ export class Car {
     const leather = new THREE.MeshStandardMaterial({ color: 0x3b2d24, roughness: 0.7 });
     const glass = this.glassMat = new THREE.MeshPhysicalMaterial({ color: 0x1d2a34, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false });
     const add = (m, parent = shell) => { parent.add(m); return m; };
+    const RY0 = 1.46, BZ0 = 0.95, TZ0 = 0.08;
 
     // lower body: a tub (the cabin's open on top) plus door panels
     const front = arch(1.36, 0.43, 0.34), rear = arch(-1.34, 0.43, 0.34);
-    const tub = [[2.22, 0.3], [2.32, 0.44], [2.3, 0.64], [2.12, 0.77], [1.5, 0.84], [0.95, 0.9], [0.9, 0.42], [-0.86, 0.42], [-0.86, 0.8], [-1.72, 0.8], [-1.78, 0.93], [-2.16, 0.9], [-2.32, 0.76], [-2.3, 0.42], [-2.16, 0.3],
+    const tub = [[2.22, 0.3], [2.32, 0.44], [2.3, 0.64], [2.12, 0.77], [1.5, 0.84], [0.95, 0.9], [0.9, 0.32], [-0.86, 0.32], [-0.86, 0.8], [-1.72, 0.8], [-1.78, 0.93], [-2.16, 0.9], [-2.32, 0.76], [-2.3, 0.42], [-2.16, 0.3],
       ...rear, ...front, [2.1, 0.3]];
     add(extrudeSide(tub, 1.68, paint));
+    this.doors = {}; this.doorA = { driver: 0, passenger: 0 }; this.doorHold = { driver: 0, passenger: 0 }; this.smashed = { driver: false, passenger: false };
+    this.doorGlass = {};
     for (const s of [-1, 1]) {
-      const door = extrudeSide([[0.95, 0.4], [0.95, 0.92], [-1.76, 0.93], [-1.76, 0.78], [-0.86, 0.78], [-0.86, 0.4]], 0.07, paint, 0.012);
-      door.position.x = s * 0.865; add(door);
-      // door cards and armrests, inside
-      add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 1.7), inner)).position.set(s * 0.81, 0.68, -0.38);
-      add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.5), leather)).position.set(s * 0.77, 0.72, -0.2);
-      // door seams and handles, outside
+      const side = s > 0 ? 'driver' : 'passenger';
+      // the rear quarter (fixed), and the door: its own piece, hinged at the front
+      const quarter = extrudeSide([[-0.86, 0.4], [-0.86, 0.93], [-1.76, 0.93], [-1.76, 0.78], [-0.86, 0.78]], 0.07, paint, 0.012); quarter.position.x = s * 0.865; add(quarter);
+      add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.85), inner)).position.set(s * 0.81, 0.68, -1.3);
+      const hinge = new THREE.Group(); hinge.position.set(s * 0.9, 0, 0.93); add(hinge); this.doors[side] = hinge;
+      const dp = (m, x, y, z) => { m.position.set(x - s * 0.9, y, z - 0.93); hinge.add(m); return m; };
+      const door = extrudeSide([[0.95, 0.4], [0.95, 0.92], [-0.86, 0.93], [-0.86, 0.4]], 0.07, paint, 0.012); dp(door, s * 0.865, 0, 0);
+      dp(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 1.65), inner), s * 0.81, 0.68, 0.05); // (the door card)
+      dp(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.5), leather), s * 0.77, 0.72, -0.2);
+      dp(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.18), chrome), s * 0.91, 0.84, -0.6); // (the handle)
+      const dg = new THREE.Mesh(quad([s * 0.83, 0.92, BZ0 - 0.03], [s * 0.715, RY0 - 0.03, TZ0], [s * 0.722, RY0 - 0.03, -0.86], [s * 0.834, 0.925, -0.86]), glass);
+      dg.geometry.translate(-s * 0.9, 0, -0.93); hinge.add(dg); this.doorGlass[side] = dg;
+      // door seams, outside
       const seam = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.5, 0.01), trim); seam.position.set(s * 0.906, 0.66, -0.86); add(seam);
-      const seam2 = seam.clone(); seam2.position.z = 0.93; add(seam2);
-      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.18), chrome); handle.position.set(s * 0.91, 0.84, -0.6); add(handle);
       // side mirrors
       const sm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.11, 0.08), paint); sm.position.set(s * 0.98, 0.98, 0.86); add(sm);
       const smg = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.08), chrome); smg.position.set(s * 0.98, 0.98, 0.815); smg.rotation.y = Math.PI; add(smg);
     }
     // the greenhouse: pillars, roof, glass
-    const RY = 1.46, BZ = 0.95, TZ = 0.08, RZ = -1.16, CZ = -1.76;
+    const RY = RY0, BZ = BZ0, TZ = TZ0, RZ = -1.16, CZ = -1.76;
     for (const s of [-1, 1]) {
       add(beam([s * 0.8, 0.9, BZ], [s * 0.71, RY, TZ], 0.07, 0.07, trim));
       add(beam([s * 0.82, 0.93, CZ + 0.08], [s * 0.72, RY, RZ], 0.08, 0.2, paint));
       add(beam([s * 0.8, 0.92, -0.86], [s * 0.725, RY, -0.86], 0.05, 0.08, trim));
-      add(new THREE.Mesh(quad([s * 0.83, 0.92, BZ - 0.03], [s * 0.715, RY - 0.03, TZ], [s * 0.725, RY - 0.03, RZ], [s * 0.835, 0.92, CZ + 0.05]), glass));
+      add(new THREE.Mesh(quad([s * 0.834, 0.925, -0.86], [s * 0.722, RY - 0.03, -0.86], [s * 0.725, RY - 0.03, RZ], [s * 0.835, 0.92, CZ + 0.05]), glass)); // (the rear side window; the front one's in the door)
     }
     add(new THREE.Mesh(quad([-0.8, 0.9, BZ], [0.8, 0.9, BZ], [0.7, RY, TZ], [-0.7, RY, TZ]), glass));
     add(new THREE.Mesh(quad([0.8, 0.93, CZ], [-0.8, 0.93, CZ], [-0.7, RY, RZ], [0.7, RY, RZ]), glass));
     const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, TZ - RZ + 0.12), paint); roof.position.set(0, RY + 0.015, (TZ + RZ) / 2); roof.castShadow = true; add(roof);
     const liner = new THREE.Mesh(new THREE.PlaneGeometry(1.42, TZ - RZ), new THREE.MeshStandardMaterial({ color: 0x8c877e, roughness: 1, side: THREE.DoubleSide }));
     liner.rotation.x = Math.PI / 2; liner.position.set(0, RY - 0.02, (TZ + RZ) / 2); add(liner);
+
+    // the boot lid (hinged at the front, by the back window)
+    const lidP = this.lidP = new THREE.Group(); lidP.position.set(0, 0.935, -1.8); add(lidP); this.lidA = 0; this.lidHold = 0;
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.035, 0.4), paint); lid.position.set(0, 0.0, -0.19); lid.castShadow = true; lidP.add(lid);
+    this.trunkIn = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.02, 0.36), inner); this.trunkIn.position.set(0, 0.92, -1.98); this.trunkIn.visible = false; add(this.trunkIn);
+    this.trunk = []; // (who's in it)
 
     // lights, grille, bumpers, plates
     const headM = this.headM = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4dc, emissiveIntensity: 0.5, roughness: 0.1 });
@@ -131,13 +146,14 @@ export class Car {
 
     // the cabin: seats, dashboard, console, steering wheel, gauges, mirror
     for (const s of [-1, 1]) {
-      const seat = new THREE.Group(); seat.position.set(s * 0.37, 0.4, -0.22); add(seat);
+      const seat = new THREE.Group(); seat.position.set(s * 0.37, 0.46, -0.22); add(seat);
+      add(new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.14, 0.4), inner)).position.set(s * 0.37, 0.39, -0.22); // (the seat's base)
       const cush = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.52), leather); cush.position.y = 0.06; seat.add(cush);
       const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.62, 0.12), leather); back.position.set(0, 0.38, -0.27); back.rotation.x = -0.2; seat.add(back);
       const rest = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.16, 0.1), leather); rest.position.set(0, 0.78, -0.36); rest.rotation.x = -0.2; seat.add(rest);
     }
-    const bench = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.55), leather); bench.position.set(0, 0.86, -1.32); add(bench);
-    const benchB = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.48, 0.12), leather); benchB.position.set(0, 1.12, -1.62); benchB.rotation.x = -0.2; add(benchB);
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 0.4), leather); bench.position.set(0, 0.84, -1.06); add(bench); // (a small rear bench, under the back window)
+    const benchB = new THREE.Mesh(new THREE.BoxGeometry(1.46, 0.3, 0.1), leather); benchB.position.set(0, 1.0, -1.3); benchB.rotation.x = -0.45; add(benchB);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 0.9), inner)).position.set(0, 0.52, 0.2);
     const dash = new THREE.Mesh(new THREE.BoxGeometry(1.64, 0.22, 0.42), inner); dash.position.set(0, 0.8, 0.76); add(dash);
     const dashTop = new THREE.Mesh(new THREE.BoxGeometry(1.64, 0.04, 0.3), new THREE.MeshStandardMaterial({ color: 0x1c1b1a, roughness: 1 })); dashTop.position.set(0, 0.92, 0.82); dashTop.rotation.x = -0.12; add(dashTop);
@@ -181,7 +197,7 @@ export class Car {
       return { g: w, spin: sp };
     });
     if (this.police) this.livery(RY);
-    bakeStatic(this.shell, new Set([this.wheelGrp, this.barR, this.barB].filter(Boolean))); // (the body's fixed parts: a handful of meshes, not dozens)
+    bakeStatic(this.shell, new Set([this.wheelGrp, this.barR, this.barB, this.doors.driver, this.doors.passenger, this.lidP, this.trunkIn].filter(Boolean))); // (the body's fixed parts: a handful of meshes, not dozens)
     this.paintMeshes = []; this.shell.traverse((m) => { if (m.isMesh && m.material === this.paint) this.paintMeshes.push(m); });
   }
 
@@ -235,6 +251,7 @@ export class Car {
     if (this.redM) { this.redM.emissiveIntensity = 0; this.blueM.emissiveIntensity = 0; }
     this.body.applyImpulse({ x: (Math.random() - 0.5) * 3000, y: 9000, z: (Math.random() - 0.5) * 3000 }, true);
     this.body.applyTorqueImpulse({ x: (Math.random() - 0.5) * 6000, y: (Math.random() - 0.5) * 2000, z: (Math.random() - 0.5) * 6000 }, true);
+    for (const n of this.trunk) n.trunkAlive = false;
     g.blast?.(at, 9, this);
   }
 
@@ -259,6 +276,42 @@ export class Car {
   get yaw() { const f = this.forward; return Math.atan2(f.x, f.z); }
   get speed() { return this.vc.currentVehicleSpeed(); } // m/s, + forwards
 
+  // doors: open one for a moment (or longer), and it swings shut again by itself
+  openDoor(seat, hold = 0.8) { this.doorHold[seat] = Math.max(this.doorHold[seat], hold); }
+  openLid(hold = 1.2) { this.lidHold = Math.max(this.lidHold, hold); }
+  smash(seat) {
+    if (this.smashed[seat]) return;
+    this.smashed[seat] = true; this.doorGlass[seat].visible = false; this.locked = false;
+    const s = seat === 'driver' ? 1 : -1, at = V(s * 0.85, GY + 1.15, -0.3).applyMatrix4(this.group.matrixWorld);
+    for (let i = 0; i < 26; i++) this.g.fx?.glow.emit(at.clone().add(this.g.fx.rnd(0.4)), this.g.fx.rnd(3).add(V(0, 1, 0)), 0.6 + Math.random() * 0.5, 0.05, 0.03, 0xd8f0ff, 0x6a8a9a, 0.9, 1, -9);
+    this.g.sfx?.glass(at);
+  }
+  // someone getting in (or out): the door opens, they climb in and sit down, the door shuts
+  board(h, seat, dur = 1.05) { this.boarding = { h, seat, t: 0, dur }; this.openDoor(seat, dur * 0.72); }
+  get boardingK() { return this.boarding ? this.boarding.t / this.boarding.dur : 1; }
+  // a point behind the car (for the boot)
+  trunkPoint(out = 1) { return V(0, GY + 0.05, -2.4 - out).applyMatrix4(this.group.matrixWorld); }
+  animateParts(dt) {
+    for (const seat of ['driver', 'passenger']) {
+      this.doorHold[seat] -= dt;
+      const want = this.doorHold[seat] > 0 ? 1.15 : 0, a = this.doorA[seat];
+      this.doorA[seat] = want > a ? Math.min(want, a + dt * 4.5) : Math.max(want, a - dt * 3.8);
+      if (a > 0.05 && this.doorA[seat] <= 0.001 && !this.wrecked) this.g.sfx?.thunk?.(this.pos);
+      this.doors[seat].rotation.y = -(seat === 'driver' ? 1 : -1) * this.doorA[seat] * (1 - 0.15 * Math.max(0, this.doorA[seat] - 1));
+    }
+    this.lidHold -= dt;
+    const lw = this.lidHold > 0 ? 1.1 : 0; this.lidA += Math.sign(lw - this.lidA) * Math.min(Math.abs(lw - this.lidA), dt * 3.5);
+    this.lidP.rotation.x = this.lidA; this.trunkIn.visible = this.lidA > 0.05;
+    const B = this.boarding;
+    if (B) {
+      B.t += dt; const k = Math.min(1, B.t / B.dur), s = B.seat === 'driver' ? 1 : -1, h = B.h, sc = h.rig.scale.y;
+      const m = THREE.MathUtils.smoothstep(k, 0.22, 0.72);
+      h.root.position.set(THREE.MathUtils.lerp(s * 1.3, s * 0.37, m), THREE.MathUtils.lerp(0.02, 0.57 - 0.95 * sc, m), THREE.MathUtils.lerp(-0.1, -0.2, m));
+      h.root.rotation.y = THREE.MathUtils.lerp(-s * Math.PI / 2, 0, m);
+      if (k >= 1) { this.boarding = null; h.root.position.set(s * 0.37, 0.57 - 0.95 * sc, -0.2); h.root.rotation.set(0, 0, 0); }
+    }
+  }
+
   // a point beside the door, on the ground
   doorPoint(seat = 'driver', out = 1) {
     const x = (seat === 'driver' ? 1 : -1) * (0.95 + out);
@@ -266,7 +319,7 @@ export class Car {
   }
   seatPerson(h, seat) {
     this.shell.add(h.root);
-    h.root.position.set(seat === 'driver' ? 0.37 : -0.37, 0.49 - 0.95 * h.rig.scale.y, -0.2);
+    h.root.position.set(seat === 'driver' ? 0.37 : -0.37, 0.57 - 0.95 * h.rig.scale.y, -0.2);
     h.root.rotation.set(0, 0, 0);
     if (seat === 'passenger') this.passengerH = h;
   }
@@ -280,7 +333,7 @@ export class Car {
   physics(h) {
     if (this.inactive) return;
     const g = this.g, k = g.keys, vc = this.vc;
-    const drive = this.driver && !g.wheel.open;
+    const drive = this.driver && !g.wheel.open && !this.boarding && !this.driver.dead;
     const spd = this.speed;
     let throttle = 0, brake = 0, steerIn = 0;
     this.handbrake = false;
@@ -363,6 +416,7 @@ export class Car {
     this.revM.emissiveIntensity = this.driver && this.speed < -0.3 ? 1.8 : 0;
     if (!this.wrecked) this.headM.emissiveIntensity = (this.driver || this.ai) ? 1.2 : 0.3; else this.tailM.emissiveIntensity = 0;
     this.effects(dt);
+    this.animateParts(dt);
   }
 
   // crashes (a sudden change in speed), smoke, fire, the siren lights

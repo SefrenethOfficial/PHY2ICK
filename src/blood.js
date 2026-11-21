@@ -20,7 +20,7 @@ export class Blood {
     this.drops.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.drops.frustumCulled = false; this.drops.count = 0;
     g.scene.add(this.drops);
     this.d = []; // { p, v, floor, life }
-    const splatM = new THREE.MeshStandardMaterial({ map: splatTexture(), transparent: true, depthWrite: false, roughness: 0.38, metalness: 0, color: 0xe8e8e8, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const splatM = new THREE.MeshStandardMaterial({ map: splatTexture(), transparent: true, depthWrite: false, roughness: 0.5, metalness: 0, color: 0xc8c8c8, envMapIntensity: 0.25, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     const sg = new THREE.PlaneGeometry(1, 1); sg.rotateX(-Math.PI / 2);
     this.splats = new THREE.InstancedMesh(sg, splatM, MAX_SPLATS);
     this.splats.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.splats.frustumCulled = false; this.splats.count = 0; this.splats.receiveShadow = true;

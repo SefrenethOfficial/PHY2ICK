@@ -39,6 +39,7 @@ You start in your apartment: a loft on the first floor of your building at **Fai
 ### People
 - **Built like the first game's people, with more parts.** Blocks for the pelvis, belly and chest, upper arms, forearms, hands (with a thumb), thighs, shins and shoes on soles, with round shoulders, elbows and knees between them; short or long sleeves, a belt. A round head with **just eyes and eyebrows**: no nose, no ears, no mouth.
 - **Faces that change.** The eyes and brows have their own little bones: people look happy when you give them money or compliment them, angry when they come after you, annoyed or sad when you insult them, surprised when a car nearly hits them, scared when they run, screw their eyes up when they're knocked down, and close them for good when they die. Everyone blinks, and their brows move when they talk.
+- **You** wear a dark knitted beanie.
 - **Proper hair**: short, side-parted, swept, buzz, curly, a big afro, long, a bob, a bun, a ponytail, or bald.
 - **Animated from a skeleton.** Every person has a joint rig (hips, spine, chest, neck, head, shoulders, elbows, wrists, hips, knees, ankles) and a gait driven by speed: a walk blends into a run, arms swing against the legs, the body bobs and leans, knees bend on the swing. They breathe when standing, gesture when they talk, turn their heads to look at you, sit on benches, point when giving directions, and sit properly in cars with their hands on the wheel. Each person is a single mesh (one draw call).
 - **Citizens** keep to the sidewalks, walking along beside the road; at a corner they turn or cross. Before crossing they stop at the kerb, **look left, right and left again**, and wait until nothing's coming. Now and then they cross over mid-block, stop for a moment, sit on a bench, or **go shopping**: in through the door, along an aisle to look at the shelves, to the till to pay (the shopkeeper says something back), and out again. They step round each other and jump out of the way of cars coming at them. Each has a name, a **mood** and a **memory** of you: how often you've talked, given them money, complimented or insulted them, or run them over.
@@ -62,11 +63,14 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - `R` puts a flipped car back on its wheels.
 - **Get out at any speed.** Press `F` while moving and you throw yourself out: you tumble along the road (it hurts more the faster you were going) and the car rolls on without you.
 - **Cars float.** Drive off the sea wall and the car bobs on the water; you can still (slowly) motor about and steer like a boat. The bridge over the inlet is solid to drive and walk on.
-- **Parked cars** line the kerbs and fill the car parks: press `F` by one to get in.
+- **Parked cars** line the kerbs and fill the car parks: press `F` by one to get in. About half are **locked**: you put your elbow through the driver's window (glass everywhere) and climb in.
+- **Doors open and close**: getting in, the driver's door swings open, you climb in and sit down, and it shuts behind you; getting out, it opens again. Cops' doors, passengers' too.
+- **The boot**: hold someone (`G`) and press `F` at the back of a car to bundle them into the boot (it opens and slams). `G` at the boot throws in someone lying on the ground nearby (hurt or dead), or lets out whoever's in there. They thump and shout to be let out.
+- **A fatal crash** leaves you slumped over the wheel, the horn blaring.
 
 ### Crime and the police
 - **Wanted stars (five).** Witnessed crimes earn stars: hitting someone or firing a gun (one), killing someone, robbing a shop or kidnapping (two), attacking a cop (three), killing one (four), and doing it again while they're after you adds more. A cop or a passer-by has to see it (a robbery always gets reported: the till has an alarm).
-- **The police come for you**: one black-and-white **police car** per star, lights flashing and siren wailing, finding its way to you along the roads. Near you, two cops jump out. At **one star** they try to arrest you; from **two** they shoot. In a car they chase and ram you; drive off and the cops get back in theirs.
+- **The police come for you**: one black-and-white **police car** per star (each arriving from a different direction), lights flashing and siren wailing, finding its way to you along the roads. Near you, each car pulls up at its own spot round you (no pile-ups: they slow as they arrive, and steer round other cars in the way), and two cops jump out and spread out round you, each keeping their own distance. At **one star** they try to arrest you; from **two** they shoot. In a car the nearest two chase and ram you while the rest follow behind; drive off and the cops get back in theirs.
 - **Lose them**: get out of sight, then out of the area. For the first few seconds after the call goes out they know where you are. Once they lose sight of you the stars blink and the area they're searching shows on the minimap, flashing red and blue (bigger with more stars). Get out of it and stay out of sight and they give up (about 40 seconds at two stars, longer with more). Hiding inside it works too, but much more slowly. Cop cars and cops on foot show on the minimap.
 - **The chase theme** plays while you're wanted (*Chase on Foot*, the one-to-two-star theme from PHYSICK), fading in and out.
 - **Give up** with `Y`: hands up, and they come and cuff you.
@@ -79,6 +83,9 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 - **Robberies**: aim at a shopkeeper with anything from a **butter knife** up (not your fists, not the plastic knife) and they empty the till while you keep it on them. Aim at anyone else and they put their hands up and drop their wallet.
 - **Kidnapping**: `G` grabs someone in front of you: a **sack** over their head if you've bought one (shops sell them), a hand over their mouth if not. They struggle along with you; `F` by a car bundles them into the passenger seat, where they stay. `G` lets them go.
 - **Finishing people off**: someone badly hurt lies on the ground moaning for help. `Q` near them: a stamp, a stab, or a shot.
+
+### Blood
+- Wounds soak into people's clothes and skin where they're shot, stabbed or hit by a car (a head shot, a red head); exit wounds spray out behind. Explosions leave people scorched. Pools spread under bodies.
 
 ### Crashes and explosions
 - **Crashes** dent the body where you hit, throw sparks, and knock the car's health down. A badly damaged car smokes; one that's had enough (or is left upside down) catches fire and **explodes**, throwing the wreck into the air and knocking down (or killing) anyone near. The burnt-out wreck smoulders.

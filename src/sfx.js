@@ -60,6 +60,13 @@ export class Sfx {
   whoosh(at) { this.burst({ at, range: 20, vol: 0.25, dur: 0.18, freq: 900, type: 'bandpass', q: 1.2, sweep: 2 }); }
   crash(at, k = 1) { this.burst({ at, range: 140, vol: Math.min(1, 0.3 + k * 0.5), dur: 0.35 + k * 0.25, freq: 2600, type: 'bandpass', q: 0.9, sweep: 0.3, thump: 0.8 * k, thumpF: 55 }); }
   explosion(at) { this.burst({ at, range: 400, vol: 1.4, dur: 2.2, freq: 1600, sweep: 0.05, thump: 2.0, thumpF: 40 }); this.burst({ at, range: 400, vol: 0.6, dur: 0.6, freq: 4000, type: 'highpass', sweep: 0.3 }); }
+  glass(at) { this.burst({ at, range: 50, vol: 0.9, dur: 0.5, freq: 5200, type: 'highpass', sweep: 0.6 }); for (let i = 1; i < 5; i++) setTimeout(() => this.burst({ at, range: 30, vol: 0.3, dur: 0.08, freq: 6000 + Math.random() * 2000, type: 'bandpass', q: 4 }), 60 + i * 70 + Math.random() * 60); }
+  thunk(at) { this.burst({ at, range: 25, vol: 0.45, dur: 0.12, freq: 380, sweep: 0.5, thump: 0.6, thumpF: 80 }); }
+  horn(at, on) { // a horn held down (someone slumped on the wheel)
+    const ctx = this.ctx; if (!ctx) return;
+    if (on && !this.hornO) { const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(); o1.type = o2.type = 'square'; o1.frequency.value = 415; o2.frequency.value = 520; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1600; const gn = ctx.createGain(); gn.gain.value = 0; o1.connect(f); o2.connect(f); f.connect(gn); gn.connect(this.out); o1.start(); o2.start(); this.hornO = { o1, o2, gn }; }
+    if (this.hornO) { this.hornO.gn.gain.setTargetAtTime(on ? 0.12 * this.vol(at, 120) : 0, ctx.currentTime, 0.05); if (!on) { const h = this.hornO; this.hornO = null; setTimeout(() => { h.o1.stop(); h.o2.stop(); }, 300); } }
+  }
   click(at) { this.burst({ at, range: 12, vol: 0.4, dur: 0.05, freq: 3500, type: 'highpass' }); }
   reload(at) { this.click(at); setTimeout(() => this.click(at), 260); setTimeout(() => this.burst({ at, range: 12, vol: 0.5, dur: 0.08, freq: 2000, type: 'bandpass', q: 3 }), 600); }
   cash(at) { const ctx = this.ctx; if (!ctx) return; const t = ctx.currentTime; for (const [k, f] of [[0, 1318], [0.09, 1760]]) { const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f; const gn = ctx.createGain(); gn.gain.setValueAtTime(0.25 * this.vol(at, 30), t + k); gn.gain.exponentialRampToValueAtTime(0.001, t + k + 0.25); o.connect(gn); gn.connect(this.out); o.start(t + k); o.stop(t + k + 0.3); } }

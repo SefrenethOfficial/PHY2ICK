@@ -21,7 +21,7 @@ export class Player {
     this.cc.setApplyImpulsesToDynamicBodies(true);
     this.cc.setCharacterMass(80);
     this.human = new Human({
-      female: false, skin: 0xd2a07a, hair: 0x2a1d14, hairStyle: 'swept', shirt: 0x2b2f36, pants: 0x3a4a5e, shoes: 0x1a1a1a,
+      female: false, skin: 0xd2a07a, hair: 0x2a1d14, hairStyle: 'beanie', beanie: 0x2c3036, shirt: 0x2b2f36, pants: 0x3a4a5e, shoes: 0x1a1a1a,
       longSleeves: true, height: 1.78, build: 1.05,
     });
     g.scene.add(this.human.root);
@@ -51,7 +51,12 @@ export class Player {
     const g = this.g, k = g.keys;
     const want = new THREE.Vector3();
     const busy = g.wheel.open;
-    const stuck = busy || this.surrender || this.finishT > 0 || this.dead || g.ending;
+    if (this.smashT > 0) {
+      this.smashT -= h; const c = this.smashCar;
+      if (c && !c.smashed.driver && this.smashT < 0.4) { c.smash('driver'); g.police.crime('carjack', this.pos); }
+      if (this.smashT <= 0 && c) { this.smashCar = null; if (!c.driver && c.pos.distanceTo(this.pos) < 4) this.enterCar(c); }
+    }
+    const stuck = busy || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
     if (!stuck) {
       if (k.has('KeyW')) want.z -= 1; if (k.has('KeyS')) want.z += 1;
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
@@ -105,6 +110,7 @@ export class Player {
         if (F.kind === 'shoot') { const W = g.weapons; W.clip[W.cur] = Math.max(0, W.clip[W.cur] - 1); const m = W.models[W.cur]; m.updateMatrixWorld(true); const mz = (m.userData.muzzle || new THREE.Vector3()).clone().applyMatrix4(m.matrixWorld); g.fx.muzzle(mz, q.clone().sub(mz).normalize()); g.sfx.shot(mz, W.cur === 'shotgun'); g.fx.tracer(mz, q); }
         else g.sfx.punch(q);
         g.blood.spray(q.clone().add(new THREE.Vector3(0, 0.2, 0)), new THREE.Vector3(0, 1, 0), 26, 2.5); g.blood.pool(q, 1.4);
+        { const w = new THREE.Vector3(); n.human.b[F.kind === 'stomp' ? 'head' : 'chest'].getWorldPosition(w); n.human.wound(w, 0.13, 1); }
         if (n.human.ragdoll) n.human.ragdoll.push(new THREE.Vector3(0, -2, 0));
         n.hp = 0; c.die(n); c.crimeAt(n, true);
       }
@@ -118,7 +124,7 @@ export class Player {
     if (this.dead || g.ending) return;
     this.hp = Math.max(0, this.hp - dmg);
     g.hud.hurt();
-    if (cause === 'shot' && !this.car) g.blood.spray(this.pos.add(new THREE.Vector3(0, 1.25, 0)), dir.clone().setY(0.2).normalize(), 10, 2);
+    if (cause === 'shot') { const at = this.pos.add(new THREE.Vector3((Math.random() - 0.5) * 0.3, 1.0 + Math.random() * 0.5, (Math.random() - 0.5) * 0.3)); if (!this.car) g.blood.spray(at, dir.clone().setY(0.2).normalize(), 10, 2); this.human.wound(at, 0.06, 0.9); }
     if (this.hp <= 0) {
       if (!this.car && !this.ragdoll) { const v = dir.clone().setY(0).normalize().multiplyScalar(cause === 'explosion' ? 9 : 2.5); v.y = cause === 'explosion' ? 6 : 1; this.ragdoll = this.human.ragdoll = new Ragdoll(g, this.human, v, 4); this.col.setEnabled(false); }
       this.die(cause); return;
@@ -180,7 +186,7 @@ export class Player {
   // let them out of the car
   freeKidnapped(car) {
     const g = this.g, n = car.passenger; if (!n || !n.kidnapped) return;
-    n.kidnapped = false; g.citizens.unboard(n, car); n.car = null;
+    n.kidnapped = false; g.citizens.unboard(n, car); n.car = null; car.openDoor('passenger', 0.8);
     n.state = 'flee'; n.stateT = 12; g.citizens.say(n, pick(['Thank god!', 'HELP!', "I'm calling the police!"]), 2.5);
     if (n.hostageBag) setTimeout(() => n.human.removeBag(), 2000); n.hostageBag = false;
     g.police.crime('kidnap', g.citizens.pos(n), true);
@@ -205,7 +211,8 @@ export class Player {
   frame(dt) {
     const H = this.human;
     if (this.car) {
-      H.update(dt, { pose: 'drive', steer: this.car.steer / this.car.maxSteer });
+      const bk = this.car.boarding?.h === H ? this.car.boardingK : 1;
+      H.update(dt, bk < 0.42 ? { pose: 'stand', speed: 0, grounded: true } : { pose: this.dead ? 'slump' : 'drive', steer: this.car.steer / this.car.maxSteer });
       return;
     }
     if (this.ragdoll) { H.update(dt, {}); return; }
@@ -235,7 +242,7 @@ export class Player {
     H.update(dt, { speed: this.speed, grounded: this.grounded || this.swimming, vy: this.vy, pose: this.swimming ? 'swim' : 'stand', talking: this.talkT > 0,
       weapon: !!W.held && !gunOut, attack: W.attackPhase, carry: this.g.props.held ? (this.g.props.small ? 'small' : 'big') : null,
       guard: W.cur === 'fists' && (W.aiming || W.guardT > 0) && W.punchPhase == null && !this.hostage && !this.surrender,
-      punch: W.punchPhase != null ? { a: W.punchPhase, side: W.combo % 2 ? 'L' : 'R', hook: W.combo === 2 } : null,
+      punch: this.smashT > 0 ? { a: 1 - this.smashT / 0.75, side: 'R' } : W.punchPhase != null ? { a: W.punchPhase, side: W.combo % 2 ? 'L' : 'R', hook: W.combo === 2 } : null,
       aim: F && F.kind === 'shoot' ? { e: -0.9, kind: W.cur } : gunOut ? { e, kind: W.cur, recoil: W.recoil } : (W.aiming && W.cur !== 'fists' ? { e, kind: 'melee' } : null),
       handsUp: this.surrender, hold: this.hostage ? (this.hostage.hostage?.bag ? 'bag' : 'mouth') : null,
       stomp: F && F.kind === 'stomp' ? fa : null, stab: F && F.kind === 'stab' ? fa : null });
@@ -324,6 +331,14 @@ export class Player {
     this.vel.set(0, 0, 0);
     car.seatPerson(this.human, seat);
     car.driver = this;
+    car.board(this.human, seat);
+  }
+
+  // a locked car: an elbow through the window first
+  smashIn(car) {
+    const g = this.g; if (this.smashT > 0) return;
+    const p = car.doorPoint('driver', 0.55); this.body.setTranslation({ x: p.x, y: p.y + CENTRE + 0.1, z: p.z }, true); this.body.setNextKinematicTranslation({ x: p.x, y: p.y + CENTRE + 0.1, z: p.z });
+    this.yaw = car.yaw - Math.PI / 2; this.smashT = 0.75; this.smashCar = car;
   }
 
   // getting out at speed: you throw the door open and go, and the road does the rest
@@ -351,7 +366,7 @@ export class Player {
     const car = this.car; if (!car) return;
     const out = car.doorPoint('driver', 1.1);
     this.car = null;
-    car.unseat(this.human); car.driver = null;
+    car.unseat(this.human); car.driver = null; car.boarding = null; car.openDoor('driver', 0.55);
     this.g.scene.add(this.human.root);
     this.body.setTranslation({ x: out.x, y: out.y + CENTRE + 0.2, z: out.z }, true);
     this.body.setNextKinematicTranslation({ x: out.x, y: out.y + CENTRE + 0.2, z: out.z });

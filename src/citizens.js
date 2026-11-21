@@ -154,6 +154,7 @@ export class Citizens {
     this.stepN = (this.stepN || 0) + 1;
     for (let i = 0; i < this.list.length; i++) {
       const n = this.list[i];
+      if (n.state === 'trunk') { const tp = n.trunkCar.trunkPoint(-0.6); n.body.setNextKinematicTranslation({ x: tp.x, y: tp.y + 0.6, z: tp.z }); continue; }
       if (n.state === 'seated' || n.hostage) continue;
       // far from you, people think (and move) a quarter as often: the same walk, a quarter of the work
       let h = h0;
@@ -355,6 +356,7 @@ export class Citizens {
       const n = this.list[i];
       n.bubbleT = Math.max(0, n.bubbleT - dt0);
       const H = n.human;
+      if (n.state === 'trunk') { H.root.visible = false; if (n.trunkAlive && Math.random() < dt0 * 0.12 && n.trunkCar.pos.distanceTo(pl.pos) < 30) this.say(n, n.hostageBag ? pick(['Mmmph!', '*thump thump*']) : pick(['LET ME OUT!', 'Help! I\'m in the boot!', '*thump thump thump*']), 2); continue; }
       // only draw (and pose) people who are on screen and not too far off; far ones are posed every other frame
       if (n.state !== 'seated') {
         const t = H.ragdoll ? H.ragdoll.pelvis : n.body.translation(); this._sp.center.set(t.x, t.y, t.z);
@@ -515,7 +517,7 @@ export class Citizens {
     this.knock(n, v, 3 + force * 0.4);
     n.hp -= force * 6.5;
     if (this.g.player.car && force > 2.5) this.crimeAt(n, n.hp <= 0);
-    if (force > 6) this.g.blood.spray(n.human.ragdoll.pelvis.add(new THREE.Vector3(0, 0.35, 0)), v.clone().normalize(), Math.min(60, force * 3), 3.5);
+    if (force > 6) { this.g.blood.spray(n.human.ragdoll.pelvis.add(new THREE.Vector3(0, 0.35, 0)), v.clone().normalize(), Math.min(60, force * 3), 3.5); for (let i = 0; i < Math.min(4, force / 4); i++) { const b = ['chest', 'head', 'hipL', 'shoulderR', 'kneeR'][Math.floor(Math.random() * 5)], w = new THREE.Vector3(); n.human.b[b].getWorldPosition(w); n.human.wound(w, 0.1, 0.8); } }
     if (n.hp <= 0) this.die(n);
     else { this.after(n, force > 10); if (n.hp < 35) this.downed(n); }
   }
@@ -532,6 +534,7 @@ export class Citizens {
     n.hp -= W.dmg; n.mood -= 80; n.mem.hitBy++; this.crimeAt(n, n.hp <= 0);
     if (n.human.ragdoll) { if (n.hp <= 0) this.die(n); else n.human.ragdoll.push(dir.clone().multiplyScalar(W.force * 0.5)); g.blood.spray(chest, dir.clone().setY(0.3).normalize(), W.bleed, 2.5); return; }
     g.blood.spray(chest, dir.clone().setY(0.3).normalize(), W.bleed, 2.5);
+    if (W.bleed) n.human.wound(chest.clone().addScaledVector(dir, -0.12), W.dmg > 40 ? 0.11 : 0.06, 1);
     this.panic(this.pos(n), n);
     if (n.hp <= 0) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1), 3); this.die(n); return; }
     if (W.dmg >= 40 || n.hp < 35) { this.knock(n, dir.clone().multiplyScalar(W.force).setY(1.5), 3); if (n.hp < 40) this.downed(n); this.after(n, true); }
@@ -576,6 +579,7 @@ export class Citizens {
     if (n.hostage) g.player.releaseHostage(false);
     n.hp -= dmg; n.mood = -100; n.mem.hitBy++;
     g.blood.spray(at, dir.clone().setY(0.2).normalize(), head ? 34 : 16, 2.6);
+    n.human.wound(at, head ? 0.1 : 0.09, 1); if (Math.random() < 0.6) g.blood.spray(at.clone().addScaledVector(dir, 0.25), dir, head ? 20 : 8, 4); // (the exit wound)
     const killed = n.hp <= 0;
     this.crimeAt(n, killed);
     const v = dir.clone().multiplyScalar(head ? 2.2 : 3).setY(0.6);

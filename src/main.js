@@ -136,6 +136,7 @@ class Game {
       }
       if (e.code === 'KeyX') { if (this.props.held) this.props.drop(false); else if (this.weapons.held) this.weapons.putAway(); }
       if (/^Digit[1-6]$/.test(e.code) && !pl.car) this.weapons.select(+e.code.slice(5) - 1);
+      if (e.code === 'KeyG' && !pl.car && !pl.hostage) { const tc = this.trunkCar(); if (tc) { if (tc.trunk.length) this.outOfTrunk(tc); else { const b = this.bodyNear(); if (b) this.intoTrunk(tc, b); else { tc.openLid(1.2); this.hud.toast('The boot is empty'); } } return; } }
       if (e.code === 'KeyG') { if (pl.car) { if (pl.car.passenger?.kidnapped) pl.freeKidnapped(pl.car); } else { const k = this.kidnapCar(); if (k && !pl.hostage) pl.freeKidnapped(k); else pl.grab(); } }
       if (e.code === 'KeyQ' && !pl.car) pl.finishOff();
       if (e.code === 'KeyY') pl.toggleSurrender();
@@ -170,17 +171,48 @@ class Game {
       this.cam.yaw = car.yaw + Math.PI * 0.75; this.cam.pitch = 0.22; this.cam.smoothTarget = null; // (the camera swings out to your side, clear of the car)
       return;
     }
+    // holding someone at the back of a car: into the boot with them
+    if (pl.hostage) { const tc = this.trunkCar(); if (tc) { this.intoTrunk(tc, pl.hostage); return; } }
+    if (pl.smashT > 0) return;
     let c = this.nearestCar();
     if (!c) { const pc = this.parkedCars.nearest(pl.pos); if (pc) c = this.parkedCars.take(pc); }
     if (c) {
+      if (c.locked && !c.smashed.driver && !c.wrecked) { if (this.props.held) this.props.drop(false); if (this.weapons.cur !== 'fists') this.weapons.equip('fists', true); this.hud.toast("It's locked. You put your elbow through the window."); pl.smashIn(c); return; }
       if (c.wrecked) { this.hud.toast("It's a burnt-out wreck"); return; }
       if (this.props.held) this.props.drop(false);
-      if (pl.hostage) { if (c.passenger) { this.hud.toast('The passenger seat is taken'); return; } pl.bundle(c); }
+      if (pl.hostage) { if (c.passenger) { this.hud.toast('The passenger seat is taken'); return; } pl.bundle(c); c.openDoor('passenger', 1.0); }
       if (this.weapons.cur !== 'fists') { const m = this.weapons.models[this.weapons.cur]; if (m) m.visible = false; }
       if (c.police) this.police.crime('carjack', pl.pos);
       pl.enterCar(c);
     }
   }
+
+  // the boot: a car whose back end you're standing at
+  trunkCar() { const p = this.player.pos; let best = null, bd = 1.9; for (const c of this.cars) { if (c.inactive || c.wrecked) continue; const d = c.trunkPoint(0.3).distanceTo(p); if (d < bd) { bd = d; best = c; } } return best; }
+  intoTrunk(car, n) {
+    const pl = this.player, C = this.citizens;
+    if (car.trunk.length >= 2) { this.hud.toast('The boot is full'); return; }
+    if (pl.hostage === n) { pl.hostage = null; n.hostage = null; }
+    if (n.human.ragdoll) { n.human.ragdoll.dispose(); n.human.ragdoll = null; }
+    const alive = n.state !== 'dead';
+    n.state = 'trunk'; n.trunkCar = car; n.trunkAlive = alive; n.downed = false; n.kidnapped = alive; n.col.setEnabled(false); n.human.root.visible = false;
+    car.trunk.push(n); car.openLid(1.0); this.sfx.thunk(car.pos);
+    this.hud.toast(alive ? 'Into the boot they go · G at the boot to let them out' : 'You heave the body into the boot', '#ff9a5a');
+    this.police.crime(alive ? 'kidnap' : 'murder', pl.pos);
+  }
+  outOfTrunk(car) {
+    const C = this.citizens, at = car.trunkPoint(0.7);
+    car.openLid(1.4);
+    for (const n of car.trunk.splice(0)) {
+      n.trunkCar = null; n.kidnapped = false; n.human.root.visible = true;
+      n.body.setTranslation({ x: at.x, y: at.y + 1.0, z: at.z }, true); n.body.setNextKinematicTranslation({ x: at.x, y: at.y + 1.0, z: at.z });
+      n.human.root.position.copy(at); n.human.root.updateMatrixWorld(true);
+      if (n.trunkAlive) { n.state = 'flee'; n.stateT = 12; n.col.setEnabled(true); C.say(n, ['Oh thank god!', 'HELP! HELP!', "I'm calling the cops!"][Math.floor(Math.random() * 3)], 2.5); if (n.hostageBag) setTimeout(() => n.human.removeBag(), 2000); n.hostageBag = false; }
+      else { n.state = 'down'; C.knock(n, V(0, 0.5, 0), 1); C.die(n); }
+    }
+  }
+  // someone lying on the ground near you (downed or dead)
+  bodyNear() { const p = this.player.pos; let best = null, bd = 2.6; for (const n of this.citizens.list) { const r = n.human.ragdoll; if (!r || (!n.downed && n.state !== 'dead') || n.trunkCar) continue; const d = r.pelvis.distanceTo(p.clone().setY(r.pelvis.y)); if (d < bd) { bd = d; best = n; } } return best; }
 
   // a car near you with someone tied up in it
   kidnapCar() { const p = this.player.pos; return this.cars.find(c => c.passenger?.kidnapped && c.pos.distanceTo(p) < 3.5); }
@@ -207,6 +239,7 @@ class Game {
       if (n.hostage) pl.releaseHostage(false);
       const v = dir.multiplyScalar(4 + k * 10); v.y = 3 + k * 6;
       n.hp -= 30 + k * 140;
+      if (k > 0.4) n.human.char(0.75 - k * 0.3);
       this.citizens.knock(n, v, 8);
       if (n.hp <= 0) this.citizens.die(n); else { this.citizens.downed(n); }
     }
@@ -361,6 +394,7 @@ class Game {
     this.fx.update(dt);
     this.sfx.update(rdt);
     this.robbery(dt);
+    this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);
     this.citizens.frame(dt);
     this.blood.update(dt);
@@ -375,9 +409,10 @@ class Game {
       const slot = this.weapons.candidate(), n = !slot && this.wheel.candidate(), c = this.nearestCar() || this.parkedCars.nearest(pl.pos);
       const fin = pl.finishTarget(), kc = this.kidnapCar();
       if (pl.surrender) prompt = 'Hands up · <kbd>Y</kbd> change your mind';
-      else if (pl.hostage) prompt = `Holding ${pl.hostage.mem.met ? pl.hostage.name : 'someone'} · <kbd>F</kbd> by a car to bundle them in · <kbd>G</kbd> let go`;
+      else if (pl.hostage) prompt = `Holding ${pl.hostage.mem.met ? pl.hostage.name : 'someone'} · <kbd>F</kbd> by a car door (or the boot) to put them in · <kbd>G</kbd> let go`;
       else if (fin) prompt = `<kbd>Q</kbd> finish ${fin.mem.met ? fin.name : 'them'} off`;
       else if (kc) prompt = '<kbd>G</kbd> let them out of the car';
+      else if (this.trunkCar()) { const tc = this.trunkCar(); prompt = tc.trunk.length ? `<kbd>G</kbd> open the boot (${tc.trunk.length} inside)` : this.bodyNear() ? '<kbd>G</kbd> throw them in the boot' : '<kbd>G</kbd> open the boot'; }
       else if (this.props.held) prompt = `Carrying ${this.props.held.name} · <kbd>Click</kbd> drop · <kbd>Right-click</kbd> throw`;
       else if (slot) prompt = slot.taken ? `<kbd>E</kbd> put the ${this.weapons.held.name} back` : `<kbd>E</kbd> take the ${{ hatchet: 'Hatchet', butter: 'Butter Knife', kiddie: 'Plastic Kiddie Knife' }[slot.id]}`;
       else if (n) prompt = `Hold <kbd>E</kbd> interact with ${n.mem.met ? n.name : 'this person'}`;
