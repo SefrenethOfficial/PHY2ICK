@@ -215,7 +215,7 @@ export class Story {
   spawnWren() {
     const g = this.g, C = g.citizens, A = g.apt;
     const step = A.stairStep(14), seat = V(step.x + 0.6, step.y, step.z + 0.2);
-    const n = C.spawn('Wren', { at: seat, look: { ...randomLook(), female: false, hairStyle: 'swept', hair: 0x5a2416, skin: 0xe8b898, shirt: 0x4a5a3a, longSleeves: true, pants: 0x2a3040, shoes: 0x5a1d1d, height: 1.76, build: 0.98 } });
+    const n = C.spawn('Wren', { at: seat, look: { ...randomLook(), female: false, hairStyle: 'spiky', hair: 0x7a5a38, skin: 0xe8b898, shirt: 0x4a5a3a, longSleeves: true, pants: 0x2a3040, shoes: 0x5a1d1d, height: 1.76, build: 0.98 } });
     n.body.setTranslation({ x: seat.x, y: seat.y + 1.2, z: seat.z }, true);
     n.storyNpc = true; n.companion = true; n.mood = 60; n.mem.met = true; n.home = null;
     n.lines = ["I keep looking at my phone like he's going to text.", "Vic still isn't picking up.", 'Just drive. Please.', "Don't. I can't talk about it yet."];

@@ -37,7 +37,7 @@ Walk in through the front door of most places: there's a real room behind it, li
 The game saves itself in your browser every 45 seconds or so (and when you close the tab), at steady points in the story: driving Wren to the hospital, heading for the van, the first cook, and any time after he's moved in. It keeps your money, health, look, weapons and ammo, Physick and supplies, what's in your pockets, the van (and its paint), the cars you've registered at Rusty's, the neighbours' friendship, and everything with Wren (trust, cooks, his stock, his ideas, your texts). If there's a save, the title has **Continue** (back where you were) and **New game** (which wipes it).
 
 ### The title screen
-The PHY2ICK logo over a timelapse on the beach by Kit's van: the day runs by in seconds (dusk, a short night, dawn). Wren sits on the sand in a yellow hazmat suit; you come out of the back and hand him the bags; he walks off along the beach, sells to the dealers there, and comes back and sits down again. Now and then a police car pulls up by the dealers and a cop gets out to ask a few questions, and they suddenly find their phones, the sea and a nice tune very interesting. The title theme plays over it (once you've clicked or pressed a key: browsers won't play music before that).
+The PHY2ICK logo over Kit's camper parked alone out in the Dry, a mesa behind it, fumes pouring out of the roof vent while the day runs by in seconds (dusk, a short night, dawn). The title theme plays over it (once you've clicked or pressed a key: browsers won't play music before that).
 
 ### Shops, stealing and selling
 - **Shelves:** the Mini Marts, the Grocery, the Game Shop, Home Improvements and Cheap House have real things on the shelves (chips, cans, cereal, games, paint, hammers…). Pick one up, take it to the till and hold `E` on the clerk to **pay**. Or press `V` to **pocket** it and walk out. If the clerk sees you pocket it, or notices you leave, they call the police (crouching helps).
@@ -127,7 +127,7 @@ Not on anyone who's surrendering, running away or being held. (Someone already d
 - **Built like the first game's people, with more parts.** Blocks for the pelvis, belly and chest, upper arms, forearms, hands (with a thumb), thighs, shins and shoes on soles, with round shoulders, elbows and knees between them; short or long sleeves, a belt. A round head with **just eyes and eyebrows**: no nose, no ears, no mouth.
 - **Faces that change.** The eyes and brows have their own little bones: people look happy when you give them money or compliment them, angry when they come after you, annoyed or sad when you insult them, surprised when a car nearly hits them, scared when they run, screw their eyes up when they're knocked down, and close them for good when they die. Everyone blinks, and their brows move when they talk.
 - **You** wear a dark knitted beanie.
-- **Proper hair**: short, side-parted, swept, buzz, curly, a big afro, long, a bob, a bun, a ponytail, or bald.
+- **Proper hair**: short, side-parted, swept, buzz, curly, a big afro, long, a bob, a bun, a ponytail, or bald. Wren has his own: a short spiky crop, light brown, tufts pushed up at the front.
 - **Animated from a skeleton.** Every person has a joint rig (hips, spine, chest, neck, head, shoulders, elbows, wrists, hips, knees, ankles) and a gait driven by speed: a walk blends into a run, arms swing against the legs, the body bobs and leans, knees bend on the swing. They breathe when standing, gesture when they talk, turn their heads to look at you, sit on benches, point when giving directions, and sit properly in cars with their hands on the wheel. Each person is a single mesh (one draw call).
 - **All over the island.** People who wander too far from you turn up again on a sidewalk somewhere out of sight 60–110 m away, so the north end, the docks and the back streets have people in them too, not just the middle of town.
 - **Nobody goes in the water** but you. People stop at the water's edge (or walk along it); someone following you waits on the beach ("I'm not going in there.", Wren: "I'm not swimming. I'll wait here."), and cops won't swim after you.
@@ -250,7 +250,7 @@ src/
   interior.js   rooms behind the front doors: the shell, the furniture for each kind of place, the people working there
   drugs.js      Physick: the cook (a timing game) in the camper, selling
   van.js        inside Kit's camper: the room, getting in and out, Wren waiting outside
-  title.js      the title screen: the timelapse, the title theme
+  title.js      the title screen: the van in the Dry, smoking; the timelapse, the title theme
   wren.js       Wren after he moves in: trust, his wheel, the phone, selling, texts, moods, ideas, reactions
   wrenlines.js  everything Wren says
   shops.js      things on shop shelves, paying, pocketing, shoplifting, pickpocketing, selling at the Pawn Shop, Halyard Arms
