@@ -1,5 +1,5 @@
 // The title screen: a timelapse on the beach by Kit's van. The day runs by in seconds. Wren sits on the sand in
-// a hazmat suit; you come out of the back and hand her the bags; she walks off along the beach to the dealers,
+// a hazmat suit; you come out of the back and hand him the bags; he walks off along the beach to the dealers,
 // sells, and comes back and sits down again. Now and then a police car pulls up by the dealers, a cop gets out
 // and asks a few questions, and they suddenly find their phones, the sea and a nice tune very interesting.
 // The title theme plays over it.
@@ -30,7 +30,7 @@ export class Title {
     this.dealAt = W2(9, 4.2); this.sellAt = W2(7.4, 4.6);
     const M = W2(4.2, 2.2); this.cam0 = M.clone().addScaledVector(N, 13).setY(O.y + 2.3); this.look0 = M.clone().addScaledVector(N, -1).setY(O.y + 1.1);
     // Wren, in the suit (no hood, no mask)
-    const W = this.wren = C.spawn('Wren', { at: this.sitAt, look: { ...randomLook(), female: true, hairStyle: 'long', hair: 0x5a2416, shirt: SUIT, pants: SUIT, shoes: 0x2a2a2a, longSleeves: true, skin: 0xe8b898, height: 1.68, build: 0.98 } });
+    const W = this.wren = C.spawn('Wren', { at: this.sitAt, look: { ...randomLook(), female: false, hairStyle: 'swept', hair: 0x5a2416, shirt: SUIT, pants: SUIT, shoes: 0x2a2a2a, longSleeves: true, skin: 0xe8b898, height: 1.76, build: 1.0 } });
     W.storyNpc = true; this.sit(W);
     // you
     const me = this.me = C.spawn('You', { at: this.door, look: g.player.outfit('dressed') });
@@ -85,7 +85,7 @@ export class Title {
     g.scene.fog.color.setRGB(0.12 + 0.6 * day, 0.14 + 0.64 * day, 0.2 + 0.62 * day);
     this.cop.lightsOnly = day < 0.35 && this.copT < 0;
 
-    // you and Wren: out with the bags, she takes them, off along the beach to sell, back, sits down again
+    // you and Wren: out with the bags, he takes them, off along the beach to sell, back, sits down again
     this.stepT -= dt;
     const meYaw = Math.atan2(this.sitAt.x - this.giveAt.x, this.sitAt.z - this.giveAt.z);
     switch (this.step) {

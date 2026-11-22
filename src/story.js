@@ -46,7 +46,8 @@ export class Story {
   skip() {
     if (!this.steps) return;
     let guard = 0;
-    while (this.steps && guard++ < 200) { this.cur?.update?.(1, 0); this.next(); }
+    // (one step going wrong mustn't leave the rest undone: carry on past it)
+    while (this.steps && guard++ < 200) { try { this.cur?.update?.(1, 0); this.next(); } catch (e) { console.warn('[story] a step failed while skipping', e); try { this.next(); } catch { /* (and on) */ } } }
     this.fade(0);
   }
   update(dt) {
@@ -206,7 +207,7 @@ export class Story {
     el('phone').classList.remove('on');
     this.phase = 'wren'; this.locked = false;
     this.spawnWren();
-    this.objective('Find <b>Wren</b> · she\'s on the stairs');
+    this.objective('Find <b>Wren</b> · he\'s on the stairs');
     this.waypoint(this.wren.script.pos.clone(), 'Wren');
   }
 
@@ -214,7 +215,7 @@ export class Story {
   spawnWren() {
     const g = this.g, C = g.citizens, A = g.apt;
     const step = A.stairStep(14), seat = V(step.x + 0.6, step.y, step.z + 0.2);
-    const n = C.spawn('Wren', { at: seat, look: { ...randomLook(), female: true, hairStyle: 'long', hair: 0x5a2416, skin: 0xe8b898, shirt: 0x4a5a3a, longSleeves: true, pants: 0x2a3040, shoes: 0x5a1d1d, height: 1.68, build: 0.95 } });
+    const n = C.spawn('Wren', { at: seat, look: { ...randomLook(), female: false, hairStyle: 'swept', hair: 0x5a2416, skin: 0xe8b898, shirt: 0x4a5a3a, longSleeves: true, pants: 0x2a3040, shoes: 0x5a1d1d, height: 1.76, build: 0.98 } });
     n.body.setTranslation({ x: seat.x, y: seat.y + 1.2, z: seat.z }, true);
     n.storyNpc = true; n.companion = true; n.mood = 60; n.mem.met = true; n.home = null;
     n.lines = ["I keep looking at my phone like he's going to text.", "Vic still isn't picking up.", 'Just drive. Please.', "Don't. I can't talk about it yet."];
@@ -222,13 +223,13 @@ export class Story {
     this.wren = n;
   }
 
-  // the stairs: she's just been told
+  // the stairs: he's just been told
   stairs() {
     const g = this.g, pl = g.player, A = g.apt, W = this.wren, Ws = W.script;
     this.phase = 'stairs'; this.objective(null); this.waypoint(null);
     const up = A.stairStep(18), me = V(up.x - 0.45, up.y, up.z); this.stairMe = me;
     pl.scripted = { pos: me, yaw: 0, pose: { pose: 'stand' } };
-    // (aimed from where she's sitting, not from her drawn head: she may not have been drawn yet)
+    // (aimed from where he's sitting, not from his drawn head: he may not have been drawn yet)
     const wHead = Ws.pos.clone().add(V(0, 1.52, 0.16)), myHead = me.clone().add(V(0, 1.66, 0));
     const low = A.stairStep(8).add(V(-0.9, 1.0, 0)), front = wHead.clone().add(V(-0.3, -0.05, 1.1)), over = wHead.clone().add(V(0.45, 0.3, -0.45));
     const onW = () => this.shotS(front, front.clone().add(V(-0.05, 0, -0.12)), wHead, null, 5, 42), onMe = () => this.shotS(over, over.clone().add(V(0.05, 0.02, 0.05)), myHead, null, 5, 42);
@@ -275,8 +276,8 @@ export class Story {
     if (H) this.waypoint(H.pos, 'the hospital');
   }
 
-  // ---- when it goes wrong (the car blows up with her in it, Wren dies): back to the last checkpoint
-  // (later, when Wren can die and live on, she'll be picked up from the hospital instead)
+  // ---- when it goes wrong (the car blows up with him in it, Wren dies): back to the last checkpoint
+  // (later, when Wren can die and live on, he'll be picked up from the hospital instead)
   fail(why) {
     this.phase = 'failed'; this.failWhy = why; this.objective(null); this.waypoint(null);
   }
@@ -310,9 +311,11 @@ export class Story {
       const me = this.stairMe || A.stairStep(18); pl.respawn(me, 0); g.cam.yaw = Math.PI; g.cam.pitch = 0.2; this.wrenUp(this.wren);
       this.carNear(V(A.door.x + 8, 0.03, A.door.z + 6.2), Math.PI / 2);
     } else if (cp === 'toVan') {
-      const at = this.afterVic; pl.respawn(at, this.afterVicYaw); this.wrenStand(at.clone().add(V(1.2, 0, 0.6)));
+      this.keys();
+      const at = this.afterVic || (g.hospitalSpawn || g.apt.door).clone().add(V(3.2, 0, 1.6)); this.afterVicYaw = this.afterVicYaw ?? 0; pl.respawn(at, this.afterVicYaw); this.wrenStand(at.clone().add(V(1.2, 0, 0.6)));
       this.carNear(at.clone().add(V(4, 0.03, 3)), this.afterVicYaw + Math.PI / 2);
     } else if (cp === 'van') {
+      this.keys();
       const out = g.camper.trunkPoint(1.6); pl.respawn(out, g.camper.yaw + Math.PI); this.wrenStand(out.clone().add(V(0, 0, 0))); g.van.wrenLean(this.wren); this.wren.storyLean = true;
       if (g.drugs.solvent < 1) g.drugs.solvent = 1; if (g.drugs.salts < 1) g.drugs.salts = 1;
     }
@@ -325,10 +328,10 @@ export class Story {
   }
   // a car that still runs, near here (one's put there if not)
   carNear(at, yaw) { const g = this.g; if (!g.cars.some(c => !c.wrecked && !c.inactive && !c.police && !c.driver && !c.camper && !c.tRec && c.pos.distanceTo(at) < 14)) g.cars.push(new Car(g, g.kerbSnap ? g.kerbSnap(at) : at, yaw, 0x9b1c1c)); }
-  // Wren on her feet at a spot, following you
+  // Wren on his feet at a spot, following you
   wrenStand(at) { const W = this.wren; W.script = { pos: at.clone() }; this.wrenUp(W); W.body.setTranslation({ x: at.x, y: at.y + 1.0, z: at.z }, true); W.body.setNextKinematicTranslation({ x: at.x, y: at.y + 1.0, z: at.z }); }
 
-  // ================= the hospital: Wren goes in; she comes out; Vic turns up =================
+  // ================= the hospital: Wren goes in; he comes out; Vic turns up =================
   arrive() {
     const g = this.g, W = this.wren, pl = g.player, C = g.citizens;
     this.phase = 'arrived'; this.objective(null); this.waypoint(null);
@@ -398,8 +401,8 @@ export class Story {
       this.wait(1.4),
       this.call(() => { const v = C.pos(vic); pl.scripted.yaw = Math.atan2(v.x - meSpot.x, v.z - meSpot.z); vic.homeYaw = Math.atan2(meSpot.x - vicSpot.x, meSpot.z - vicSpot.z); }),
       this.shotS(meSpot.clone().addScaledVector(r, 0.6).addScaledVector(f, 0.9).setY(S0.y + 1.7), null, vicSpot.clone().setY(S0.y + 1.65), null, 9, 40),
-      this.line('VIC', "She won't take a cent from me. Never has. It was always her and Kit against me."),
-      this.line('VIC', "Help her. However you can. I mean it."),
+      this.line('VIC', "He won't take a cent from me. Never has. It was always him and Kit against me."),
+      this.line('VIC', "Help him. However you can. I mean it."),
       this.line('VIC', 'Kit had a van. An old camper, parked up on the beach. He thought I didn\'t know.'),
       this.line('VIC', "The hospital gave me his keys. That one's the van. I don't want it.", 3.6),
       this.call(() => { g.drugs.vanKeys = true; if (g.camper) g.camper.locked = false; g.sfx?.thunk?.(pl.pos); }),
@@ -422,10 +425,11 @@ export class Story {
     if (g.camper) this.waypoint(g.camper.pos.clone(), "Kit's van");
   }
 
-  // ================= the van: what Kit was doing; you cook, she sells =================
+  // ================= the van: what Kit was doing; you cook, he sells =================
   vanScene() {
     const g = this.g, pl = g.player, W = this.wren, C = g.citizens, c = g.camper, van = g.van, D = g.drugs;
     this.phase = 'vanScene'; this.objective(null); this.waypoint(null);
+    this.keys(); // (you've had Kit's keys since the hospital; make sure, whatever got skipped)
     const front = c.localPoint(2.6, 1.5, 4.2), mid = c.localPoint(0, 0.9, -0.6), back = c.trunkPoint(2.2);
     const o = van.o, IN = (x, y, z) => V(o.x + x, o.y + y, o.z + z);
     this.play([
@@ -486,10 +490,11 @@ export class Story {
   }
   startFirstCook() {
     const g = this.g, W = this.wren;
-    this.phase = 'firstCook'; this.checkpoint = 'van'; this.chatT = 6; this.fcIn = null;
+    this.phase = 'firstCook'; this.checkpoint = 'van'; this.chatT = 6; this.fcIn = null; this.keys();
     if (W) { W.storyLean = false; if (!g.van.inside) g.van.release(); }
     if (!this.inDry()) setTimeout(() => { if (this.phase === 'firstCook' && !this.inDry()) this.sub('WREN', "Not here. People walk their dogs here. Kit always took it out to the Dry: north, over the causeway. Nobody out there.", 5.5); }, 2500);
   }
+  keys() { const g = this.g; g.drugs.vanKeys = true; if (g.camper) g.camper.locked = false; }
   inDry() { const c = this.g.camper; return !!c && this.g.desert.inDesert(c.pos.x, c.pos.z); }
   // talking to Wren (and Vic): the story's own options
   options(n) {
@@ -497,7 +502,7 @@ export class Story {
     if (this.phase === 'free' && this.g.wren?.unlocked) return this.g.wren.options(n);
     const o = [{ id: 'talk', label: 'Talk' }], D = this.g.drugs;
     if (['giveBags', 'free'].includes(this.phase)) {
-      if (D.count) o.push({ id: 'wrengive', label: `Give her ${D.count} bag${D.count > 1 ? 's' : ''} to sell` });
+      if (D.count) o.push({ id: 'wrengive', label: `Give him ${D.count} bag${D.count > 1 ? 's' : ''} to sell` });
       if (this.phase === 'free') o.push(n.following ? { id: 'wrenhome', label: 'Head home' } : { id: 'wrencome', label: 'Come with me' });
     }
     return o;
@@ -519,7 +524,7 @@ export class Story {
     if (id === 'wrenhome') { this.wrenHome(); C.say(n, "I'll see you at home.", 2.4); return true; }
     return true;
   }
-  // after the first batch: she takes it, and she's staying at yours
+  // after the first batch: he takes it, and he's staying at yours
   moveIn() {
     const g = this.g, W = this.wren;
     this.phase = 'movingIn'; this.objective(null);
@@ -533,17 +538,17 @@ export class Story {
     this.onDone = () => {
       this.phase = 'free'; W.storyLean = false;
       g.apt.wrenBed.visible = true; this.wrenHome(true); g.wren.unlock();
-      g.hud.toast("Wren's selling for you. Bring her more bags at home (1E), or take her along.", '#5fd0ff');
+      g.hud.toast("Wren's selling for you. Bring him more bags at home (1E), or take him along.", '#5fd0ff');
       setTimeout(() => g.missions?.start('cooks'), 4500);
     };
   }
-  // Wren goes back to 1E (out of sight, she's just there)
+  // Wren goes back to 1E (out of sight, he's just there)
   wrenHome(now) {
     const g = this.g, W = this.wren, h = g.apt.wrenSpot;
     W.following = false; W.script = null;
     const put = () => { W.human.resetPose(); W.body.setTranslation({ x: h.x, y: h.y + 1.0, z: h.z }, true); W.body.setNextKinematicTranslation({ x: h.x, y: h.y + 1.0, z: h.z }); W.state = 'post'; W.home = h.clone(); W.homeYaw = g.apt.wrenYaw; };
     if (now) { put(); return; }
-    W.state = 'idle'; W.stateT = 99; // (she heads off; a few seconds later she's home)
+    W.state = 'idle'; W.stateT = 99; // (he heads off; a few seconds later he's home)
     setTimeout(() => { if (!W.following && W.state !== 'dead') put(); }, 4000);
   }
 
@@ -558,7 +563,7 @@ export class Story {
     if (this.phase === 'failed' && !g.ending && !pl.dead && !this.cine) this.restart();
     if (this.phase === 'phoneWait' && (this.phoneT -= dt) <= 0) this.openPhone();
     if (this.phase === 'wren' && W && pl.pos.distanceTo(W.script.pos) < 4.6 && !pl.car) this.stairs();
-    // Wren dying (or the car she's in going up) sends you back to the checkpoint
+    // Wren dying (or the car he's in going up) sends you back to the checkpoint
     if (['hospital', 'toVan', 'firstCook', 'giveBags'].includes(this.phase) && W) {
       if (pl.car) this.ride = pl.car; else if (W.state === 'seated') this.ride = g.cars.find(c => c.passenger === W) || this.ride;
       if (this.ride?.wrecked && (W.state === 'seated' || this.phase === 'hospital')) { this.fail('car'); return; }
@@ -582,13 +587,13 @@ export class Story {
         else { this.objective('Drive the <b>van</b> out to <b>the Dry</b> with Wren (north, over the causeway) · cook in town and someone will smell it'); this.waypoint(V(130, 0, -900), 'the Dry'); }
       }
       if (D.cook && (this.chatT -= dt) <= 0) { this.chatT = 9 + Math.random() * 4; this.sub('WREN', ["(outside) You okay in there?", "(outside) It smells like a science class out here.", "(outside) Don't blow yourself up. I can't do two of these.", "(outside) Someone just walked past. Act normal. Wait, you can't see me."][Math.floor(Math.random() * 4)], 3.2); }
-      if (!D.cook && D.count > 0) { this.phase = 'giveBags'; this.objective('Give <b>Wren</b> the bags · she\'s outside, by the van'); g.hud.toast('Hold E on Wren to give her the bags', '#5fd0ff'); }
+      if (!D.cook && D.count > 0) { this.phase = 'giveBags'; this.objective('Give <b>Wren</b> the bags · he\'s outside, by the van'); g.hud.toast('Hold E on Wren to give him the bags', '#5fd0ff'); }
       else if (!D.cook && D.solvent < 1 && D.salts < 1 && D.count === 0) { D.solvent = 1; D.salts = 1; g.hud.toast("There's one more lot under the sink. Try again.", '#5fd0ff'); }
     }
     if (this.phase === 'free' && W) {
-      // (for now, if Wren dies she's patched up at the hospital and back at yours a minute later)
+      // (for now, if Wren dies he's patched up at the hospital and back at yours a minute later)
       if ((W.state === 'dead' || !g.citizens.list.includes(W)) && !this.wrenBackT) this.wrenBackT = 60;
-      if (this.wrenBackT && (this.wrenBackT -= dt) <= 0) { this.wrenBackT = 0; if (g.citizens.list.includes(W)) g.citizens.remove(W); this.spawnWren(); this.wren.script = null; this.wrenHome(true); g.hud.toast("Wren's out of hospital. She's back at yours.", '#ffb27a'); }
+      if (this.wrenBackT && (this.wrenBackT -= dt) <= 0) { this.wrenBackT = 0; if (g.citizens.list.includes(W)) g.citizens.remove(W); this.spawnWren(); this.wren.script = null; this.wrenHome(true); g.hud.toast("Wren's out of hospital. He's back at yours.", '#ffb27a'); }
     }
   }
 }

@@ -10,14 +10,23 @@ const std = (color, rough = 0.6, extra = {}) => new THREE.MeshStandardMaterial({
 
 export const WEAPONS = {
   fists: { name: 'Fists', melee: true, dmg: 9, reach: 1.25, swing: 0.34, force: 1.3, bleed: 0, threat: 0 },
-  kiddie: { name: 'Plastic Kiddie Knife', melee: true, dmg: 0, reach: 1.3, swing: 0.34, force: 0.3, bleed: 0, threat: 0 },
-  butter: { name: 'Butter Knife', melee: true, dmg: 16, reach: 1.35, swing: 0.36, force: 1.2, bleed: 10, threat: 1 },
-  cone: { name: 'Traffic Cone', melee: true, dmg: 4, reach: 1.55, swing: 0.5, force: 2.4, bleed: 0, threat: 0, cone: true },
-  hatchet: { name: 'Hatchet', melee: true, dmg: 60, reach: 1.75, swing: 0.55, force: 3.2, bleed: 40, threat: 2 },
-  pistol: { name: 'Pistol', gun: true, dmg: 34, range: 90, rate: 0.26, mag: 12, spread: 0.01, reload: 1.3, pellets: 1, threat: 3, price: 250, ammoPrice: 40, ammoPack: 24 },
-  shotgun: { name: 'Pump Shotgun', gun: true, dmg: 15, range: 38, rate: 0.95, mag: 6, spread: 0.065, reload: 2.2, pellets: 8, threat: 4, price: 600, ammoPrice: 60, ammoPack: 12 },
+  kiddie: { name: 'Plastic Kiddie Knife', melee: true, style: 'stab', dmg: 0, reach: 1.3, swing: 0.3, force: 0.3, bleed: 0, threat: 0 },
+  butter: { name: 'Butter Knife', melee: true, style: 'stab', dmg: 16, reach: 1.35, swing: 0.3, force: 1.2, bleed: 10, threat: 1 },
+  cone: { name: 'Traffic Cone', melee: true, style: 'chop', dmg: 4, reach: 1.55, swing: 0.5, force: 2.4, bleed: 0, threat: 0, cone: true },
+  hatchet: { name: 'Hatchet', melee: true, style: 'chop', dmg: 60, reach: 1.75, swing: 0.5, force: 3.2, bleed: 40, threat: 2, illegal: true },
+  // (from the street dealers)
+  knuckles: { name: 'Brass Knuckles', melee: true, fist: true, dmg: 17, reach: 1.3, swing: 0.3, force: 1.9, bleed: 0, threat: 1, illegal: true, price: 60 },
+  switchblade: { name: 'Switchblade', melee: true, style: 'stab', dmg: 24, reach: 1.35, swing: 0.24, force: 1.0, bleed: 20, threat: 2, illegal: true, price: 90 },
+  bat: { name: 'Baseball Bat', melee: true, style: 'bat', dmg: 30, reach: 1.9, swing: 0.62, force: 4.6, bleed: 0, threat: 2, price: 40 },
+  machete: { name: 'Machete', melee: true, style: 'chop', dmg: 55, reach: 1.95, swing: 0.55, force: 3.0, bleed: 35, threat: 2, illegal: true, price: 150 },
+  pistol: { name: 'Pistol', gun: true, dmg: 34, range: 90, rate: 0.26, mag: 12, spread: 0.01, reload: 1.3, pellets: 1, threat: 3, price: 250, ammoPrice: 40, ammoPack: 24, illegal: true },
+  revolver: { name: 'Snub Revolver', gun: true, dmg: 58, range: 70, rate: 0.55, mag: 6, spread: 0.012, reload: 2.0, pellets: 1, threat: 3, price: 400, ammoPrice: 45, ammoPack: 18, illegal: true },
+  smg: { name: 'Machine Pistol', gun: true, auto: true, dmg: 14, range: 55, rate: 0.075, mag: 30, spread: 0.04, reload: 1.6, pellets: 1, threat: 4, price: 900, ammoPrice: 70, ammoPack: 60, illegal: true },
+  shotgun: { name: 'Pump Shotgun', gun: true, dmg: 15, range: 38, rate: 0.95, mag: 6, spread: 0.065, reload: 2.2, pellets: 8, threat: 4, price: 600, ammoPrice: 60, ammoPack: 12, illegal: true },
+  sawnoff: { name: 'Sawn-off Shotgun', gun: true, dmg: 14, range: 18, rate: 0.3, mag: 2, spread: 0.12, reload: 1.7, pellets: 10, threat: 4, price: 500, ammoPrice: 50, ammoPack: 10, illegal: true },
 };
-export const ORDER = ['fists', 'kiddie', 'butter', 'cone', 'hatchet', 'pistol', 'shotgun'];
+export const ORDER = ['fists', 'kiddie', 'butter', 'cone', 'knuckles', 'switchblade', 'bat', 'hatchet', 'machete', 'pistol', 'revolver', 'smg', 'shotgun', 'sawnoff'];
+export const GUNS = Object.keys(WEAPONS).filter(k => WEAPONS[k].gun);
 
 // a traffic cone: orange, two white reflective bands, a square black base (built standing, base at y = 0)
 export function coneMesh() {
@@ -48,6 +57,47 @@ export function model(id) {
     add(new THREE.ExtrudeGeometry(blade, { depth: 0.003, bevelEnabled: false }), steel, 0, 0.05, -0.0015);
   } else if (id === 'cone') { // (held by the tip, the wide end out)
     const c = coneMesh(); c.rotation.x = Math.PI; c.position.y = 0.62; c.scale.setScalar(0.85); g.add(c);
+  } else if (id === 'knuckles') { // four brass rings across the fingers, a bar along the palm
+    const brass = std(0xc8a040, 0.25, { metalness: 0.95 });
+    for (let i = 0; i < 4; i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.012, 0.005, 6, 12), brass); r.position.set(0, 0.07, -0.027 + i * 0.018); r.rotation.y = Math.PI / 2; g.add(r); }
+    add(new THREE.BoxGeometry(0.014, 0.02, 0.075), brass, 0, 0.05, 0);
+  } else if (id === 'switchblade') {
+    const black = std(0x1a1b1e, 0.4), steel = std(0xd6dade, 0.15, { metalness: 0.95 });
+    add(new THREE.BoxGeometry(0.02, 0.1, 0.012), black, 0, 0.0, 0);
+    add(new THREE.CylinderGeometry(0.004, 0.004, 0.014, 8), steel, 0, 0.01, 0.006, Math.PI / 2);
+    const blade = new THREE.Shape(); blade.moveTo(-0.009, 0); blade.lineTo(0.009, 0); blade.lineTo(0.009, 0.06); blade.lineTo(-0.002, 0.1); blade.lineTo(-0.009, 0.07); blade.closePath();
+    add(new THREE.ExtrudeGeometry(blade, { depth: 0.003, bevelEnabled: false }), steel, 0, 0.05, -0.0015);
+  } else if (id === 'bat') {
+    const wood = std(0xc89a5a, 0.55), tape = std(0x1a1a1a, 0.8);
+    add(new THREE.CylinderGeometry(0.016, 0.014, 0.2, 10), tape, 0, 0.02, 0);
+    add(new THREE.CylinderGeometry(0.034, 0.017, 0.62, 14), wood, 0, 0.43, 0);
+    add(new THREE.SphereGeometry(0.034, 12, 8), wood, 0, 0.74, 0);
+    add(new THREE.CylinderGeometry(0.022, 0.022, 0.015, 12), wood, 0, -0.08, 0);
+  } else if (id === 'machete') {
+    const steel = std(0xb8bcc2, 0.25, { metalness: 0.85 }), grip = std(0x2a1a12, 0.7);
+    add(new THREE.BoxGeometry(0.024, 0.12, 0.02), grip, 0, 0.0, 0);
+    const blade = new THREE.Shape(); blade.moveTo(-0.018, 0); blade.lineTo(0.02, 0); blade.lineTo(0.03, 0.4); blade.quadraticCurveTo(0.02, 0.46, -0.01, 0.45); blade.lineTo(-0.018, 0.38); blade.closePath();
+    add(new THREE.ExtrudeGeometry(blade, { depth: 0.003, bevelEnabled: false }), steel, 0, 0.06, -0.0015);
+  } else if (id === 'revolver') { // a short barrel, a fat cylinder
+    const black = std(0x2a2b2e, 0.35, { metalness: 0.75 }), wood = std(0x5a3a22, 0.6);
+    add(new THREE.BoxGeometry(0.028, 0.09, 0.04), wood, 0, 0.0, -0.012, -0.3);
+    add(new THREE.BoxGeometry(0.03, 0.045, 0.07), black, 0, 0.06, 0.01);
+    add(new THREE.CylinderGeometry(0.022, 0.022, 0.04, 6), black, 0, 0.065, 0.03, Math.PI / 2);
+    add(new THREE.CylinderGeometry(0.008, 0.008, 0.07, 10), black, 0, 0.072, 0.08, Math.PI / 2);
+    g.userData.muzzle = V(0, 0.072, 0.12);
+  } else if (id === 'smg') { // boxy, a long magazine down the grip
+    const black = std(0x1c1d20, 0.45, { metalness: 0.55 });
+    add(new THREE.BoxGeometry(0.03, 0.16, 0.03), black, 0, -0.03, 0.0);
+    add(new THREE.BoxGeometry(0.036, 0.06, 0.2), black, 0, 0.065, 0.04);
+    add(new THREE.CylinderGeometry(0.008, 0.008, 0.06, 8), black, 0, 0.07, 0.17, Math.PI / 2);
+    g.userData.muzzle = V(0, 0.07, 0.2);
+  } else if (id === 'sawnoff') { // two short barrels, a cut-down stock
+    const black = std(0x1c1d1f, 0.4, { metalness: 0.7 }), wood = std(0x6a4426, 0.65);
+    add(new THREE.BoxGeometry(0.035, 0.1, 0.05), wood, 0, -0.02, -0.02, -0.4);
+    add(new THREE.BoxGeometry(0.045, 0.05, 0.1), black, 0, 0.045, 0.04);
+    for (const x of [-0.012, 0.012]) add(new THREE.CylinderGeometry(0.012, 0.012, 0.28, 10), black, x, 0.06, 0.22, Math.PI / 2);
+    add(new THREE.BoxGeometry(0.04, 0.03, 0.12), wood, 0, 0.035, 0.18);
+    g.userData.muzzle = V(0, 0.06, 0.36);
   } else if (id === 'kiddie') {
     const pink = std(0xff7ab6, 0.45), blue = std(0x5ab8ff, 0.45);
     add(new THREE.CapsuleGeometry(0.014, 0.07, 4, 8), blue, 0, 0.0, 0);
@@ -75,7 +125,7 @@ export function model(id) {
 export class Weapons {
   constructor(g) {
     this.g = g;
-    this.inv = new Set(['fists']); this.ammo = { pistol: 0, shotgun: 0 }; this.clip = { pistol: 0, shotgun: 0 };
+    this.inv = new Set(['fists']); this.ammo = {}; this.clip = {}; for (const k of GUNS) { this.ammo[k] = 0; this.clip[k] = 0; }
     this.cur = 'fists'; this.models = {};
     this.slots = []; // the rack's pegs: { id, pos, model }
     this.swingT = -1; this.hitDone = false; this.cool = 0; this.combo = 0; this.comboT = 0;
@@ -84,6 +134,7 @@ export class Weapons {
   get held() { return this.cur === 'fists' ? null : WEAPONS[this.cur]; }
   get heldId() { return this.cur === 'fists' ? null : this.cur; }
   get W() { return WEAPONS[this.cur]; }
+  get fisty() { return this.cur === 'fists' || !!this.W.fist; } // (bare hands, or knuckles: the boxing)
 
   buildRack(at, ry) {
     const g = this.g, wood = std(0x5a3a22, 0.7), brass = std(0xc9a14a, 0.3, { metalness: 0.9 });
@@ -191,7 +242,8 @@ export class Weapons {
   }
   mount(human, m, id) {
     human.b.wristR.add(m);
-    if (WEAPONS[id].gun) { m.position.set(0, -0.065, 0.0); m.rotation.set(Math.PI / 2, 0, 0); } // (the grip in the palm, the barrel on along the arm: level when the arm's held out)
+    if (WEAPONS[id].gun) { m.position.set(0, -0.065, 0.0); m.rotation.set(Math.PI / 2, 0, 0); }
+    else if (WEAPONS[id].fist) { m.position.set(0, -0.06, 0.0); m.rotation.set(0, 0, 0); } // (the grip in the palm, the barrel on along the arm: level when the arm's held out)
     else { m.position.set(0, -0.075, 0.02); m.rotation.set(Math.PI / 2 + 0.3, 0, 0); }
     m.scale.setScalar(1 / human.rig.scale.x);
   }
@@ -214,7 +266,7 @@ export class Weapons {
   }
   // busted: they keep the guns
   confiscate() {
-    for (const id of ['pistol', 'shotgun']) { if (!this.inv.has(id)) continue; if (this.cur === id) this.equip('fists', true); this.inv.delete(id); this.ammo[id] = 0; this.clip[id] = 0; }
+    for (const id of Object.keys(WEAPONS).filter(k => WEAPONS[k].illegal)) { if (!this.inv.has(id)) continue; if (this.cur === id) this.equip('fists', true); this.inv.delete(id); this.ammo[id] = 0; this.clip[id] = 0; }
   }
   putAway() { if (this.cur !== 'fists') { this.equip('fists', true); this.g.hud.toast('Fists'); } }
 
@@ -230,12 +282,12 @@ export class Weapons {
     const W = this.W;
     if (W.gun) return this.fire();
     this.swingT = 0; this.hitDone = false; this.cool = W.swing + 0.06;
-    if (this.cur === 'fists') { this.combo = this.comboT > 0 ? (this.combo + 1) % 3 : 0; this.comboT = 0.9; this.guardT = 2.5; }
+    if (this.fisty) { this.combo = this.comboT > 0 ? (this.combo + 1) % 3 : 0; this.comboT = 0.9; this.guardT = 2.5; }
     g.sfx?.whoosh(pl.pos);
   }
 
-  get attackPhase() { return this.swingT >= 0 && this.cur !== 'fists' && !this.W.gun ? Math.min(1, this.swingT / this.W.swing) : null; }
-  get punchPhase() { return this.swingT >= 0 && this.cur === 'fists' ? Math.min(1, this.swingT / this.W.swing) : null; }
+  get attackPhase() { return this.swingT >= 0 && !this.fisty && !this.W.gun ? Math.min(1, this.swingT / this.W.swing) : null; }
+  get punchPhase() { return this.swingT >= 0 && this.fisty ? Math.min(1, this.swingT / this.W.swing) : null; }
 
   update(dt) {
     this.drawerUpdate(dt);
@@ -250,10 +302,12 @@ export class Weapons {
     if (this.swingT >= 0) {
       this.swingT += dt;
       const a = this.swingT / this.W.swing;
-      if (!this.hitDone && a > (this.cur === 'fists' ? 0.42 : 0.5)) { this.hitDone = true; this.strike(); }
+      if (!this.hitDone && a > (this.fisty ? 0.42 : this.W.style === 'stab' ? 0.45 : this.W.style === 'bat' ? 0.6 : 0.5)) { this.hitDone = true; this.strike(); }
       if (a >= 1) this.swingT = -1;
     }
     this.recoil = Math.max(0, (this.recoil || 0) - dt * 6);
+    // automatic: keep firing while the button's held
+    if (this.W.auto && g.mouseL && g.locked && this.cool <= 0 && !g.wheel.open) this.attack();
   }
 
   // where the crosshair is pointing: a ray from the camera
@@ -320,8 +374,8 @@ export class Weapons {
       const d = V(q.x - p.x, 0, q.z - p.z), dist = d.length();
       if (dist > W.reach + 0.3 || dist < 0.01) continue;
       if (d.dot(fwd) / dist < 0.45) continue;
-      if (this.cur === 'fists') { g.citizens.punched(n, W.dmg * (this.combo === 2 ? 1.6 : 1), d.normalize(), this.combo === 2); g.sfx?.punch(q); }
-      else g.citizens.struck(n, W, d.normalize());
+      if (this.fisty) { g.citizens.punched(n, W.dmg * (this.combo === 2 ? 1.6 : 1), d.normalize(), this.combo === 2); g.sfx?.punch(q); if (this.combo === 2) n.staggerT = 1.6; }
+      else { g.citizens.struck(n, W, d.normalize()); if (W.style === 'bat') n.staggerT = 1.6; }
       hitSomeone = true;
       break;
     }
@@ -333,7 +387,7 @@ export class Weapons {
         }
       }
       // a punch on a car
-      if (this.cur === 'fists') for (const c of g.cars) { if (!c.inactive && c.pos.distanceTo(p.clone().addScaledVector(fwd, 1)) < 2.4) { g.sfx?.punch(p); c.damage(2); break; } }
+      if (this.fisty) for (const c of g.cars) { if (!c.inactive && c.pos.distanceTo(p.clone().addScaledVector(fwd, 1)) < 2.4) { g.sfx?.punch(p); c.damage(2); break; } }
     }
   }
 }

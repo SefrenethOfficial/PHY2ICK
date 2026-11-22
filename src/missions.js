@@ -64,7 +64,7 @@ export class Missions {
       this.id = 'between';
     }
   }
-  // Wren rings: someone's been leaning on her buyers
+  // Wren rings: someone's been leaning on his buyers
   rivalsCall() {
     const g = this.g, S = g.story, W = g.wren;
     if (S.cine) { setTimeout(() => this.rivalsCall(), 4000); return; }
@@ -159,7 +159,7 @@ export class Missions {
       if (!this.crew.length && g.story?.phase === 'free') this.spawnCrew();
       if (this.fight) {
         const up = this.crew.filter(n => n.state !== 'dead' && g.citizens.list.includes(n) && !n.downed && n.hp > 0);
-        for (const n of up) if (!n.human.ragdoll && n.state !== 'gunman') { n.state = 'gunman'; n.home = null; }
+        for (const n of up) if (!n.human.ragdoll && n.state !== 'gunman' && n.state !== 'blind' && !(n.stunT > 0)) { n.state = 'gunman'; n.home = null; }
         if (!up.length) {
           g.hud.toast('The Saltline crew are done.', '#7be08a');
           setTimeout(() => g.wren?.text('Wren', "chef. CHEF. the whole island heard that. are you ok?? come home"), 4000);

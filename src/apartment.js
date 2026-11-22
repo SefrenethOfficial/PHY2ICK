@@ -268,7 +268,7 @@ export function buildApartment(g) {
     put(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.04, 0.42), boxC), 5.4, 0.02, -63.4);
     put(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.3), std(0xc8b020, 0.6)), 4.9, 0.01, -61.9);
     { const shadeM = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 0.26, 14, 1, true), std(0xf2e6c8, 0.8, { side: THREE.DoubleSide })); put(shadeM, 6.0, 0.13, -66.4, 0, Math.PI / 2); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.3, 6), black); put(pole, 6.5, 0.03, -65.8, 0, Math.PI / 2); pole.rotation.y = 0.4; } }
-  // Wren's mattress on your floor (once she's moved in)
+  // Wren's mattress on your floor (once he's moved in)
   const wrenBed = new THREE.Group(); wrenBed.visible = false; scene.add(wrenBed);
   { const m = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.16, 1.9), white); m.position.set(5.15, F + 0.08, -61.45); m.castShadow = m.receiveShadow = true; wrenBed.add(m);
     const d = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.05, 1.2), std(0x6a7a4a, 0.95)); d.position.set(5.15, F + 0.18, -61.2); wrenBed.add(d);

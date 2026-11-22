@@ -401,10 +401,46 @@ export class Human {
       else if (s.carry) { // both hands under and round the thing, forearms level, close to the chest
         set('shoulderL', -0.38, 0, -0.04); set('elbowL', -1.32, 0.15, 0); set('wristL', 0.1, 0, 0.35); set('shoulderR', -0.38, 0, 0.04); set('elbowR', -1.32, -0.15, 0); set('wristR', 0.1, 0, -0.35); }
       else if (s.weapon && s.attack == null) { set('shoulderR', -0.18 - run * 0.3 + Math.sin(p) * 0.15 * walk, 0, -0.12); set('elbowR', -0.6 - run * 0.8, 0, 0); set('wristR', 0.25); } // (held ready at the side; it swings less)
-      if (s.attack != null) { // a swing: wind up over the shoulder, then chop down and across
+      if (s.bat && s.attack == null && !s.fin) { set('shoulderR', -0.6, 0, -0.2); set('elbowR', -1.3); set('wristR', 0.9); set('shoulderL', -0.75, 0, 0.35); set('elbowL', -1.2); } // (a bat: up on the shoulder)
+      if (s.attack != null && s.attackStyle === 'stab') { // a jab: draw back, then straight out and back
+        const a = s.attack, e = a < 0.3 ? -a / 0.3 * 0.4 : a < 0.55 ? -0.4 + (a - 0.3) / 0.25 * 1.4 : 1 - (a - 0.55) / 0.45;
+        set('shoulderR', -0.7 - Math.max(0, e) * 0.8, 0, -0.1); set('elbowR', -1.6 + Math.max(0, e) * 1.5 - Math.min(0, e) * 0.6, 0, 0); set('wristR', 0.2);
+        set('spine', 0.1, -0.2 + Math.max(0, e) * 0.45, 0); set('shoulderL', -0.5, 0, 0.2); set('elbowL', -1.4);
+      } else if (s.attack != null && s.attackStyle === 'bat') { // two hands, back over the right shoulder, then all the way round
+        const a = s.attack, w = a < 0.45 ? a / 0.45 : 1, sw = a < 0.45 ? 0 : Math.min(1, (a - 0.45) / 0.25), tw = -0.9 * w + 2.0 * sw;
+        set('spine', 0.1, tw * 0.6, 0); set('chest', 0, tw * 0.4, 0);
+        set('shoulderR', -1.2 + sw * 0.2, 0, -0.6 * (1 - sw)); set('elbowR', -1.2 + sw * 0.9); set('wristR', 0.6 - sw * 0.6);
+        set('shoulderL', -1.25 + sw * 0.2, 0, 0.5 - sw * 0.3); set('elbowL', -1.0 + sw * 0.7); set('wristL', 0.4);
+      } else if (s.attack != null) { // a swing: wind up over the shoulder, then chop down and across
         const a = s.attack, up = a < 0.4 ? a / 0.4 : 1 - Math.min(1, (a - 0.4) / 0.25);
         set('shoulderR', -0.7 - up * 1.9, 0, -0.25 - up * 0.3); set('elbowR', -0.25 - up * 1.0, 0, 0); set('wristR', 0.6 - up * 0.9);
         set('spine', 0.08 + (1 - up) * 0.18, -0.25 + (1 - up) * 0.45, 0);
+      }
+      // finishers
+      if (s.fin) {
+        const a = s.fin.a, k = s.fin.kind, ease = (x) => x * x * (3 - 2 * x), seg = (a0, a1) => ease(Math.min(1, Math.max(0, (a - a0) / (a1 - a0))));
+        if (k === 'haymaker') { // sink low, then everything up through the chin
+          const w = seg(0, 0.45), u = seg(0.45, 0.62);
+          hipsY = 0.95 - w * 0.22 + u * 0.22; set('spine', 0.35 * w - 0.3 * u, -0.5 * w + 0.6 * u, 0); set('chest', 0.1 * w, -0.2 * w + 0.3 * u, 0);
+          set('shoulderR', -0.4 + w * 0.6 - u * 2.6, 0, 0.1); set('elbowR', -2.2 + u * 1.5, 0, 0); set('shoulderL', -0.95, 0, -0.28); set('elbowL', -2.05);
+          for (const s2 of ['L', 'R']) { set('hip' + s2, -0.5 * w * (1 - u), 0, 0); set('knee' + s2, 0.9 * w * (1 - u)); }
+        } else if (k === 'homerun') { // the big wind-up, then the swing of your life
+          const w = seg(0, 0.55), sw = seg(0.55, 0.7), tw = -1.3 * w + 2.8 * sw;
+          set('spine', 0.1, tw * 0.6, 0); set('chest', 0, tw * 0.4, 0);
+          set('shoulderR', -1.3 - w * 0.4 + sw * 0.6, 0, -0.7 * (1 - sw)); set('elbowR', -1.3 + sw * 1.0); set('wristR', 0.7 - sw * 0.7);
+          set('shoulderL', -1.35 - w * 0.3 + sw * 0.5, 0, 0.5 - sw * 0.3); set('elbowL', -1.1 + sw * 0.8);
+          set('hipL', -0.3 * w, 0, 0); set('kneeL', 0.6 * w * (1 - sw));
+        } else if (k === 'flurry') { // jab, jab, then the shoulder
+          const j = Math.max(0, Math.sin(Math.min(a, 0.6) / 0.6 * Math.PI * 3)), b = seg(0.62, 0.78);
+          set('shoulderR', -0.7 - j * 0.8, 0, -0.1); set('elbowR', -1.6 + j * 1.5); set('spine', 0.15 + b * 0.25, -0.2 + j * 0.3 - b * 0.9, 0);
+          set('shoulderL', -0.4 - b * 0.6, 0, 0.4 * b); set('elbowL', -1.6 + b * 0.4);
+        } else if (k === 'spinchop' || k === 'whip') { // (the spin's done by turning you round; this is the chop at the end)
+          const up = k === 'whip' ? (a < 0.45 ? a / 0.45 : 1 - seg(0.45, 0.6)) : (a < 0.55 ? Math.min(1, a / 0.4) : 1 - seg(0.55, 0.7));
+          set('shoulderR', -0.7 - up * 1.9, 0, -0.25 - up * 0.3); set('elbowR', -0.25 - up * 1.0); set('wristR', 0.6 - up * 0.9); set('spine', 0.1 + (1 - up) * 0.25, -0.25 + (1 - up) * 0.5, 0);
+        } else if (k === 'conehead') { // both hands up over their head, then down with it
+          const u = seg(0, 0.45), d = seg(0.45, 0.6);
+          set('shoulderL', -1.0 - u * 1.9 + d * 1.1, 0, -0.1); set('shoulderR', -1.0 - u * 1.9 + d * 1.1, 0, 0.1); set('elbowL', -0.6 + d * 0.2); set('elbowR', -0.6 + d * 0.2); set('spine', -0.1 * u + 0.2 * d);
+        }
       }
       if (s.wave) { set('shoulderR', -0.3, 0, -2.5); set('elbowR', -0.3 + Math.sin(this.t * 9) * 0.4, 0, 0); }
       if (s.point) { set('shoulderR', -1.45, 0, -0.05); set('elbowR', -0.05); }

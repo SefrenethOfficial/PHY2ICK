@@ -35,6 +35,7 @@ import { Bikes } from './bikes.js';
 import { Inventory } from './inventory.js';
 import { Food } from './food.js';
 import { Icons } from './icons.js';
+import { Dealers } from './dealers.js';
 import './style.css';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -103,6 +104,7 @@ class Game {
     this.chop = new ChopShop(this);
     this.marcos = new Marcos(this);
     this.missions = new Missions(this);
+    this.dealers = new Dealers(this);
     // traffic cones about the place: roadworks by the construction site, the dock, the desert road
     for (const [x, z] of [[-8, 101.6], [-4, 101.6], [0, 101.6], [4, 101.6], [8, 101.6], [12, 101.6], [130, -2262], [134, -2262], [138, -2262], [200, -2255], [124, -1000], [124, -1010], [124, -1020]]) { const y = this.desert?.inDesert(x, z) ? this.desert.groundY(x, z) + 0.05 : this.map.inRoad(x, z) ? 0.03 : 0.16; this.props.addCone(V(x, y, z), Math.random()); }
     this.spots.push({ pos: this.apt.clothes, r: 1.6, label: () => this.missions.canSleep() ? `<kbd>E</kbd> sleep till morning (it's day ${this.missions.day}${this.missions.cookedToday ? ', and you\'ve cooked' : ''})` : 'Your bed', act: () => this.missions.sleep(), when: () => this.story?.phase === 'free' });
@@ -140,7 +142,7 @@ class Game {
     canvas.addEventListener('click', () => { if (!document.pointerLockElement && this.started && this.story?.phase !== 'creator') lock(); });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
-      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open || this.inv?.open || this.food?.open ? 'none' : 'flex';
+      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open || this.inv?.open || this.food?.open || this.dealers?.open ? 'none' : 'flex';
       if (!this.locked) { this.keys.clear(); if (this.wheel.open) this.wheel.close(); }
     });
     addEventListener('contextmenu', (e) => e.preventDefault());
@@ -150,6 +152,7 @@ class Game {
       const pl = this.player;
       if (pl.car || pl.ragdoll) return;
       if (e.button === 2) this.mouseR = true;
+      if (e.button === 0) this.mouseL = true;
       if (e.button === 0) {
         if (this.inv.holdingFood && !this.props.held) { this.inv.eatHeld(); return; }
         if (this.props.held) this.props.click();
@@ -174,6 +177,7 @@ class Game {
       if (this.marcos?.open) { this.marcos.key(e.code); this.keys.delete(e.code); return; }
       if (this.inv?.open) { this.inv.key(e.code); this.keys.delete(e.code); return; }
       if (this.food?.open) { this.food.key(e.code); this.keys.delete(e.code); return; }
+      if (this.dealers?.open) { this.dealers.key(e.code); this.keys.delete(e.code); return; }
       if (this.wren?.phoneOpen) { this.wren.phoneKey(e.code); this.keys.delete(e.code); return; }
       if (e.code === 'KeyP' && this.started && !this.story?.cine && this.story?.phase !== 'creator') { this.wren.openPhone(); this.keys.delete(e.code); return; }
       if (this.story?.key(e.code)) { if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) this.keys.delete(e.code); return; } // (a key held through a scene still counts once it's over)
@@ -200,7 +204,7 @@ class Game {
       if (/^Digit[1-6]$/.test(e.code) && !pl.car) this.inv.select(+e.code.slice(5) - 1);
       if (e.code === 'KeyG' && !pl.car && !pl.hostage) { const tc = this.trunkCar(); if (tc) { if (tc.trunk.length) this.outOfTrunk(tc); else { const b = this.bodyNear(); if (b) this.intoTrunk(tc, b); else { tc.openLid(1.2); this.hud.toast('The boot is empty'); } } return; } }
       if (e.code === 'KeyG') { if (pl.car) { if (pl.car.passenger?.kidnapped) pl.freeKidnapped(pl.car); } else { const k = this.kidnapCar(); if (k && !pl.hostage) pl.freeKidnapped(k); else pl.grab(); } }
-      if (e.code === 'KeyQ' && !pl.car) pl.finishOff();
+      if (e.code === 'KeyQ' && !pl.car && !pl.bike) { if (!pl.takedown()) pl.finishOff(); }
       if (e.code === 'KeyY') pl.toggleSurrender();
       if (e.code === 'KeyR' && !pl.car) this.weapons.reload();
       if (e.code === 'Space' && !pl.car) pl.jumpQ = true;
@@ -526,6 +530,7 @@ class Game {
     this.chop?.update(rdt);
     this.marcos?.update(rdt);
     this.missions?.update(rdt);
+    this.dealers?.update(rdt);
     this.inv?.update();
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
@@ -547,11 +552,12 @@ class Game {
     else if (pl.car) prompt = (pl.car.passenger?.kidnapped ? '<kbd>G</kbd> let them go · ' : '') + `<kbd>F</kbd> get out · <kbd>C</kbd> ${this.cam.mode === 'chase' ? 'inside view' : 'chase camera'} · <kbd>Space</kbd> handbrake`;
     else if (!pl.ragdoll) {
       const slot = this.weapons.candidate(), n = !slot && this.wheel.candidate(), c = this.nearestCar() || this.parkedCars.nearest(pl.pos), bkN = this.bikes.nearest(pl.pos);
-      const fin = pl.finishTarget(), kc = this.kidnapCar(), sp = this.spotNear();
+      const fin = pl.finishTarget(), td = pl.takedownTarget(), kc = this.kidnapCar(), sp = this.spotNear();
       if (this.drugs.cook) prompt = 'Cooking · hold <kbd>Space</kbd> heat · <kbd>E</kbd> stir · <kbd>Q</kbd> give up';
       else if (pl.surrender) prompt = 'Hands up · <kbd>Y</kbd> change your mind';
       else if (sp) prompt = sp.label();
       else if (pl.hostage) prompt = `Holding ${pl.hostage.mem.met ? pl.hostage.name : 'someone'} · <kbd>F</kbd> by a car door (or the boot) to put them in · <kbd>G</kbd> let go`;
+      else if (td) prompt = `<kbd>Q</kbd> finisher: <b>${Player.finName(this.weapons.W, this.weapons.cur)}</b>`;
       else if (fin) prompt = `<kbd>Q</kbd> finish ${fin.mem.met ? fin.name : 'them'} off`;
       else if (kc) prompt = '<kbd>G</kbd> let them out of the car';
       else if (this.trunkCar()) { const tc = this.trunkCar(); prompt = tc.trunk.length ? `<kbd>G</kbd> open the boot (${tc.trunk.length} inside)` : this.bodyNear() ? '<kbd>G</kbd> throw them in the boot' : '<kbd>G</kbd> open the boot'; }

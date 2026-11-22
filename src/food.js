@@ -1,7 +1,7 @@
 // Food: everything you buy to eat (MARCOS, the Diner, the Coffee Store, City Wok, Shitty Wok, Albuquerque Boiled
 // Turkey, the nightclub bar, the snacks at the shop tills) comes in a bag or a box or a cup and goes on your
 // hotbar (or in your bag). Pick it on the hotbar and it's in your hand: click to eat it (health back). Or hold E
-// on Wren and share it with her.
+// on Wren and share it with him.
 import * as THREE from 'three';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -172,7 +172,7 @@ export class Food {
     }[f.mesh] || ['Oh, thanks!', "You didn't have to. I'm glad you did.", 'Sharing. Look at us.'];
     g.citizens.say(W, pick(line), 3.2); W.human.express('happy', 4);
     if (L) { const fresh = (L.fedT || 0) < performance.now(); L.fedT = performance.now() + 120000; L.add?.(fresh ? 3 : 1); }
-    // she holds it a while, and then it's gone
+    // he holds it a while, and then it's gone
     const m = foodMesh(f.mesh, f.color); W.human.b.wristR.add(m); m.position.set(0, -0.09, 0.03); m.scale.setScalar(1 / W.human.rig.scale.x);
     setTimeout(() => m.removeFromParent(), 5000);
   }

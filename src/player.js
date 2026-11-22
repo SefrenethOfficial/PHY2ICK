@@ -70,7 +70,7 @@ export class Player {
       if (this.smashT <= 0 && c) { this.smashCar = null; if (!c.driver && c.pos.distanceTo(this.pos) < 4) this.enterCar(c); }
     }
     if (this.swimming || this.car) this.crouch = false;
-    const stuck = busy || !!g.drugs?.cook || !!g.story?.locked || !!g.wren?.phoneOpen || !!g.chop?.open || !!g.marcos?.open || !!g.inv?.open || !!g.food?.open || this.surrender || this.finishT > 0 || this.dead || g.ending || this.smashT > 0;
+    const stuck = busy || !!g.drugs?.cook || !!g.story?.locked || !!g.wren?.phoneOpen || !!g.chop?.open || !!g.marcos?.open || !!g.inv?.open || !!g.food?.open || !!g.dealers?.open || this.surrender || this.finishT > 0 || !!this.td || this.dead || g.ending || this.smashT > 0;
     if (!stuck) {
       if (k.has('KeyW')) want.z -= 1; if (k.has('KeyS')) want.z += 1;
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
@@ -115,6 +115,7 @@ export class Player {
       const at = { x: t.x + m.x + f.x * 0.5, y: t.y + m.y + 0.02, z: t.z + m.z + f.z * 0.5 };
       n.body.setNextKinematicTranslation(at); n.yaw = this.yaw; n.speed = this.speed; n.vel.set(this.vel.x, 0, this.vel.z);
     }
+    if (this.td) this.takedownStep(h);
     // finishing someone off
     if (this.finishT > 0) {
       this.finishT -= h;
@@ -206,6 +207,58 @@ export class Player {
     g.police.crime('kidnap', g.citizens.pos(n), true);
   }
 
+  // ---- finishers: someone who's fighting you (angry, a gunman, a cop after you), hurt or reeling from a combo:
+  // Q, and a move for whatever's in your hand. They're knocked out, not killed (the cone just goes on their head).
+  takedownTarget() {
+    const g = this.g; if (this.car || this.bike || this.ragdoll || this.hostage || this.finishT > 0 || this.td || this.dead) return null;
+    const W = g.weapons, p = this.pos, f = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
+    let best = null, bd = W.W.gun ? 1.8 : Math.max(1.7, (W.W.reach || 1.3) + 0.45);
+    for (const n of g.citizens.list) {
+      if (n.human.ragdoll || n.downed || n.hostage || n.companion || n.storyNpc || n.tenant || ['dead', 'seated', 'handsUp', 'flee', 'cycling', 'scripted', 'trunk', 'blind'].includes(n.state)) continue;
+      if (!(n.state === 'angry' || n.state === 'gunman' || (n.cop && g.police.stars > 0))) continue; // (only someone fighting you)
+      if (!(n.hp <= 45 || (n.staggerT || 0) > 0)) continue;                                           // (and only once they're hurt, or reeling)
+      const q = g.citizens.pos(n), d = Math.hypot(q.x - p.x, q.z - p.z); if (d > bd) continue;
+      const cf = this.g.cam.forward; if (((q.x - p.x) * cf.x + (q.z - p.z) * cf.z) / Math.max(d, 0.01) < 0.3 && ((q.x - p.x) * f.x + (q.z - p.z) * f.z) / Math.max(d, 0.01) < 0.3) continue;
+      bd = d; best = n;
+    }
+    return best;
+  }
+  static finName(W, id) { return W.gun ? 'Pistol-whip' : (id === 'fists' || W.fist) ? 'Haymaker' : id === 'bat' ? 'Home Run' : W.cone ? 'Cone-head' : W.style === 'stab' ? 'Flurry' : 'Spin Chop'; }
+  takedown() {
+    const g = this.g, n = this.takedownTarget(); if (!n) return false;
+    const W = g.weapons, k = W.W.gun ? 'whip' : W.fisty ? 'haymaker' : W.cur === 'bat' ? 'homerun' : W.W.cone ? 'conehead' : W.W.style === 'stab' ? 'flurry' : 'spinchop';
+    const dur = { haymaker: 1.0, homerun: 1.35, flurry: 1.1, spinchop: 1.15, conehead: 1.1, whip: 0.8 }[k];
+    const q = g.citizens.pos(n), p = this.pos; this.yaw = Math.atan2(q.x - p.x, q.z - p.z);
+    this.td = { n, kind: k, dur, t: 0, yaw0: this.yaw, jabs: 0, hit: false };
+    n.stunT = dur + 0.4; n.vel.set(0, 0, 0); n.yaw = Math.atan2(p.x - q.x, p.z - q.z); n.human.express('surprised', dur);
+    // a moment of slow motion, and its name across the screen
+    g.timeScale = 0.4; setTimeout(() => { if (!g.ending) g.timeScale = 1; }, 420);
+    g.hud.finisher?.(Player.finName(W.W, W.cur).toUpperCase() + '!');
+    return true;
+  }
+  takedownStep(h) {
+    const g = this.g, T = this.td, n = T.n, C = g.citizens; T.t += h; const a = T.t / T.dur;
+    if (T.kind === 'spinchop') { const e = Math.min(1, a / 0.55); this.yaw = T.yaw0 + e * e * (3 - 2 * e) * Math.PI * 2; }
+    if (n.state === 'dead' || !C.list.includes(n)) { this.td = null; return; }
+    const q = C.pos(n), f = q.clone().sub(this.pos).setY(0).normalize(), up = new THREE.Vector3(0, 1, 0);
+    const KO = (fw, upv, spin) => { C.crimeAt(n, false); n.mem.hitBy++; n.mood -= 80; n.hp = Math.min(n.hp, 8); n.stunT = 0; C.knock(n, f.clone().multiplyScalar(fw).addScaledVector(up, upv), spin); C.downed(n); n.human.express('hurt', 3); };
+    if (T.kind === 'flurry' && T.jabs < 2 && a > [0.18, 0.36][T.jabs]) { T.jabs++; g.sfx?.punch(q); n.flinchT = 0.2; n.flinchDir = f.clone(); }
+    const at = { haymaker: 0.6, homerun: 0.66, flurry: 0.72, spinchop: 0.68, conehead: 0.55, whip: 0.55 }[T.kind];
+    if (!T.hit && a > at) {
+      T.hit = true;
+      if (T.kind === 'haymaker') { g.sfx?.punch(q); KO(4, 5.5, 7); }
+      else if (T.kind === 'homerun') {
+        g.sfx?.thunk?.(q); g.sfx?.punch(q); KO(12, 6, 9);
+        for (const o of C.list) if (o !== n && !o.human.ragdoll && o.state !== 'dead' && o.state !== 'seated' && C.pos(o).distanceTo(q) < 25 && Math.random() < 0.6) setTimeout(() => C.say(o, ['OHHH!', 'Did you SEE that?!', 'HOME RUN!', 'Oh my god.', "He's GONE!"][Math.floor(Math.random() * 5)], 2.4), 300 + Math.random() * 700);
+      }
+      else if (T.kind === 'flurry') { g.sfx?.punch(q); KO(4.5, 1.8, 3); }
+      else if (T.kind === 'spinchop') { g.sfx?.punch(q); KO(6, 2.5, 5); }
+      else if (T.kind === 'whip') { g.sfx?.punch(q); KO(4, 2, 4); }
+      else if (T.kind === 'conehead') C.coneHead(n);
+    }
+    if (a >= 1) this.td = null;
+  }
+
   // ---- finish off someone who's down: a stamp, a stab, or a shot
   finishTarget() {
     const g = this.g; if (this.car || this.ragdoll || this.hostage || this.finishT > 0) return null;
@@ -241,6 +294,7 @@ export class Player {
     const Wp = this.g.weapons;
     if (Wp.attackPhase != null || Wp.punchPhase != null || Wp.aiming || (Wp.W.gun && Wp.cool > 0)) face = this.g.cam.yaw + Math.PI; // (swing, punch and shoot where you're looking)
     if (this.finish) { const q = this.finish.n.human.ragdoll?.pelvis; if (q) face = Math.atan2(q.x - p.x, q.z - p.z); }
+    if (this.td) face = null; // (the finisher turns you itself)
     if (this.g.wheel.open && this.g.wheel.target) { const q = this.g.citizens.pos(this.g.wheel.target); face = Math.atan2(q.x - p.x, q.z - p.z); }
     if (face !== null) {
       let d = face - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -257,12 +311,13 @@ export class Player {
     const F = this.finish, fa = F ? 1 - this.finishT / F.dur : 0;
     const gunOut = W.W.gun && (W.aiming || W.cool > 0 || (F && F.kind === 'shoot'));
     H.update(dt, { speed: this.speed, grounded: this.grounded || this.swimming, vy: this.vy, pose: this.swimming ? 'swim' : 'stand', talking: this.talkT > 0,
-      weapon: !!W.held && !gunOut, attack: W.attackPhase, carry: this.g.props.held ? (this.g.props.small ? 'small' : 'big') : null,
-      guard: W.cur === 'fists' && (W.aiming || W.guardT > 0) && W.punchPhase == null && !this.hostage && !this.surrender,
+      weapon: !!W.held && !gunOut && !W.W.fist, attack: W.attackPhase, attackStyle: W.W.style, bat: W.cur === 'bat', carry: this.g.props.held ? (this.g.props.small ? 'small' : 'big') : null,
+      guard: !this.td && W.fisty && (W.aiming || W.guardT > 0) && W.punchPhase == null && !this.hostage && !this.surrender,
       punch: this.smashT > 0 ? { a: 1 - this.smashT / 0.75, side: 'R' } : W.punchPhase != null ? { a: W.punchPhase, side: W.combo % 2 ? 'L' : 'R', hook: W.combo === 2 } : null,
       aim: F && F.kind === 'shoot' ? { e: -0.9, kind: W.cur } : gunOut ? { e, kind: W.cur, recoil: W.recoil } : (W.aiming && W.cur !== 'fists' ? { e, kind: 'melee' } : null),
       handsUp: this.surrender || !!this.g.police.cops().find(n => n.frisking), crouch: this.crouch && !this.swimming, shiver: this.shiverT > 0 && !this.swimming, hold: this.hostage ? (this.hostage.hostage?.bag ? 'bag' : 'mouth') : null,
-      stomp: F && F.kind === 'stomp' ? fa : null, stab: F && F.kind === 'stab' ? fa : null });
+      stomp: F && F.kind === 'stomp' ? fa : null, stab: F && F.kind === 'stab' ? fa : null,
+      fin: this.td ? { kind: this.td.kind, a: Math.min(1, this.td.t / this.td.dur) } : null });
     this.talkT = Math.max(0, (this.talkT || 0) - dt);
   }
 

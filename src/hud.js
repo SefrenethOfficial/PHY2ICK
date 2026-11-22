@@ -26,6 +26,12 @@ export class Hud {
   }
   rob(k) { if (k == null) { this.robEl.style.display = 'none'; return; } this.robEl.style.display = 'block'; this.robEl.querySelector('b').style.width = Math.round(k * 100) + '%'; }
 
+  // a finisher's name, big across the middle of the screen
+  finisher(text) {
+    const e = document.getElementById('finisher'); if (!e) return;
+    e.textContent = text; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on');
+    clearTimeout(this.finT); this.finT = setTimeout(() => e.classList.remove('on'), 1300);
+  }
   toast(text, color = '#fff') {
     const t = document.createElement('div'); t.className = 'toast'; t.textContent = text; t.style.setProperty('--c', color);
     this.toastsEl.prepend(t);

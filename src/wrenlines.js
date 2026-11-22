@@ -1,13 +1,13 @@
 // Everything Wren says (from the two plans): by topic, each line with the trust level it needs
-// (0 Strained, 1 Guarded, 2 Okay, 3 Close, 4 Family). `before` is how she talks until the third cook;
-// `after` is the new voice (she calls you Chef). Kit lines keep the quiet voice either way.
+// (0 Strained, 1 Guarded, 2 Okay, 3 Close, 4 Family). `before` is how he talks until the third cook;
+// `after` is the new voice (he calls you Chef). Kit lines keep the quiet voice either way.
 const L = (lv, t) => [lv, t];
 
 export const LEVELS = [['Strained', 0, '#ff6a5a'], ['Guarded', 15, '#ffd166'], ['Okay', 35, '#c8e6a0'], ['Close', 55, '#7be08a'], ['Family', 80, '#5fd0ff']];
 
 export const TOPICS = [['holding', 'How are you holding up?'], ['kit', 'Kit'], ['vic', 'Vic'], ['business', 'The business'], ['pratt', 'Pratt'], ['chat', 'Just chat']];
 export const ASK = { holding: 'You okay?', kit: 'Tell me about Kit.', vic: 'Heard from Vic?', business: "How's it going out there?", pratt: 'Has Pratt called?', chat: 'So…' };
-export const TOPIC_MIN = { kit: 2 }; // (Kit: not until she trusts you a bit)
+export const TOPIC_MIN = { kit: 2 }; // (Kit: not until he trusts you a bit)
 
 const KIT = [
   L(2, 'He used to sleep in that van when he and Vic weren\'t talking. Which was most weeks.'),
@@ -83,8 +83,8 @@ export const AFTER = {
 export const HANG = [
   'You get chips by the pier. Wren steals all the crispy ones and denies it.',
   'You sit on the beach until the sun goes. Neither of you says much. It\'s fine.',
-  'You drive to the end of the island and back, the way Kit used to. She picks the music.',
-  'You play cards on the floor of 1E. She cheats. Badly.',
+  'You drive to the end of the island and back, the way Kit used to. He picks the music.',
+  'You play cards on the floor of 1E. He cheats. Badly.',
   "You watch Channel 6 with the sound off and make up what the newsreader's saying.",
 ];
 
@@ -101,7 +101,7 @@ export const SMALL = {
   bring: ['You came yourself. Thanks.', "Good timing, I'm out."], bringClose: ["Sit for a minute. I'm not ready to go back out yet."],
 };
 
-// what she says when you do things near her: [before, after]
+// what he says when you do things near him: [before, after]
 export const REACT = {
   punch: [['What are you doing?', "Leave it! Let's go.", 'Was that necessary?'], ['Whoa whoa whoa, Chef! Use your words!', 'Leave it, Chef! Come ON.']],
   gun: [['Put that away. Now.', 'Are you insane? People are watching!', 'Kit never carried. Ever.'], ['Put it AWAY, man, are you crazy?', "Chef! Not here! Not ANYWHERE!"]],
@@ -163,12 +163,12 @@ export const SHIFT = [
 ];
 
 export const IDEAS = [
-  { id: 'club', pitch: 'Friday. The nightclub. Hear me out.', yes: "Yeah, Chef! Tonight we RIDE.", sum: 'She sells twice as fast for a while, but someone might report dealing at the club.' },
+  { id: 'club', pitch: 'Friday. The nightclub. Hear me out.', yes: "Yeah, Chef! Tonight we RIDE.", sum: 'He sells twice as fast for a while, but someone might report dealing at the club.' },
   { id: 'site', pitch: 'New guy at the construction site. Pays double.', yes: "Double, Chef. DOUBLE.", sum: 'A new buyer at the construction site who pays double. He might be a cop, unless June vouches for him.' },
   { id: 'big', pitch: 'Bigger batches, Chef. Go big.', yes: 'Go big or go home! We are not going home.', sum: 'Batches use double the supplies for double the bags, but the cook is harder.' },
-  { id: 'price', pitch: "We put the price up. They'll pay.", yes: "Premium product, premium price. Business, Chef.", sum: 'Every bag earns 20% more, but she sells a third slower.' },
+  { id: 'price', pitch: "We put the price up. They'll pay.", yes: "Premium product, premium price. Business, Chef.", sum: 'Every bag earns 20% more, but he sells a third slower.' },
   { id: 'van', pitch: 'The van needs a name.', yes: "KIT'S KITCHEN. He'd hate it. He'd love it.", sum: "\"KIT'S KITCHEN\" gets painted on the van." },
-  { id: 'ride', pitch: 'Let me ride with you today.', yes: "Shotgun! I mean, the seat. Not a gun. Put that away.", sum: "She comes with you for a while. She won't sell while she's out with you." },
+  { id: 'ride', pitch: 'Let me ride with you today.', yes: "Shotgun! I mean, the seat. Not a gun. Put that away.", sum: "He comes with you for a while. He won't sell while he's out with you." },
 ];
 export const IDEA_NO = ["Fine. FINE. Your loss.", 'Boo. Okay.', "You're no fun, Chef."];
 export const IDEA_SULK = "Do you ever say yes to anything? Like, ever?";

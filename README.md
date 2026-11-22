@@ -34,10 +34,10 @@ Walk in through the front door of most places: there's a real room behind it, li
 - **Lobbies** with a front desk: the **Hospital**, the **Police Station** (a wanted board), **Putin's Ritz** (marble, a chandelier, a red carpet), **Paul Badfella's** (bookshelves, carpet), the **Spa**. Restaurants: **City Wok** and **Albuquerque Boiled Turkey**.
 
 ### Saving
-The game saves itself in your browser every 45 seconds or so (and when you close the tab), at steady points in the story: driving Wren to the hospital, heading for the van, the first cook, and any time after she's moved in. It keeps your money, health, look, weapons and ammo, Physick and supplies, what's in your pockets, the van (and its paint), the cars you've registered at Rusty's, the neighbours' friendship, and everything with Wren (trust, cooks, her stock, her ideas, your texts). If there's a save, the title has **Continue** (back where you were) and **New game** (which wipes it).
+The game saves itself in your browser every 45 seconds or so (and when you close the tab), at steady points in the story: driving Wren to the hospital, heading for the van, the first cook, and any time after he's moved in. It keeps your money, health, look, weapons and ammo, Physick and supplies, what's in your pockets, the van (and its paint), the cars you've registered at Rusty's, the neighbours' friendship, and everything with Wren (trust, cooks, his stock, his ideas, your texts). If there's a save, the title has **Continue** (back where you were) and **New game** (which wipes it).
 
 ### The title screen
-The PHY2ICK logo over a timelapse on the beach by Kit's van: the day runs by in seconds (dusk, a short night, dawn). Wren sits on the sand in a yellow hazmat suit; you come out of the back and hand her the bags; she walks off along the beach, sells to the dealers there, and comes back and sits down again. Now and then a police car pulls up by the dealers and a cop gets out to ask a few questions, and they suddenly find their phones, the sea and a nice tune very interesting. The title theme plays over it (once you've clicked or pressed a key: browsers won't play music before that).
+The PHY2ICK logo over a timelapse on the beach by Kit's van: the day runs by in seconds (dusk, a short night, dawn). Wren sits on the sand in a yellow hazmat suit; you come out of the back and hand him the bags; he walks off along the beach, sells to the dealers there, and comes back and sits down again. Now and then a police car pulls up by the dealers and a cop gets out to ask a few questions, and they suddenly find their phones, the sea and a nice tune very interesting. The title theme plays over it (once you've clicked or pressed a key: browsers won't play music before that).
 
 ### Shops, stealing and selling
 - **Shelves:** the Mini Marts, the Grocery, the Game Shop, Home Improvements and Cheap House have real things on the shelves (chips, cans, cereal, games, paint, hammers…). Pick one up, take it to the till and hold `E` on the clerk to **pay**. Or press `V` to **pocket** it and walk out. If the clerk sees you pocket it, or notices you leave, they call the police (crouching helps).
@@ -53,25 +53,25 @@ PHY2ICK is a prequel to PHYSICK: the time before Wren is gone. Press **Play** an
 
 You wake up in an ice bath in the shared bathroom at the end of your corridor, in your boxers, with no memory of the night. Before you open your eyes you choose who you are: skin tone, hair (what shows under the beanie) and hair colour. Then: the cold, the panic, *why am I in ice?* Your clothes are on your bed in 1E, in a room that's had a party in it. Channel 6 is on, talking about a blue substance. Your phone has last night on it.
 
-Wren's on the stairs, on the phone to the hospital. Her younger brother **Kit** put you in that bath. Then he lay down on your floor and didn't get up. She needs a lift to the hospital.
+Wren's on the stairs, on the phone to the hospital. His younger brother **Kit** put you in that bath. Then he lay down on your floor and didn't get up. He needs a lift to the hospital.
 
-At the hospital she goes in alone. An hour later she comes out, and you put a hand on her shoulder. Then **Vic** turns up: their cousin (who's always acted like their dad), in a red convertible and sunglasses, back from a "retreat", too busy *investing in himself* to help with the funeral. Wren walks off. Vic asks you to help her, however you can, and tells you about **Kit's van**: an old camper parked up on the beach. He hands you Kit's keys. *"And whatever he was doing in that thing… don't."*
+At the hospital he goes in alone. An hour later he comes out, and you put a hand on his shoulder. Then **Vic** turns up: their cousin (who's always acted like their dad), in a red convertible and sunglasses, back from a "retreat", too busy *investing in himself* to help with the funeral. Wren walks off. Vic asks you to help him, however you can, and tells you about **Kit's van**: an old camper parked up on the beach. He hands you Kit's keys. *"And whatever he was doing in that thing… don't."*
 
 In the van: Kit's hoodie, a burnt pan, a notebook that says **MERIDIAN**. Kit was making it. He made what you two took. His phone won't stop buzzing with people who want more, the funeral needs paying for, and a man called **Pratt** has left four voicemails about what Kit owed him. The deal: **you cook, Wren sells**, and Vic never finds out. There's enough under the sink for one batch, but not here: people walk their dogs on this beach. Drive the van out to **the Dry** with Wren (cook in town and someone smells it and calls the police), and cook there while Wren leans on the van and talks to you through the wall. Give her the bags and she moves in with you (a mattress on your floor in 1E) and sells them to Kit's buyers, a bag at a time, while you're out. Bring her more at home, or take her along (hold `E` on her).
 
 ### Wren
-Once she's moved in, Wren is your partner, not a passer-by: she never calls the police on you, doesn't run off or put her hands up, and can't be mugged, grabbed or put in a boot. She reacts in her own words instead: to fights, guns, stolen cars, chases, frisks, your driving, your cooking.
-- **Trust** (Strained, Guarded, Okay, Close, Family) goes up when you talk to her, hang out, take the bags to her yourself, answer her texts and cook clean batches; it drops when you commit crimes in front of her, get her chased, hurt her, ignore her or snap at her. Closer, she says more (Kit, Vic, Pratt), texts you first, and gets better prices from her buyers.
-- **Hold `E` on her**: *Talk* (how she's holding up, Kit, Vic, the business, Pratt, just chat), *Hang out*, *Give her the bags*, *Share your food*, *Come with me* / *Head home*, *Thank her* / *Say sorry*, *Snap at her*.
-- **Your phone (`P`)**, after the first cook: text her to *come and get* the bags (she turns up where you are), or say you'll *bring them to her* (she tells you where she is: home, the pier, outside the nightclub, the beach by the van). Quick texts, a call, and her texts to you: sales, worries, Pratt, Vic. Leave her on read too long and she notices.
-- **After the third cook** she changes: louder, faster, prouder, and she calls you **Chef** (*"Yeah, Chef! Blue magic!"*). She has **ideas**, and you can say yes or no: a night at the nightclub, a buyer at the construction site who pays double, bigger batches, higher prices, *KIT'S KITCHEN* painted on the van, riding along with you for the day. Each one has a catch. Her mood changes through the day (buzzing, flat, wrecked) and with it how she talks and how fast she sells.
+Once he's moved in, Wren is your partner, not a passer-by: he never calls the police on you, doesn't run off or put his hands up, and can't be mugged, grabbed or put in a boot. He reacts in his own words instead: to fights, guns, stolen cars, chases, frisks, your driving, your cooking.
+- **Trust** (Strained, Guarded, Okay, Close, Family) goes up when you talk to him, hang out, take the bags to him yourself, answer his texts and cook clean batches; it drops when you commit crimes in front of him, get his chased, hurt him, ignore him or snap at him. Closer, he says more (Kit, Vic, Pratt), texts you first, and gets better prices from his buyers.
+- **Hold `E` on him**: *Talk* (how he's holding up, Kit, Vic, the business, Pratt, just chat), *Hang out*, *Give him the bags*, *Share your food*, *Come with me* / *Head home*, *Thank him* / *Say sorry*, *Snap at him*.
+- **Your phone (`P`)**, after the first cook: text him to *come and get* the bags (he turns up where you are), or say you'll *bring them to him* (he tells you where he is: home, the pier, outside the nightclub, the beach by the van). Quick texts, a call, and his texts to you: sales, worries, Pratt, Vic. Leave him on read too long and he notices.
+- **After the third cook** he changes: louder, faster, prouder, and he calls you **Chef** (*"Yeah, Chef! Blue magic!"*). He has **ideas**, and you can say yes or no: a night at the nightclub, a buyer at the construction site who pays double, bigger batches, higher prices, *KIT'S KITCHEN* painted on the van, riding along with you for the day. Each one has a catch. His mood changes through the day (buzzing, flat, wrecked) and with it how he talks and how fast he sells.
 
 ### The jobs after the first cook
 Still not a mission list: one thing at a time on the line in the corner.
 - **Three More:** cook three more batches. **One cook a day**: sleep in your bed in 1E (`E`) and it's the next morning (*Day 2*, full health, and Wren texts). Cook out in the Dry; anywhere else the smell gets reported.
-- **Saltline:** Wren rings. A crew from the **Saltline Apartments**, out by North Quay, took her bags off a buyer at the pier: the island's theirs, and you pay or you stop. Go and see **Royce** and his three. Hold `E` on him: ask what he wants, **give them a quarter** of everything Wren makes from now on, **buy them off** for $1,500, or **tell them where to go**, and it's a shootout (pulling a gun near them, or hitting one, starts it too). They keep their distance, spread round you and shoot when they can see you.
+- **Saltline:** Wren rings. A crew from the **Saltline Apartments**, out by North Quay, took his bags off a buyer at the pier: the island's theirs, and you pay or you stop. Go and see **Royce** and his three. Hold `E` on him: ask what he wants, **give them a quarter** of everything Wren makes from now on, **buy them off** for $1,500, or **tell them where to go**, and it's a shootout (pulling a gun near them, or hitting one, starts it too). They keep their distance, spread round you and shoot when they can see you.
 
-(Kit left debts. Pratt wants them paid. Vic is too busy with his midlife crisis to help. That's all still to come.) If the car blows up with Wren in it (or she dies) before she's moved in, that part starts again from the last checkpoint: the stairs, the hospital, or the van. (Once she's living with you, she's patched up at the hospital and back home a minute later.) People who follow you follow the way you went: through doors, down stairs, round corners, and they catch up if they get stuck. `Enter`, `Space` or `Escape` skips a scene.
+(Kit left debts. Pratt wants them paid. Vic is too busy with his midlife crisis to help. That's all still to come.) If the car blows up with Wren in it (or he dies) before he's moved in, that part starts again from the last checkpoint: the stairs, the hospital, or the van. (Once he's living with you, he's patched up at the hospital and back home a minute later.) People who follow you follow the way you went: through doors, down stairs, round corners, and they catch up if they get stuck. `Enter`, `Space` or `Escape` skips a scene.
 
 ### Home: Fairview Heights
 Your room is **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
@@ -87,10 +87,35 @@ Your room is **1E**, on the first floor of your building at **Fairview Heights**
 - **The dresser** against your back wall. Press `E` to slide the top drawer open: inside is a **Butter Knife**, and that's all you own to start with. `E` again to take it (the drawer shuts), or to put it back. `Click` to swing, `X` to put it away. It makes people bleed and run. Anything better you buy (a hatchet or guns from Halyard Arms).
 - **A traffic cone** (don't ask): orange, two white reflective bands, a square black base. There are more about the island (roadworks by the construction site, the dock, the desert road). Pick one up and press `V` and it's a weapon: equip it from the hotbar and hit people with it. It doesn't hurt much. They take it very personally.
 
+### Street dealers, and what they sell
+Men in hoodies and beanies in the back streets: behind the **Nightclub**, under the **abandoned car park**, by the **Skatepark**, and behind the **North Quay** warehouse in the Dry. *"Psst."* Hold `E`: *What've you got?* They won't deal while you're wanted or there's a cop about. Start something with one and he pulls a revolver.
+
+| | Price | |
+|---|---|---|
+| **Brass Knuckles** | $60 | your punches, harder (the boxing guard and the three-hit combo) |
+| **Switchblade** | $90 | quick, short, a fast jab |
+| **Baseball Bat** | $40 | slow, two-handed, round from the shoulder; knocks people flying |
+| **Machete** | $150 | long, heavy, an overhead chop |
+| **Snub Revolver** | $400 | six rounds, hits very hard, slow |
+| **Machine Pistol** | $900 | automatic: hold the button |
+| **Sawn-off Shotgun** | $500 | two barrels; brutal close up, useless far off |
+
+They sell rounds for any gun you've got. Everything but the bat is illegal to carry: if you're searched, they're found (and kept, if you're arrested).
+
+### Finishers
+When someone's **fighting you** (squaring up, a gunman, a cop after you) and they're hurt or reeling from a combo, `Q`: a moment of slow motion, the move's name across the screen, and they're knocked out.
+- **Fists / knuckles: Haymaker.** Sink low, then the uppercut. They go up and over.
+- **Bat: Home Run.** The big wind-up, the swing of your life. They fly. Everyone watching goes *"OHHH!"*
+- **Knives: Flurry.** Jab, jab, then the shoulder.
+- **Hatchet / machete: Spin Chop.** All the way round, into the chop.
+- **Cone: Cone-head.** You jam it on their head. They stagger about blind (*"I CAN'T SEE!"*) until it falls off. You don't get it back.
+- **Guns, up close: Pistol-whip.**
+Not on anyone who's surrendering, running away or being held. (Someone already down: `Q` still finishes them off, as before.)
+
 ### Your hotbar and your bag
 - **The hotbar** (along the bottom of the screen): six slots, fists always first. `1`–`6` or the mouse wheel picks one, and you can see which you've got. Weapons you get go into the first free slot (the bag, if it's full); guns show their ammo.
 - **The bag** (`Tab`): twelve more slots. `V` puts what you're holding in it (shop things go in your pockets, as before; a traffic cone becomes a weapon; anything too big won't fit). Click a thing, then click a slot to move it there (between the bag and the hotbar too), or *Equip* / *Hold it* / *Drop* it. Underneath, your pockets: Physick, solvent, salts, sacks and anything you've stolen. Everything has its own icon, drawn from its 3D model.
-- **Food.** Everything you buy to eat comes to you to carry: **MARCOS** (burgers, chicken bites, fries, a shake, the meal deal), **the Diner** (cherry pie, pancakes, a burger, a strawberry shake, coffee: ask the waitress), **the Coffee Store** (flat white, long black, a muffin, a croissant), **City Wok** (noodles, dumplings, fried rice), **Albuquerque Boiled Turkey** (boiled turkey, a turkey burger, gravy fries), **the nightclub bar** (an energy drink, a soda) and chips from the shop tills. Hold `E` on whoever's serving: *Order food*. It goes on your hotbar (up to five of a thing to a slot). Pick it and it's in your hand: click to eat it and get health back. Or hold `E` on **Wren**: *Share your …*, and she eats it with you (she likes that: trust).
+- **Food.** Everything you buy to eat comes to you to carry: **MARCOS** (burgers, chicken bites, fries, a shake, the meal deal), **the Diner** (cherry pie, pancakes, a burger, a strawberry shake, coffee: ask the waitress), **the Coffee Store** (flat white, long black, a muffin, a croissant), **City Wok** (noodles, dumplings, fried rice), **Albuquerque Boiled Turkey** (boiled turkey, a turkey burger, gravy fries), **the nightclub bar** (an energy drink, a soda) and chips from the shop tills. Hold `E` on whoever's serving: *Order food*. It goes on your hotbar (up to five of a thing to a slot). Pick it and it's in your hand: click to eat it and get health back. Or hold `E` on **Wren**: *Share your …*, and he eats it with you (he likes that: trust).
 
 ### Moving about
 - **Swimming**: go into the water and you swim (front crawl when moving, treading water when still). `Space` at a low edge pulls you out. Under the surface everything goes murky green-blue, and the sea floor is sand all the way round (shelving down gently off the desert's beaches, deep off North Quay).
@@ -191,6 +216,7 @@ The drug the game is named after. It's made up, and the cook is a game, not chem
 | `G` | grab someone / let them go (from a car: let your captive out) |
 | `Q` | finish off someone who's down |
 | `Y` | give yourself up |
+| `Q` | a finisher (someone fighting you, hurt or reeling); finish off someone who's down |
 | `F` | get in / out of a car (at any speed); a driver's door: drag them out; the passenger door: get in, then `F` to shove them out; by a bike: take it / get off |
 | `C` (in a car) | inside view / chase camera |
 | `Space` / `E` / `Q` (cooking) | heat / stir / give up |
@@ -225,7 +251,7 @@ src/
   drugs.js      Physick: the cook (a timing game) in the camper, selling
   van.js        inside Kit's camper: the room, getting in and out, Wren waiting outside
   title.js      the title screen: the timelapse, the title theme
-  wren.js       Wren after she moves in: trust, her wheel, the phone, selling, texts, moods, ideas, reactions
+  wren.js       Wren after he moves in: trust, his wheel, the phone, selling, texts, moods, ideas, reactions
   wrenlines.js  everything Wren says
   shops.js      things on shop shelves, paying, pocketing, shoplifting, pickpocketing, selling at the Pawn Shop, Halyard Arms
   chopshop.js   Rusty's Parking: the garage, registering, respraying, new plates
@@ -241,6 +267,7 @@ src/
   traffic.js    cars driving about (sedans, taxis, delivery vans, convertibles), carjacking (dragging drivers out, the passenger door)
   bikes.js      bicycles: people riding them, taking one, riding it
   inventory.js  the hotbar and the bag
+  dealers.js    the street dealers and what they sell
   food.js       food: who sells what, the menus, eating, sharing with Wren, what it all looks like
   icons.js      the hotbar and bag icons, drawn from each thing's own 3D model
   save.js       saving to the browser, Continue

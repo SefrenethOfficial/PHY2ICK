@@ -2,7 +2,7 @@
 // up), once, into a little picture for the hotbar and the bag. Plus a few made just for the pockets: a bag of
 // Physick, a bottle of solvent, the blue salts, a sack, and what you've lifted off people or out of shops.
 import * as THREE from 'three';
-import { model } from './weapons.js';
+import { model, WEAPONS } from './weapons.js';
 import { foodMesh, FOOD } from './food.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -39,7 +39,7 @@ export class Icons {
   // ---- what goes in the hotbar / bag
   weapon(id) {
     if (id === 'fists') return this.get('w:fists', () => fist(), { x: 0, y: -0.5, z: 0 });
-    if (id === 'pistol' || id === 'shotgun') return this.get('w:' + id, () => model(id), { x: 0, y: -Math.PI / 2 + 0.35, z: 0.25 }); // (side on, barrel to the right)
+    if (WEAPONS[id]?.gun) return this.get('w:' + id, () => model(id), { x: 0, y: -Math.PI / 2 + 0.35, z: 0.25 }); // (side on, barrel to the right)
     return this.get('w:' + id, () => model(id), { x: 0, y: 0.2, z: id === 'cone' ? 0.5 : -0.75 });
   }
   food(id) { return this.get('f:' + id, () => foodMesh(FOOD[id].mesh, FOOD[id].color), { x: 0.15, y: -0.4, z: 0 }); }

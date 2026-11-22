@@ -1,5 +1,5 @@
-// Wren, once she's moved in: how much she trusts you, what she says, her phone, her selling, her texts,
-// her moods, and (after the third cook) the new voice and her ideas. The lines live in wrenlines.js.
+// Wren, once he's moved in: how much he trusts you, what he says, his phone, his selling, his texts,
+// his moods, and (after the third cook) the new voice and his ideas. The lines live in wrenlines.js.
 import { FOOD } from './food.js';
 import * as THREE from 'three';
 import { LEVELS, TOPICS, ASK, TOPIC_MIN, BEFORE, AFTER, HANG, SMALL, REACT, TEXTS, QUICK, CALL, SHIFT, IDEAS, IDEA_NO, IDEA_SULK } from './wrenlines.js';
@@ -48,7 +48,7 @@ export class WrenLife {
     const after = this.lv;
     if (after !== before && this.unlocked) this.g.hud.toast(`Wren: ${LEVELS[after][0]}`, after > before ? '#7be08a' : '#ff6a5a');
   }
-  // a line she hasn't said lately, from what her trust allows
+  // a line he hasn't said lately, from what his trust allows
   line(list) {
     const ok = list.filter(([lv]) => lv <= this.lv).map(([, t]) => t);
     const fresh = ok.filter(t => !this.recent.includes(t));
@@ -59,19 +59,19 @@ export class WrenLife {
   say(t, dur) { if (this.alive) this.g.citizens.say(this.n, t, dur ?? Math.min(6, 2 + t.length * 0.05)); }
   pv(pair) { return pick(pair[this.v] && pair[this.v].length ? pair[this.v] : pair[0]); }
 
-  // ---- her wheel
+  // ---- his wheel
   options(n) {
     const D = this.g.drugs;
     if (this.menu === 'talk') return TOPICS.filter(([k]) => (TOPIC_MIN[k] || 0) <= this.lv).map(([k, label]) => ({ id: 't:' + k, label }));
     if (this.menu === 'idea') return [{ id: 'idea:yes', label: 'Do it' }, { id: 'idea:no', label: 'No' }];
     const o = [{ id: 'talk', label: 'Talk' }];
     if (this.lv >= 2) o.push({ id: 'hang', label: 'Hang out' });
-    if (D.count) o.push({ id: 'give', label: `Give her ${D.count} bag${D.count > 1 ? 's' : ''}` });
+    if (D.count) o.push({ id: 'give', label: `Give him ${D.count} bag${D.count > 1 ? 's' : ''}` });
     { const f = this.g.inv?.anyFood(); if (f) o.push({ id: 'share', label: `Share your ${FOOD[f.food].name}` }); }
     o.push(n.following ? { id: 'home', label: 'Head home' } : { id: 'come', label: 'Come with me' });
-    if (this.shifted) o.push({ id: 'ideas', label: 'Hear her ideas' });
-    o.push(this.dropT > 0 ? { id: 'sorry', label: 'Say sorry' } : { id: 'thanks', label: 'Thank her' });
-    o.push({ id: 'snap', label: 'Snap at her' });
+    if (this.shifted) o.push({ id: 'ideas', label: 'Hear his ideas' });
+    o.push(this.dropT > 0 ? { id: 'sorry', label: 'Say sorry' } : { id: 'thanks', label: 'Thank him' });
+    o.push({ id: 'snap', label: 'Snap at him' });
     return o;
   }
   act(n, id) {
@@ -111,7 +111,7 @@ export class WrenLife {
     if (id === 'idea:yes' || id === 'idea:no') { this.menu = null; this.decide(id === 'idea:yes'); return; }
   }
 
-  // ---- the bags: handed over in person, or she comes and gets them
+  // ---- the bags: handed over in person, or he comes and gets them
   handover(how) {
     const g = this.g, D = g.drugs, k = D.count; if (!k) return;
     this.stock.push(...D.bags.splice(0)); if (this.sellT > 40) this.sellT = 25;
@@ -124,10 +124,10 @@ export class WrenLife {
   shiftScene() {
     const S = this.g.story; this.shiftPending = false; this.shifted = true;
     S.play(SHIFT.map(([who, t]) => S.line(who, who === 'YOU' ? `<i>${t}</i>` : t, who === 'YOU' ? 1.8 : undefined)).concat([S.call(() => { this.n?.human.express('happy', 4); })]));
-    S.onDone = () => this.g.hud.toast("Wren's got a new energy. And a new name for you. (Hold E on her: Hear her ideas)", '#ffb27a');
+    S.onDone = () => this.g.hud.toast("Wren's got a new energy. And a new name for you. (Hold E on him: Hear his ideas)", '#ffb27a');
   }
 
-  // ---- where she is (when she's not with you): home, or out selling
+  // ---- where he is (when he's not with you): home, or out selling
   spot(w) {
     const g = this.g, P = g.places;
     if (w === 'pier' && P.pier) return P.pier.pos.clone().add(V(3, 0, -2)).setY(0.05);
@@ -142,7 +142,7 @@ export class WrenLife {
     n.state = 'post'; n.home = p.clone(); n.homeYaw = w === 'home' ? this.g.apt.wrenYaw : Math.random() * 6.28;
   }
   seen() { const n = this.n, g = this.g, q = g.citizens.pos(n); return g.camera.position.distanceTo(q) < 50 && g.citizens._fr?.containsPoint(q.clone().add(V(0, 1, 0))); }
-  away() { // off to wherever she's working (or home): out of sight, she's just there
+  away() { // off to wherever he's working (or home): out of sight, he's just there
     const n = this.n; n.following = false; n.state = 'idle'; n.stateT = 99;
     const w = this.stock.length ? this.where : 'home';
     const go = () => { if (!this.alive || n.following) return; if (this.seen() && this.awayTries++ < 6) { setTimeout(go, 2500); return; } this.placeAt(w); };
@@ -230,7 +230,7 @@ export class WrenLife {
     }
   }
 
-  // ---- her ideas (after the shift)
+  // ---- his ideas (after the shift)
   decide(yes) {
     const g = this.g, I = this.ideas, idea = I.current; if (!idea) return;
     if (!yes) { I.no++; this.say(pick(IDEA_NO)); if (I.no >= 3) { I.no = 0; setTimeout(() => this.say(IDEA_SULK), 2500); this.add(-2); } return; }
@@ -245,7 +245,7 @@ export class WrenLife {
   siteBuyer() {
     const g = this.g, P = g.places['the construction site']; if (!P) return;
     const at = P.pos.clone().add(V(-2, 0, 2)).setY(0.05);
-    const b = g.citizens.addWorker({ pos: at, yaw: 0, lines: ['Wren sent you? Cool cool cool.', "Double. That's what she said. Double.", "I'm not a cop. Why does everyone ask that."], role: 'buyer' });
+    const b = g.citizens.addWorker({ pos: at, yaw: 0, lines: ['Wren sent you? Cool cool cool.', "Double. That's what he said. Double.", "I'm not a cop. Why does everyone ask that."], role: 'buyer' });
     b.spot = 'site'; b.undercover = Math.random() < 0.25;
     g.hud.toast('A new buyer at the construction site pays double', '#5fd0ff');
   }
@@ -257,7 +257,7 @@ export class WrenLife {
     this.g.hud.toast("KIT'S KITCHEN, on both sides of the van", '#ffd23f');
   }
 
-  // ---- what she says when things happen (if she's there to see them)
+  // ---- what he says when things happen (if he's there to see them)
   react(key, d = 0, cool = 8) {
     if (!this.unlocked || !this.alive || (this.reactT[key] || 0) > performance.now()) return false;
     if (!this.near(key === 'cookIn' || key === 'clean' || key === 'cloudy' || key === 'boil' ? 26 : 20)) return false;
@@ -270,10 +270,10 @@ export class WrenLife {
     if (!map) return;
     if (this.react(map[0], map[1], map[0] === 'kill' ? 1 : 8) && map[0] === 'kill') { this.n.human.express('sad', 8); setTimeout(() => { if (this.alive) this.away(); }, 2500); }
   }
-  hurtBy(kind) { // you hurt her
+  hurtBy(kind) { // you hurt him
     if (!this.unlocked) return;
     const d = { punch: -8, struck: -15, shot: -25, car: -10, bump: -1 }[kind] ?? -5;
-    const now = performance.now(); this.reactT.punch = this.reactT.gun = this.reactT.kill = now + 4000; // (she's the one hurt: that's what she talks about)
+    const now = performance.now(); this.reactT.punch = this.reactT.gun = this.reactT.kill = now + 4000; // (he's the one hurt: that's what he talks about)
     this.say(this.pv(REACT[kind === 'bump' ? 'bumped' : 'hurt'])); this.add(d);
   }
   onCook(p, bags) {
@@ -290,7 +290,7 @@ export class WrenLife {
     // moods (every ten minutes or so)
     if ((this.moodT -= dt) <= 0) { this.moodT = 540 + Math.random() * 180; const r = Math.random(); this.mood = r < 0.4 ? 'buzzing' : r < 0.8 ? 'flat' : 'wrecked'; if (this.shifted && this.mood !== 'flat' && Math.random() < 0.5) this.text('Wren', this.mood === 'buzzing' ? TEXTS.mood[1][0] : TEXTS.mood[1][1]); }
     if (!this.alive) return;
-    // where she's working: moves round every few minutes while she's got stock
+    // where he's working: moves round every few minutes while he's got stock
     if (!n.following && !this.fetch && n.state !== 'scripted' && n.state !== 'seated' && !this.bringing) {
       if ((this.whereT -= dt) <= 0) {
         this.whereT = 150 + Math.random() * 90;
@@ -298,7 +298,7 @@ export class WrenLife {
         if (w !== this.where && !this.seen() && g.citizens.pos(n).distanceTo(g.player.pos) > 40) this.placeAt(w); else this.where = w;
       }
     }
-    // selling, a bag at a time, when she's not out with you
+    // selling, a bag at a time, when he's not out with you
     I.clubT = Math.max(0, I.clubT - dt);
     if (this.stock.length && !n.following && !this.fetch && n.state !== 'seated') {
       const mul = (this.mood === 'buzzing' ? 1.25 : this.mood === 'wrecked' ? 0.7 : 1) * (I.clubT > 0 ? 2 : 1) / (I.price ? 1.35 : 1);
@@ -312,7 +312,7 @@ export class WrenLife {
         else if (this.batchSold % 3 === 0) this.text('Wren', `${pick(TEXTS.some[this.v])}${this.batchSold}. $${this.batchCash}`);
       }
     }
-    // she comes and gets them
+    // he comes and gets them
     if (this.fetch) {
       const F = this.fetch;
       if (!F.coming && (F.t -= dt) <= 0) {
@@ -335,7 +335,7 @@ export class WrenLife {
       if (t && !n.following) this.text('Wren', t);
     }
     if (this.unread >= 3) { this.ignoreT += dt; if (this.ignoreT > 360) { this.ignoreT = 0; this.text('Wren', TEXTS.ignored[0]); setTimeout(() => this.text('Wren', TEXTS.ignored[1]), 20000); this.add(-3); } }
-    // the police, the driving, the hospital: if she's with you
+    // the police, the driving, the hospital: if he's with you
     const st = g.police.stars;
     if (st > 0 && this.lastStars === 0) this.react('chase', -3, 20);
     if (st === 0 && this.lastStars > 0) this.react('lost', 1, 20);

@@ -1,6 +1,6 @@
 // Inside Kit's camper: a walk-in room (built out of sight, under the car park, and joined to the van's back
 // door by a fade). A little stove, a sink, a bench bed with his hoodie on it, a table with the MERIDIAN
-// notebook, the curtains drawn. You cook at the stove. If Wren's with you, she waits outside, leaning on the van.
+// notebook, the curtains drawn. You cook at the stove. If Wren's with you, he waits outside, leaning on the van.
 import * as THREE from 'three';
 import { canvasTex } from './world.js';
 

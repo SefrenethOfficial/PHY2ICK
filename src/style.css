@@ -202,3 +202,8 @@ body.cine #hotbar, body.title #hotbar { display: none; }
 #bag .t b img { width: 38px; height: 38px; }
 #hotbar .hs em, #bag .t em { position: absolute; right: 4px; bottom: 2px; font: 700 11px Arial; color: #fff; font-style: normal; text-shadow: 0 1px 2px #000; }
 #bag .pockets span { display: inline-flex; align-items: center; gap: 4px; } #bag .pockets img { width: 24px; height: 24px; }
+#finisher { position: fixed; left: 50%; top: 34%; transform: translate(-50%, -50%) skewX(-8deg) scale(.6); font: 900 64px "Arial Black", Arial; letter-spacing: 3px; color: #ffd23f; -webkit-text-stroke: 3px #1a1006; text-shadow: 0 6px 0 #c8402a, 0 10px 24px rgba(0,0,0,.6); opacity: 0; pointer-events: none; z-index: 5; }
+#finisher.on { animation: fin 1.25s ease-out forwards; }
+@keyframes fin { 0% { opacity: 0; transform: translate(-50%, -50%) skewX(-8deg) scale(1.6); } 12% { opacity: 1; transform: translate(-50%, -50%) skewX(-8deg) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60%) skewX(-8deg) scale(1.05); } }
+#menu.dealer { background: rgba(10,12,14,.96); border-color: #6a7a8a; } #menu.dealer h3 { color: #c8d4e0; } #menu.dealer button { background: #2a3038; } #menu.dealer button:not(.done) b { color: #7be08a; }
+#menu { max-height: 88vh; overflow-y: auto; }

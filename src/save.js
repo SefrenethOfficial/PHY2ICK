@@ -1,6 +1,6 @@
 // Saving: what you've got and how far you are, kept in the browser (localStorage). It saves itself every so
 // often (and when you close the tab), but only at a steady point in the story: driving Wren to the hospital, on
-// the way to the van, the first cook, or any time after she's moved in. Continue on the title picks it up.
+// the way to the van, the first cook, or any time after he's moved in. Continue on the title picks it up.
 import * as THREE from 'three';
 import { Car } from './car.js';
 

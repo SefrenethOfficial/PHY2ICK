@@ -1,5 +1,6 @@
 // The police: wanted stars (five), crimes and witnesses, cop cars that find their way to you along the
 // roads, cops on foot who arrest you (one star) or shoot (two and up), losing them, and getting BUSTED.
+import { WEAPONS } from './weapons.js';
 import * as THREE from 'three';
 import { Car } from './car.js';
 import { randomLook, SKIN, HAIR } from './character.js';
@@ -85,7 +86,7 @@ export class Police {
   witnessesOf(at, loud) {
     const g = this.g, C = g.citizens, crouch = g.player.crouch, R = loud ? 40 : crouch ? 13 : 30, to = at.clone().add(V(0, 1.1, 0)), out = [];
     for (const n of C.list) {
-      if (n.cop || n.rival || n.companion || n.storyNpc || n.state === 'dead' || n.state === 'seated' || n.state === 'cycling' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
+      if (n.cop || n.rival || n.dealer || n.companion || n.storyNpc || n.state === 'dead' || n.state === 'seated' || n.state === 'cycling' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
       const q = C.pos(n), d = q.distanceTo(at); if (d > R || d < 0.3) continue;
       const f = V(Math.sin(n.yaw), 0, Math.cos(n.yaw)), dir = at.clone().sub(q).setY(0).normalize();
       if (!loud && d > 5 && f.dot(dir) < -0.25) continue; // (behind them, and quiet)
@@ -304,7 +305,7 @@ export class Police {
   // ---- on the beat (no stars): walking about; looking for whoever was reported; stopping and searching people
   illegalOnYou() {
     const g = this.g, W = g.weapons;
-    return ['pistol', 'shotgun', 'hatchet'].filter(id => W.inv.has(id)).map(id => ({ pistol: 'a pistol', shotgun: 'a shotgun', hatchet: 'a hatchet' })[id]).concat(g.drugs.count ? [`${g.drugs.count} bag${g.drugs.count > 1 ? 's' : ''} of Physick`] : []);
+    return [...W.inv].filter(id => WEAPONS[id]?.illegal).map(id => (/^[aeiou]/i.test(WEAPONS[id].name) ? 'an ' : 'a ') + WEAPONS[id].name.toLowerCase()).concat(g.drugs.count ? [`${g.drugs.count} bag${g.drugs.count > 1 ? 's' : ''} of Physick`] : []);
   }
   beat(n, p, h, d) {
     const g = this.g, pl = g.player, C = g.citizens, pp = pl.pos;
@@ -314,7 +315,7 @@ export class Police {
       // they recognise you from the description
       if (this.suspect) { C.say(n, pick(["That's them! That's the one from the call!", 'Hey! You match the description!', 'Stop right there!']), 2.5); const w = this.suspect.what; this.escalate(this.suspect.level, `matching a witness's description (${w})`); g.hud.toast(`A cop recognises you from the call about ${w}`, '#ff5a5a'); return { goal: pp, spd: 5 }; }
       // a weapon out, in plain sight
-      const W = g.weapons, out = (W.aiming && W.cur !== 'fists') || ['pistol', 'shotgun', 'hatchet'].includes(W.cur);
+      const W = g.weapons, out = (W.aiming && W.cur !== 'fists') || (W.held?.threat || 0) >= 2;
       if (out) {
         if (W.aiming && g.aimedAt === n) { C.say(n, "He's pointing a weapon at me!", 2); this.escalate(2, 'pointing a weapon at an officer'); return { goal: pp, spd: 5 }; }
         if (n.warnT <= 0) { n.warnT = 3.2; C.say(n, pick(['Drop the weapon!', 'Put it away! Now!', 'Whoa. Weapon down!']), 2.5); }
