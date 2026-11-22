@@ -9,14 +9,18 @@ import { foodMesh } from './food.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const g_money = (g) => g.money;
 const yawTo = (a, b) => Math.atan2(b.x - a.x, b.z - a.z);
 const MIN = 4;
 export const LUCKY_LOOK = { female: false, height: 1.78, build: 1.12, skin: 0xd8a888, hair: 0x2a1a10, hairStyle: 'buzz', shirt: 0xf2f2f2, longSleeves: false, pants: 0x7a1a2a, shoes: 0xf2f2f2, shades: true, chain: true };
 
 export class Lucky {
-  constructor(g) { this.g = g; this.stage = 'none'; this.crew = []; }
+  constructor(g) { this.g = g; this.stage = 'none'; this.crew = []; this.pops = []; this.plan = null; }
 
   recommended() {
+    if (this.stage === 'ears') return { title: 'Ears Open', text: `Lucky won't leave you alone. (${this.pops.length}/3)` };
+    if (this.stage === 'planWait') return { title: 'Ears Open', text: 'Wren wants a plan. Go to <b>his house</b>.' };
+    if (this.stage === 'plan') return { title: 'Ears Open', text: { gun: 'The gun: buy a <b>revolver</b> from a street dealer.', parole: 'The parole: pay <b>Paul</b> $1,000 to make a call.', vanish: 'Disappear: drive <b>Kit\'s van</b> out into the Dry.' }[this.plan] || 'Pick a plan with Wren (hold E on him).' };
     if (this.stage === 'meet') return { title: 'Scrapyard', text: `Meet <b>Lucky Royce</b> at <b>Rusty's lot</b>. Bring at least ${MIN} bags. (Paul says please. Paul says it twice.)` };
     return null;
   }
@@ -119,8 +123,115 @@ export class Lucky {
     };
   }
 
+  // ================= Ears Open =================
+  earsStart() {
+    const g = this.g; this.stage = 'ears'; this.pops = []; this.popT = 60; this.textT = 20;
+    g.wren?.text('Lucky', 'blue guy!! where u at');
+    setTimeout(() => g.wren?.text('Lucky', 'u up'), 4000); setTimeout(() => g.wren?.text('Lucky', '🔥🔥🔥'), 7000);
+    g.hud.toast('📱 RECOMMENDED · Ears Open', '#ffd23f'); g.saver?.save();
+  }
+  // Lucky, somewhere he shouldn't be, for a short scene; then gone
+  pop(kind) {
+    const g = this.g, S = g.story, C = g.citizens, pl = g.player;
+    if (pl.car) return false;
+    const put = (n, at, yaw, pose = { pose: 'stand' }) => { n.human.resetPose(); n.state = 'scripted'; n.script = { pos: at.clone(), yaw, pose }; };
+    const me = pl.pos.clone(), f = new THREE.Vector3(Math.sin(pl.yaw), 0, Math.cos(pl.yaw));
+    let lp, lines, myAt = me, myYaw = pl.yaw, pose = { pose: 'stand' };
+    const W = S.wren;
+    if (kind === 'street') { lp = me.clone().addScaledVector(f, -1.6); lines = [["LUCKY", "BLUE GUY! Small world!"], ['LUCKY', "It's not. I followed you. Since the coffee place. You walk like a dad."], ['LUCKY', "Okay bye! Love you! Text me back!"]]; }
+    if (kind === 'wren') { const h = g.wrenHouse, out = new THREE.Vector3(Math.sin(h.doorYaw), 0, Math.cos(h.doorYaw)); lp = h.door.clone().addScaledVector(out, 1.4); myAt = h.door.clone().addScaledVector(out, 5); myYaw = yawTo(myAt, lp);
+      if (W) put(W, h.door.clone().addScaledVector(out, 0.2).add(V(1.2, 0, 0)), yawTo(h.door, lp));
+      lines = [['LUCKY', "Ayyy, there he is! I was just talking to your partner. He's cute. Nervous. I like nervous."], ['WREN', "…He's been here an hour."], ['LUCKY', "An hour and a HALF. He made me a sandwich. He didn't, I made it. Your partner's got good bread."], ['LUCKY', "See you soon, family!"]]; }
+    if (kind === 'flat') { lp = g.apt.room1E.clone().add(V(1.2, 0, 0.6)); pose = { pose: 'stairsit' }; lp.y -= 0.45; myAt = g.apt.room1E.clone().add(V(-1.0, 0, -0.4)); myYaw = yawTo(myAt, lp);
+      lines = [['LUCKY', "Hey! Don't freak out. Your door was locked. I fixed it."], ['LUCKY', "You got nothing in your fridge. A lemon. One lemon. Who lives like that?"], ['LUCKY', "Anyway, I'm gonna go. I just wanted to see where you sleep. 'Cause we're family. Bye!"]]; }
+    if (!lp) return false;
+    const L = C.addWorker({ pos: lp.clone(), yaw: yawTo(lp, myAt), name: 'Lucky', role: 'lucky', look: { ...LUCKY_LOOK }, lines: [] }); L.luckyCrew = true; L.human.hold(foodMesh('can', 0x3ad86a));
+    put(L, lp, yawTo(lp, myAt), pose); L.human.express('happy', 20);
+    pl.respawn(myAt, myYaw); pl.scripted = { pos: myAt.clone(), yaw: myYaw, pose: { pose: 'stand' } };
+    const mid = myAt.clone().lerp(lp, 0.5), side = new THREE.Vector3(lp.z - myAt.z, 0, myAt.x - lp.x).normalize(), cam = mid.clone().addScaledVector(side, Math.max(2.6, myAt.distanceTo(lp) * 1.15)).setY(mid.y + 1.75);
+    S.play([
+      S.shotS(cam, cam.clone().addScaledVector(side, -0.4), mid.clone().setY(mid.y + 1.3), null, 12, 44),
+      ...lines.map(([w, t]) => S.line(w, t)),
+      S.fadeS(1, 0.4),
+    ]);
+    S.onDone = () => { if (C.list.includes(L)) C.remove(L); pl.scripted = null; if (W && kind === 'wren') { W.script = null; S.wrenHome(true); } S.fade(0); this.pops.push(kind); this.popT = 70; this.afterPop(); g.saver?.save(); };
+    return true;
+  }
+  afterPop() {
+    const g = this.g; if (this.pops.length < 3) { g.hud.toast(`Ears Open: Lucky ${this.pops.length}/3`, '#ffd23f'); return; }
+    this.stage = 'planWait';
+    setTimeout(() => g.wren?.text('Wren', "he was in your FLAT?? come to mine. NOW. we need a plan"), 2500);
+    setTimeout(() => { if (this.stage === 'planWait') g.story.waypoint(g.wrenHouse.door); }, 2600);
+  }
+  // at Wren's: trying to plan, with Lucky ringing every thirty seconds
+  planScene() {
+    const g = this.g, S = g.story, pl = g.player, W = S.wren, h = g.wrenHouse; if (!W) return;
+    this.stage = 'planning'; S.waypoint(null);
+    const out = new THREE.Vector3(Math.sin(h.doorYaw), 0, Math.cos(h.doorYaw)), side = new THREE.Vector3(out.z, 0, -out.x);
+    const wp = h.door.clone().addScaledVector(out, 1.8), me = wp.clone().addScaledVector(out, 1.6).addScaledVector(side, 0.6);
+    W.human.resetPose(); W.state = 'scripted'; W.script = { pos: wp.clone(), yaw: yawTo(wp, me), pose: { pose: 'stand' } };
+    pl.respawn(me, yawTo(me, wp)); pl.scripted = { pos: me.clone(), yaw: yawTo(me, wp), pose: { pose: 'stand' } };
+    const cam = wp.clone().lerp(me, 0.5).addScaledVector(side, 2.8).setY(me.y + 1.7), look = wp.clone().lerp(me, 0.5).setY(me.y + 1.35);
+    const ring = () => S.call(() => { for (let i = 0; i < 4; i++) setTimeout(() => g.sfx?.burst?.({ at: pl.pos, vol: 0.3, dur: 0.12, freq: 1500, q: 8, type: 'bandpass' }), i * 260); pl.scripted.pose = { pose: 'stand', phone: true }; });
+    const hang = () => S.call(() => { pl.scripted.pose = { pose: 'stand' }; });
+    S.play([
+      S.shotS(cam, cam.clone().addScaledVector(side, -0.5), look, null, 30, 44),
+      S.line('WREN', "Okay. Okay. We need him gone. Not gone gone. Just… elsewhere. Option one—", 3.6),
+      ring(), S.line('LUCKY (PHONE)', "Blue guy! Whatchu doing? Sounds like planning. You planning a party? Invite me!", 3.8), hang(),
+      S.line('WREN', "…Option one. We get you a gun. A real one. Just in case.", 3.2),
+      ring(), S.line('LUCKY (PHONE)', "Me again! Quick one. What's your favourite colour? It's blue. I know it's blue.", 3.6), hang(),
+      S.line('WREN', "Option two: Paul. He's on parole. Paul makes one call, he's back inside by Friday.", 3.6),
+      ring(), S.line('LUCKY (PHONE)', "Hey is Wren there? Tell him I said hi. HI WREN.", 2.8), hang(),
+      S.line('WREN', "…Option three. We take the van out to the Dry and we just… disappear. For a while.", 3.6),
+      S.line('WREN', 'Pick one. Before he calls again.', 2.2),
+    ]);
+    S.onDone = () => { pl.scripted = null; this.stage = 'pick'; setTimeout(() => g.wheel?.show(W), 300); };
+  }
+  wrenOptions() {
+    if (this.stage !== 'pick') return null;
+    return [{ id: 'lk:gun', label: 'The gun' }, { id: 'lk:parole', label: 'Paul: the parole call ($1,000)' }, { id: 'lk:vanish', label: 'Disappear into the Dry' }];
+  }
+  wrenAct(n, id) {
+    if (!id.startsWith('lk:')) return false;
+    const g = this.g, S = g.story, W = S.wren; this.plan = id.slice(3); this.stage = 'plan';
+    if (W) { W.script = null; S.wrenHome(true); }
+    g.citizens.say(W, { gun: "A gun. Okay. Don't make me regret it. The dealers have them.", parole: "Paul. Okay. Pay him, he makes the call. God help us.", vanish: "The Dry. Okay. Go get the van. I'll pack." }[this.plan], 3.6);
+    if (this.plan === 'vanish') S.waypoint(g.camper?.pos?.clone());
+    if (this.plan === 'parole') S.waypoint(g.paulOffice?.door);
+    g.saver?.save(); return true;
+  }
+  paulOptions() { return this.stage === 'plan' && this.plan === 'parole' ? [{ id: 'pl:parole', label: g_money(this.g) >= 1000 ? 'The parole call ($1,000)' : 'The parole call ($1,000, you\'re short)' }] : []; }
+  paulAct(n, id) {
+    if (id !== 'pl:parole') return false;
+    const g = this.g, C = g.citizens;
+    if (g.money < 1000) { C.say(n, "A thousand. For me? Nine hundred. No. A thousand.", 3); return true; }
+    g.money -= 1000; g.sfx?.cash?.(g.player.pos); C.say(n, "Consider it called. His parole officer LOVES me. She hates me. It'll work. Probably by Friday.", 4.4);
+    this.planDone(); return true;
+  }
+  planDone() {
+    const g = this.g; if (this.stage !== 'plan') return;
+    this.stage = 'shackNext'; g.story.waypoint(null);
+    g.hud.toast('Job done: Ears Open.', '#ffb27a');
+    setTimeout(() => g.wren?.text('Lucky', 'change of plans blue guy. outside. NOW 🙂'), 4000);
+    g.saver?.save();
+  }
+
   update(dt) {
     const g = this.g, S = g.story; if (!S || S.phase !== 'free') return;
+    if (this.stage === 'done1' && !this.earsDay) { this.earsDay = g.missions?.day ?? 1; this.earsT = 180; }
+    if (this.stage === 'done1' && !S.cine && !g.police.stars && (((this.earsT -= dt) <= 0) || (g.missions?.day ?? 1) > this.earsDay)) this.earsStart();
+    if (this.stage === 'ears' && !S.cine && !g.police.stars && !g.drugs.cook) {
+      if ((this.textT -= dt) <= 0) { this.textT = 45 + Math.random() * 40; g.wren?.text('Lucky', pick(['whatchu doing', 'blue guy', 'u eat yet?? i ate', 'miss u', 'where u at', '🔥', 'call me back', 'is that u in the van? WAVE'])); }
+      const near = (p, r) => p && g.player.pos.distanceTo(p) < r;
+      if (!this.pops.includes('wren') && g.wrenHouse && near(g.wrenHouse.door, 12) && S.wren && !S.wren.following) this.pop('wren');
+      else if (!this.pops.includes('flat') && near(g.apt.room1E, 4)) this.pop('flat');
+      else if (!this.pops.includes('street') && (this.popT -= dt) <= 0 && g.player.grounded && !g.van?.inside) { if (!this.pop('street')) this.popT = 5; }
+    }
+    if (this.stage === 'planWait' && !S.cine && !g.police.stars && g.wrenHouse && g.player.pos.distanceTo(g.wrenHouse.door) < 12 && S.wren && !S.wren.following && !g.player.car) this.planScene();
+    if (this.stage === 'plan' && !S.cine) {
+      if (this.plan === 'gun' && g.weapons.inv.has('revolver')) this.planDone();
+      if (this.plan === 'vanish' && g.player.car === g.camper && g.desert?.inDesert?.(g.camper.pos.x, g.camper.pos.z)) this.planDone();
+    }
     if (this.stage === 'none' && g.never?.stage === 'done') { this.stage = 'waiting'; this.waitT = 180; this.day0 = g.missions?.day ?? 1; }
     if (this.stage === 'waiting' && !S.cine && !g.police.stars && (((this.waitT -= dt) <= 0) || (g.missions?.day ?? 1) > this.day0)) this.call();
     if (this.stage === 'blown' && (g.missions?.day ?? 1) > (this.blownDay ?? 99)) { this.despawn(); this.stage = 'meet'; this.spawn(); g.story.waypoint(this.lot()); g.wren?.text('Paul', "lucky says he forgives you. he says that a lot. please go back to rusty's. please"); }
@@ -136,6 +247,7 @@ export class Lucky {
     }
   }
   // (his guys shoot like the Saltline crew)
-  state() { return { stage: this.stage === 'scene' ? 'meet' : this.stage }; }
-  restore(s) { if (!s) return; this.stage = s.stage || 'none'; if (this.stage === 'waiting') { this.waitT = 60; this.day0 = this.g.missions?.day ?? 1; } if (this.stage === 'meet') { this.spawn(); this.g.story.waypoint(this.lot()); } }
+  state() { return { stage: { scene: 'meet', planning: 'planWait', pick: 'planWait' }[this.stage] || this.stage, pops: this.pops, plan: this.plan }; }
+  restore(s) { if (!s) return; this.stage = s.stage || 'none'; this.pops = s.pops || []; this.plan = s.plan || null; this.popT = 40; this.textT = 30;
+    if (this.stage === 'planWait') this.g.story.waypoint(this.g.wrenHouse?.door); if (this.stage === 'waiting') { this.waitT = 60; this.day0 = this.g.missions?.day ?? 1; } if (this.stage === 'meet') { this.spawn(); this.g.story.waypoint(this.lot()); } }
 }

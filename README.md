@@ -108,6 +108,9 @@ A while after Low Profile (or the next morning), your phone rings: **E** to answ
 ### Scrapyard (Lucky)
 A while after Never Call Paul, Paul texts in a panic: a client of his just got out of prison. **Lucky Royce**, Royce's little brother (buzz cut, sunglasses at all hours, a tank top, a gold chain, an energy drink, two guys behind him), wants to meet "the blue guy" at **Rusty's lot**. Bring at least four bags. He greets you like family, tells you his brother "got sloppy, took a bullet off some nobody" (you're the nobody), holds a bag up to the light like a jeweller, and when his guy calls it "pretty good", slams a scrap car door into him. Then he buys the lot at well over street price: you're FAMILY now. Start something with his crew before the deal and it's a fight (he forgives you the next day; he says that a lot).
 
+### Ears Open
+A day after Scrapyard, Lucky won't stop texting (*"blue guy"*, *"u up"*, *"🔥"*), and then he starts turning up: behind you in the street ("I followed you. You walk like a dad"), on Wren's porch when you go round ("he made me a sandwich. He didn't, I made it"), and sat on your bed in 1E when you get home ("Your door was locked. I fixed it"). After the third, Wren wants a plan: at his house you try to make one while Lucky rings every thirty seconds. Then pick, on Wren's wheel: **the gun** (buy a revolver from a street dealer), **the parole** (pay Paul $1,000 to make a call) or **disappear** (drive Kit's van out into the Dry). Do it, and Lucky texts: *"change of plans blue guy. outside. NOW 🙂"*. (The Shack comes next.)
+
 ### Home: Fairview Heights
 Your room is **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
 
@@ -322,7 +325,7 @@ src/
   citizens.js   people: walking the sidewalks, crossing roads, shopping, benches, moods, memory, what they say
   wheel.js      the interaction wheel
   suburb.js     Willow Bank: the land, the streets, the houses, Wren's house
-  lucky.js      Lucky Royce: Scrapyard (more to come)
+  lucky.js      Lucky Royce: Scrapyard, Ears Open (more to come)
   never.js      Never Call Paul: the call, the TV ad, the flashback, Dad, the Dry, Ernie and the bench
   paul.js       Paul Badfella: his look, his office front, his billboards, the tube men, his TV advert
   crew.js       Low Profile: Twig, Gopher and Dice, their corners, their sales, the clean days

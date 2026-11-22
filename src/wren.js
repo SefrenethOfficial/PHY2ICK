@@ -64,6 +64,7 @@ export class WrenLife {
     const D = this.g.drugs;
     if (this.menu === 'talk') return TOPICS.filter(([k]) => (TOPIC_MIN[k] || 0) <= this.lv).map(([k, label]) => ({ id: 't:' + k, label }));
     if (this.menu === 'idea') return [{ id: 'idea:yes', label: 'Do it' }, { id: 'idea:no', label: 'No' }];
+    { const lk = this.g.lucky?.wrenOptions(); if (lk) return lk; }
     const o = [{ id: 'talk', label: 'Talk' }];
     if (D.count) o.push({ id: 'give', label: `Give him ${D.count} bag${D.count > 1 ? 's' : ''}` });
     { const f = this.g.inv?.anyFood(); if (f) o.push({ id: 'share', label: `Share your ${FOOD[f.food].name}` }); }
@@ -75,6 +76,7 @@ export class WrenLife {
   }
   act(n, id) {
     const g = this.g, S = g.story;
+    if (g.lucky?.wrenAct(n, id)) return;
     if (id === 'talk') { this.menu = 'talk'; g.wheel.show(n); return; }
     if (id === 'share') { g.inv.shareWith(); return; }
     if (id.startsWith('t:')) {

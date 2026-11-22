@@ -44,12 +44,14 @@ export class Never {
     if (s === 'officeTalk') o.push({ id: 'pl:bribe', label: 'Make it go away. ($5,000, for the officer)' }, { id: 'pl:advice', label: 'What do you suggest?' });
     if (s === 'pay' && !this.paid) o.push({ id: 'pl:pay', label: g.money >= FEE ? `Here's your fee ($${FEE.toLocaleString()})` : `Your fee: $${FEE.toLocaleString()} (you're short)` });
     if (s === 'done') o.push({ id: 'pl:ernie', label: "How's Ernie?" }, { id: 'pl:clean', label: 'About that money of mine…' });
+    o.push(...(g.lucky?.paulOptions() || []));
     o.push({ id: 'pl:chat', label: 'What do you do?' }, { id: 'pl:bye', label: 'Never mind' });
     return o;
   }
   act(n, id) {
     if (!id.startsWith('pl:')) return false;
     const g = this.g, C = g.citizens;
+    if (g.lucky?.paulAct(n, id)) return true;
     if (id === 'pl:dad') this.dadScene();
     if (id === 'pl:bribe' || id === 'pl:advice') this.refuseScene(id === 'pl:bribe');
     if (id === 'pl:pay') { if (g.money < FEE) { C.say(n, "Love the enthusiasm. Hate the balance. Come back with the money.", 3.4); return true; } g.money -= FEE; g.sfx?.cash?.(g.player.pos); this.paid = true; C.say(n, pick(["Pleasure doing business! Ernie thanks you. Ernie's mother thanks you.", "Cash! The language of justice."]), 3.4); this.checkReady(); g.saver?.save(); }
