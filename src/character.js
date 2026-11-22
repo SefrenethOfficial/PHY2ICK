@@ -175,6 +175,7 @@ export class Human {
       case 'short': cap(1.07, Math.PI * 0.56, -0.55); rb(0.16, 0.035, 0.05, 0, 0.1, 0.068, { rx: 0.5 }); break;
       case 'side': cap(1.07, Math.PI * 0.56, -0.55); rb(0.18, 0.04, 0.06, 0.02, 0.1, 0.066, { rx: 0.5, rz: -0.22 }); rb(0.04, 0.09, 0.09, -0.112, 0.03, 0.01); rb(0.04, 0.09, 0.09, 0.112, 0.03, 0.01); break;
       case 'swept': cap(1.07, Math.PI * 0.56, -0.55); rb(0.16, 0.06, 0.13, 0, 0.115, 0.045, { rx: -0.3 }); break;
+      case 'longish': cap(1.08, Math.PI * 0.56, -0.55); rb(0.235, 0.24, 0.075, 0, -0.02, -0.1); rb(0.045, 0.17, 0.09, -0.112, 0.005, -0.015); rb(0.045, 0.17, 0.09, 0.112, 0.005, -0.015); rb(0.16, 0.035, 0.05, 0, 0.1, 0.068, { rx: 0.5 }); break; // (the long style, cut to the jaw: Wren)
       case 'sweptShort': cap(1.06, Math.PI * 0.555, -0.55); rb(0.155, 0.04, 0.11, 0, 0.11, 0.045, { rx: -0.3 }); break; // (swept, trimmed: Wren)
       case 'curly': cap(1.08, Math.PI * 0.55, -0.55); for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, ring = i % 2 ? 0.075 : 0.105, y = i % 2 ? 0.115 : 0.075; const z = Math.cos(a) * ring - 0.015; if (z > 0.06 && y < 0.1) continue; blob(0.038, Math.sin(a) * ring, y, z); } blob(0.045, 0, 0.13, -0.01); break;
       case 'afro': { // a big round cloud of curls

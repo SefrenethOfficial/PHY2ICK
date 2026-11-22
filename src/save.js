@@ -101,6 +101,7 @@ export class Save {
   loadFree(s) {
     const g = this.g, S = g.story, pl = g.player, W = g.wren;
     S.phase = 'free'; S.locked = false; S.cine = false; document.body.classList.remove('cine');
+    for (const n of g.citizens.list.filter(n => n.name === 'Wren' && n.storyNpc)) g.citizens.remove(n); // (never two of him)
     S.spawnWren(); S.wren.script = null; S.wrenHome(true);
     const w = s.wren || {};
     W.unlock();
