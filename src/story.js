@@ -215,7 +215,7 @@ export class Story {
   spawnWren() {
     const g = this.g, C = g.citizens, A = g.apt;
     const step = A.stairStep(14), seat = V(step.x + 0.6, step.y, step.z + 0.2);
-    const n = C.spawn('Wren', { at: seat, look: { ...randomLook(), female: false, hairStyle: 'spiky', hair: 0x7a5a38, skin: 0xe8b898, shirt: 0x4a5a3a, longSleeves: true, pants: 0x2a3040, shoes: 0x5a1d1d, height: 1.76, build: 0.98 } });
+    const n = C.spawn('Wren', { at: seat, look: { ...randomLook(), female: false, hairStyle: 'sweptShort', hair: 0x5a2416, skin: 0xe8b898, shirt: 0x4a5a3a, longSleeves: true, pants: 0x2a3040, shoes: 0x5a1d1d, height: 1.76, build: 0.98 } });
     n.body.setTranslation({ x: seat.x, y: seat.y + 1.2, z: seat.z }, true);
     n.storyNpc = true; n.companion = true; n.mood = 60; n.mem.met = true; n.home = null;
     n.lines = ["I keep looking at my phone like he's going to text.", "Vic still isn't picking up.", 'Just drive. Please.', "Don't. I can't talk about it yet."];
@@ -532,8 +532,8 @@ export class Story {
     this.play([
       this.call(() => { this.shot = null; }),
       this.line('WREN', "I'll text his people tonight. Same spots he used. Same prices. No, better prices.", 3.8),
-      this.line('WREN', "And I'm staying at yours. I'm not going back to his flat. I can't.", 3.6),
-      this.line('WREN', "I'll bring you what I make. Come find me when you've got more.", 3.4),
+      this.line('WREN', "And I'm crashing at yours. Not because I like you. I just can't go back to his flat.", 3.6),
+      this.line('WREN', "You get your share when it sells. Come find me when you've got more. Don't make me chase you.", 3.4),
     ]);
     this.onDone = () => {
       this.phase = 'free'; W.storyLean = false;

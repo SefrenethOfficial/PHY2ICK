@@ -165,13 +165,13 @@ export class Food {
   share(id) {
     const g = this.g, f = FOOD[id], W = g.story?.wren, L = g.wren; if (!W) return;
     const line = {
-      burger: ["MARCOS? You beautiful idiot.", 'Oh my god. Yes. Thank you.'], bigburger: ['A BIG Marco. For me? I could cry.', "This is the nicest thing anyone's done all week."],
-      cup: ['Coffee. You get me.', "Okay, you're forgiven. For whatever it was."], noodlebox: ['Noodles! Kit used to get these every Friday.', 'Mm. Spicy. Good.'],
-      dumplings: ["Dumplings. You're my favourite person today.", 'Ooh. Fight me for the last one.'], leg: ["Boiled turkey. Chef. Why.", "…It's grey. Thank you, though."],
-      slice: ['Pie! Diner pie! Okay, okay.', "Cherry. Kit's favourite."], stack: ['Pancakes at this time? Yes.', 'Breakfast for dinner. Respect.'],
-    }[f.mesh] || ['Oh, thanks!', "You didn't have to. I'm glad you did.", 'Sharing. Look at us.'];
-    g.citizens.say(W, pick(line), 3.2); W.human.express('happy', 4);
-    if (L) { const fresh = (L.fedT || 0) < performance.now(); L.fedT = performance.now() + 120000; L.add?.(fresh ? 3 : 1); }
+      burger: ['MARCOS. …Thanks.', "Fine. I'll eat it. Doesn't mean anything."], bigburger: ['A big one. What do you want?', "…Okay. What's this for?"],
+      cup: ['Coffee. Fine. Thanks.', "Don't think this squares us."], noodlebox: ['Noodles. Kit used to get these every Friday.', 'Mm. Spicy. Fine.'],
+      dumplings: ['Dumplings. Okay. Thanks.', "I'm taking the last one. Don't argue."], leg: ["Boiled turkey. Seriously.", "…It's grey. Great."],
+      slice: ['Pie. Okay.', "Cherry. Kit's favourite. …Thanks."], stack: ['Pancakes. At this time.', "Whatever. I'm hungry."],
+    }[f.mesh] || ['…Thanks.', "You didn't have to.", "What's this for?"];
+    g.citizens.say(W, pick(line), 3.2);
+    if (L) { const fresh = (L.fedT || 0) < performance.now(); L.fedT = performance.now() + 120000; L.add?.(fresh ? 1 : 0); }
     // he holds it a while, and then it's gone
     const m = foodMesh(f.mesh, f.color); W.human.b.wristR.add(m); m.position.set(0, -0.09, 0.03); m.scale.setScalar(1 / W.human.rig.scale.x);
     setTimeout(() => m.removeFromParent(), 5000);

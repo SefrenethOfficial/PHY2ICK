@@ -207,3 +207,7 @@ body.cine #hotbar, body.title #hotbar { display: none; }
 @keyframes fin { 0% { opacity: 0; transform: translate(-50%, -50%) skewX(-8deg) scale(1.6); } 12% { opacity: 1; transform: translate(-50%, -50%) skewX(-8deg) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60%) skewX(-8deg) scale(1.05); } }
 #menu.dealer { background: rgba(10,12,14,.96); border-color: #6a7a8a; } #menu.dealer h3 { color: #c8d4e0; } #menu.dealer button { background: #2a3038; } #menu.dealer button:not(.done) b { color: #7be08a; }
 #menu { max-height: 88vh; overflow-y: auto; }
+#phone .rec { background: linear-gradient(135deg, rgba(255,210,63,0.16), rgba(255,210,63,0.05)); border: 1px solid rgba(255,210,63,0.55); border-radius: 10px; padding: 7px 9px; margin-bottom: 9px; display: flex; flex-direction: column; gap: 2px; }
+#phone .rec small { font-size: 9px; letter-spacing: 0.14em; font-weight: 700; color: #ffd23f; }
+#phone .rec b { font-size: 13px; color: #fff; }
+#phone .rec span { font-size: 11px; color: #c8ced6; line-height: 1.35; }

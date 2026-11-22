@@ -175,17 +175,7 @@ export class Human {
       case 'short': cap(1.07, Math.PI * 0.56, -0.55); rb(0.16, 0.035, 0.05, 0, 0.1, 0.068, { rx: 0.5 }); break;
       case 'side': cap(1.07, Math.PI * 0.56, -0.55); rb(0.18, 0.04, 0.06, 0.02, 0.1, 0.066, { rx: 0.5, rz: -0.22 }); rb(0.04, 0.09, 0.09, -0.112, 0.03, 0.01); rb(0.04, 0.09, 0.09, 0.112, 0.03, 0.01); break;
       case 'swept': cap(1.07, Math.PI * 0.56, -0.55); rb(0.16, 0.06, 0.13, 0, 0.115, 0.045, { rx: -0.3 }); break;
-      case 'spiky': { // a short crop, close at the sides, short messy tufts on top, pushed up a bit at the front
-        cap(1.055, Math.PI * 0.55, -0.52);
-        for (let i = 0; i < 34; i++) {
-          const u = (i + 0.5) / 34, el = Math.acos(1 - u * 0.4), az = i * 2.39996; // (just the crown)
-          const d = new THREE.Vector3(Math.sin(el) * Math.sin(az), Math.cos(el), Math.sin(el) * Math.cos(az)).normalize();
-          if (d.z < -0.5) continue;
-          const front = Math.max(0, d.z), len = 0.022 + front * 0.022 + ((i * 7) % 5) * 0.003;
-          const p = d.clone().multiplyScalar(r * 0.98 + len * 0.3);
-          add('head', new THREE.ConeGeometry(0.024, len, 5), col, p.x, cy + p.y + 0.012, p.z - 0.012, { rx: Math.atan2(d.z + front * 0.6, d.y) * 0.8, rz: -Math.atan2(d.x, d.y) * 0.8 });
-        }
-        break; }
+      case 'sweptShort': cap(1.06, Math.PI * 0.555, -0.55); rb(0.155, 0.04, 0.11, 0, 0.11, 0.045, { rx: -0.3 }); break; // (swept, trimmed: Wren)
       case 'curly': cap(1.08, Math.PI * 0.55, -0.55); for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, ring = i % 2 ? 0.075 : 0.105, y = i % 2 ? 0.115 : 0.075; const z = Math.cos(a) * ring - 0.015; if (z > 0.06 && y < 0.1) continue; blob(0.038, Math.sin(a) * ring, y, z); } blob(0.045, 0, 0.13, -0.01); break;
       case 'afro': { // a big round cloud of curls
         cap(1.1, Math.PI * 0.56, -0.55);

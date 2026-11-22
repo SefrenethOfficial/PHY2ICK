@@ -35,7 +35,7 @@ export class Missions {
       this.day++; pl.hp = 100;
       const ch = document.getElementById('chapter'); ch.innerHTML = `<span>Day ${this.day}</span><small>The next morning.</small>`; ch.classList.add('on');
       setTimeout(() => ch.classList.remove('on'), 2200);
-      if (g.wren?.unlocked && Math.random() < 0.6) setTimeout(() => g.wren.text('Wren', pick(['morning chef', 'you snore. just so you know', "coffee's on. it's bad coffee", 'new day new bags?'])), 3500);
+      if (g.wren?.unlocked && Math.random() < 0.6) setTimeout(() => g.wren.text('Wren', pick(['you up? buyers are waiting', 'new day. new bags?', "we're running low. cook today", 'you cooking or what'])), 3500);
       g.saver?.save();
     });
   }
@@ -43,21 +43,26 @@ export class Missions {
   // ---- the jobs
   start(id) {
     const g = this.g; this.id = id;
-    if (id === 'cooks') { this.count = 0; this.objective(); g.hud.toast('New job: cook three more batches. One a day: sleep in your bed (1E) for a new day.', '#ffd23f'); }
+    if (id === 'cooks') { this.count = 0; g.story.objective(null); g.hud.toast('📱 Something new on your phone (P): RECOMMENDED · Three More', '#ffd23f'); } // (not forced: it sits on the phone)
     if (id === 'rivals') { this.spawnCrew(); this.objective(); }
     if (id === 'done') { g.story.objective(null); g.story.waypoint(null); }
   }
   objective() {
     const S = this.g.story;
-    if (this.id === 'cooks') S.objective(`<b>Three More</b> · cook three batches (${this.count}/3) · one a day${this.cookedToday ? ' · <i>done for today: sleep in 1E</i>' : ''} · cook out in <b>the Dry</b>, or the police smell it`);
-    else if (this.id === 'rivals') { S.objective(this.fight ? '<b>Saltline</b> · deal with the Saltline crew' : '<b>Saltline</b> · go and see the crew at the <b>Saltline Apartments</b> (North Quay, the far end of the Dry)'); if (!this.fight) S.waypoint(this.home.clone(), 'the Saltline Apartments'); }
+    if (this.id === 'cooks') return; // (on the phone, as RECOMMENDED: see recommended())
+    if (this.id === 'rivals') { S.objective(this.fight ? '<b>Saltline</b> · deal with the Saltline crew' : '<b>Saltline</b> · go and see the crew at the <b>Saltline Apartments</b> (North Quay, the far end of the Dry)'); if (!this.fight) S.waypoint(this.home.clone(), 'the Saltline Apartments'); }
+  }
+  // what shows at the top of your phone as RECOMMENDED (a suggestion, not an order)
+  recommended() {
+    if (this.id !== 'cooks') return null;
+    return { title: 'Three More', text: `Cook three batches (${this.count}/3). One a day${this.cookedToday ? ': <i>done for today, sleep in 1E</i>' : ''}. Out in <b>the Dry</b>, or the police smell it.` };
   }
   // a batch came out of the van
   onCook() {
     const g = this.g;
     if (g.story?.phase === 'free') this.lastCookDay = this.day;
     if (this.id !== 'cooks') return;
-    this.count++; this.objective();
+    this.count++; if (this.count < 3) g.hud.toast(`Three More: ${this.count}/3`, '#ffd23f');
     if (this.count >= 3) {
       g.hud.toast('Job done: three more batches.', '#7be08a');
       setTimeout(() => this.rivalsCall(), 9000);

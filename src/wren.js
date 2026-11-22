@@ -65,7 +65,6 @@ export class WrenLife {
     if (this.menu === 'talk') return TOPICS.filter(([k]) => (TOPIC_MIN[k] || 0) <= this.lv).map(([k, label]) => ({ id: 't:' + k, label }));
     if (this.menu === 'idea') return [{ id: 'idea:yes', label: 'Do it' }, { id: 'idea:no', label: 'No' }];
     const o = [{ id: 'talk', label: 'Talk' }];
-    if (this.lv >= 2) o.push({ id: 'hang', label: 'Hang out' });
     if (D.count) o.push({ id: 'give', label: `Give him ${D.count} bag${D.count > 1 ? 's' : ''}` });
     { const f = this.g.inv?.anyFood(); if (f) o.push({ id: 'share', label: `Share your ${FOOD[f.food].name}` }); }
     o.push(n.following ? { id: 'home', label: 'Head home' } : { id: 'come', label: 'Come with me' });
@@ -177,7 +176,7 @@ export class WrenLife {
   render() {
     const [lvName, col] = this.levelInfo();
     const msg = (m) => `<div class="msg ${m.from === 'You' ? 'me' : m.from === 'Wren' ? 'w' : 'k'}"><b>${m.from}</b><span>${m.text}</span><i>${m.time}</i></div>`;
-    el('phone').innerHTML = `<div class="bar">Wren <span style="color:${col}">${lvName}</span></div><div class="thread">${this.inbox.slice(-8).map(msg).join('')}</div>
+    el('phone').innerHTML = `<div class="bar">Wren <span style="color:${col}">${lvName}</span></div>${(() => { const r = this.g.missions?.recommended?.(); return r ? `<div class="rec"><small>RECOMMENDED</small><b>${r.title}</b><span>${r.text}</span></div>` : ''; })()}<div class="thread">${this.inbox.slice(-8).map(msg).join('')}</div>
       <div class="acts">${this.actions().map((o, i) => `<button data-a="${o.id}" ${o.off ? 'disabled' : ''}><small>${i + 1}</small>${o.label}</button>`).join('')}</div><div class="hint"><kbd>P</kbd> or <kbd>Esc</kbd> put it away</div>`;
     el('phone').querySelectorAll('button[data-a]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); this.phoneAct(b.dataset.a); }));
     const th = el('phone').querySelector('.thread'); if (th) th.scrollTop = th.scrollHeight;
