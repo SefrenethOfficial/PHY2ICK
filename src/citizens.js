@@ -466,7 +466,7 @@ export class Citizens {
       if (n.state === 'trunk') { H.root.visible = false; if (n.trunkAlive && Math.random() < dt0 * 0.12 && n.trunkCar.pos.distanceTo(pl.pos) < 30) this.say(n, n.hostageBag ? pick(['Mmmph!', '*thump thump*']) : pick(['LET ME OUT!', 'Help! I\'m in the boot!', '*thump thump thump*']), 2); continue; }
       // only draw (and pose) people who are on screen and not too far off; far ones are posed every other frame
       if (n.state !== 'seated') {
-        const t = H.ragdoll ? H.ragdoll.pelvis : n.body.translation(); this._sp.center.set(t.x, t.y, t.z);
+        const t = H.ragdoll ? H.ragdoll.pelvis : n.state === 'scripted' && n.script ? { x: n.script.pos.x, y: n.script.pos.y + 1, z: n.script.pos.z } : n.body.translation(); this._sp.center.set(t.x, t.y, t.z); // (someone in a scene is wherever the scene put them)
         const dc = cam.position.distanceTo(this._sp.center), vis = dc < 170 && this._fr.intersectsSphere(this._sp);
         H.root.visible = vis; n.animAcc = (n.animAcc || 0) + dt0;
         if (!vis) continue;
@@ -526,6 +526,7 @@ export class Citizens {
     const so = n.home && g.shopping?.options(n); if (so) return so;
     if (n.home && n.shop === "Rusty's") return [{ id: 'talk', label: 'Talk' }, { id: 'rusty', label: 'What do you do?' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' }];
     if (n.crewKey && g.crew) return g.crew.options(n);
+    if (n.paul && g.never) return g.never.options(n);
     if (n.dealer && g.dealers) return g.dealers.options(n);
     if (n.rival && g.missions) return g.missions.options(n);
     if (n.tenant && g.tenants) return g.tenants.options(n);
@@ -575,6 +576,8 @@ export class Citizens {
     if (n.storyNpc && g.story?.act(n, id)) return;
     if (n.rival && g.missions?.act(n, id)) return;
     if (n.crewKey && g.crew?.act(n, id)) return;
+    if (n.paul && g.never?.act(n, id)) return;
+    if (id === 'knockoff') { g.never?.buyKnock(n); return; }
     if (n.dealer && g.dealers?.act(n, id)) return;
     const mood0 = n.mood;
     if (n.tenant && g.tenants?.act(n, id)) { n.mood = THREE.MathUtils.clamp(n.mood, -100, 100); g.tenants.levelCheck(n, mood0); return; }

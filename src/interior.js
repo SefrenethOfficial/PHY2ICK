@@ -292,6 +292,30 @@ export function buildInterior(g, room, kind, opts = {}) {
       for (const sx of [-1, 1]) sofa(sx * (W / 2 - 1.2), -D / 2 + 3, 3, sx * -Math.PI / 2, 0x3a1a3a);
       break;
     }
+    case 'paul': { // Paul Badfella, attorney at law: fake marble, fake columns, a giant flag, a gold statue, a big desk
+      const marble = 0xeeeae2, gold = 0xd8a92e;
+      // Cheryl's desk, by the door; Paul's, at the back, with two client chairs
+      counter(-W / 2 + 2.4, -2.2, 2.4, 0.8, marble, 0xd8d2c4); worker(-W / 2 + 2.4, -3.0, 0, ["Do you have an appointment? He doesn't do appointments. Go on in.", "He's on the phone. He's always on the phone. Nobody's ever on the other end.", "I'm a paralegal. Allegedly.", "The columns are fibreglass. Don't lean on them."], 'receptionist');
+      cbox(2.8, 0.08, 1.1, 0, 0.8, -D + 2.2, 0x3a2216, { collide: false }); cbox(2.7, 0.76, 1.0, 0, 0.38, -D + 2.2, 0x5a3422, { collide: true }); // (the desk)
+      cbox(0.5, 0.09, 0.08, 0.6, 0.88, -D + 2.75, gold); // (the nameplate)
+      sign('PAUL BADFELLA, ESQ.', 0.5, 0.6, 0.88, -D + 2.8, 0, '#d8a92e', '#2a1a0a');
+      chair(0, -D + 0.8, 0, 0x2a1a12); chair(-0.7, -D + 3.6, Math.PI, 0x7a1a1e); chair(0.7, -D + 3.6, Math.PI, 0x7a1a1e);
+      // the flag behind him: huge
+      { const t = canvasTex(256, 160, (c) => { for (let i = 0; i < 9; i++) { c.fillStyle = i % 2 ? '#f2efe6' : '#b8202a'; c.fillRect(0, i * 160 / 9, 256, 160 / 9 + 1); } c.fillStyle = '#1d2f6a'; c.fillRect(0, 0, 110, 88); c.fillStyle = '#e8c46a'; c.font = 'bold 54px Georgia'; c.textAlign = 'center'; c.fillText('⚖', 55, 64); });
+        mesh(new THREE.PlaneGeometry(3.6, 2.2), std(0xffffff, 0.8, { map: t }), 0, 2.2, -D + 0.06, { shadow: false }); }
+      // the columns (fibreglass), the statue (gold), diplomas, plants, a rug
+      for (const sx of [-1, 1]) for (const z of [-D + 0.6, -D / 2]) { ccyl(0.28, H - 0.2, sx * (W / 2 - 0.7), (H - 0.2) / 2, z, marble, 16); cbox(0.7, 0.18, 0.7, sx * (W / 2 - 0.7), 0.09, z, 0xd8d2c4); cbox(0.7, 0.18, 0.7, sx * (W / 2 - 0.7), H - 0.29, z, 0xd8d2c4); }
+      cbox(0.5, 1.0, 0.5, W / 2 - 1.9, 0.5, -D + 1.5, marble, { collide: true }); ccyl(0.04, 0.9, W / 2 - 1.9, 1.45, -D + 1.5, gold, 8); cbox(0.9, 0.04, 0.04, W / 2 - 1.9, 1.88, -D + 1.5, gold);
+      for (const sx of [-1, 1]) { ccyl(0.2, 0.03, W / 2 - 1.9 + sx * 0.42, 1.55, -D + 1.5, gold, 14); }
+      { const t = canvasTex(256, 192, (c) => { c.fillStyle = '#f4ecd2'; c.fillRect(0, 0, 256, 192); c.strokeStyle = '#b8902e'; c.lineWidth = 10; c.strokeRect(5, 5, 246, 182); c.fillStyle = '#2a1a0a'; c.textAlign = 'center'; c.font = 'bold 22px Georgia'; c.fillText('DIPLOMA', 128, 50); c.font = 'italic 15px Georgia'; c.fillText('Paul Badfella', 128, 86); c.fillText('is hereby a lawyer', 128, 108); c.font = '11px Georgia'; c.fillText('University of Online', 128, 150); });
+        for (let k = 0; k < 4; k++) mesh(new THREE.PlaneGeometry(0.6, 0.45), std(0xffffff, 0.7, { map: t }), -W / 2 + 0.06, 1.5 + (k % 2) * 0.6, -D + 2 + Math.floor(k / 2) * 0.8, { ry: Math.PI / 2, shadow: false }); }
+      cbox(3.2, 0.02, 4, 0, 0.02, -D + 3.4, 0x7a1a1e);
+      plant(-W / 2 + 1.0, -1.0); plant(W / 2 - 1.0, -1.0, 1.3);
+      sign('NO WIN, NO FEE*', 2.6, W / 2 - 0.07 - 0.0, 2.6, -D / 2 - 1.2, -Math.PI / 2, '#d8a92e', '#7a1a1e');
+      sign('*FEE', 0.8, W / 2 - 0.07, 2.1, -D / 2 - 1.2, -Math.PI / 2, '#d8a92e', '#7a1a1e');
+      g.paulOffice = { desk: toW(0, 0.04, -D + 1.3), deskYaw: yaw, client: toW(0, 0.04, -D + 4.3), clientYaw: yaw + Math.PI, door: toW(doorU, 0.04, 1.8), doorYaw: yaw, inside: toW(doorU, 0.04, -1.5) };
+      break;
+    }
     case 'lobby': { // hospital, police, hotel, law firm, spa: a desk, seats, plants and the right signs
       const v = opts.variant;
       const deskC = { hospital: 0xe8e8e8, police: 0x3a4a6a, ritz: 0xd8b44a, law: 0x4a3226, spa: 0xd8cbb4 }[v];

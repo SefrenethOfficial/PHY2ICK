@@ -36,6 +36,8 @@ import { Inventory } from './inventory.js';
 import { BigMap } from './bigmap.js';
 import { Mask } from './mask.js';
 import { Crew } from './crew.js';
+import { dressPaul, paulTick } from './paul.js';
+import { Never } from './never.js';
 import { Food } from './food.js';
 import { Icons } from './icons.js';
 import { Dealers } from './dealers.js';
@@ -67,6 +69,7 @@ class Game {
     this.bigmap = new BigMap(this);
     this.mask = new Mask(this);
     this.crew = new Crew(this);
+    this.never = new Never(this);
     this.icons = new Icons(); this.food = new Food(this);
     this.blood = new Blood(this);
     this.fx = new Fx(this); this.sfx = new Sfx(this); this.pickups = new Pickups(this);
@@ -75,6 +78,7 @@ class Game {
     this.loadTimes = { world: performance.now() - T0 };
     this.apt = buildApartment(this);
     this.city.finish();
+    try { this.world.step(); dressPaul(this); } catch (e) { console.warn('[paul] the office dressing failed', e); }
     for (const o of [this.fountainWater, this.sky]) if (o) o.userData.dynamic = true;
     for (const c of this.cones || []) c.m.userData.dynamic = true;
     for (const s of this.weapons.slots) s.model.userData.dynamic = true;
@@ -572,6 +576,8 @@ class Game {
     this.vanWatch?.(rdt);
     this.mask?.update(dt > 0 ? rdt : 0);
     if (dt > 0) this.crew?.update(rdt);
+    paulTick(this, rdt);
+    if (dt > 0) this.never?.update(rdt);
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);

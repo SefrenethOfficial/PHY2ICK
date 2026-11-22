@@ -32,6 +32,20 @@ export function maskMesh() {
   return G;
 }
 
+// put a mask on anyone: into the head bone's own frame (its bind pose, undone; the face's centre is 1.655 up)
+export function wearMask(human, m) {
+  const sk = human.body?.skeleton, i = sk ? sk.bones.indexOf(human.b.head) : -1;
+  if (i >= 0) { const M = sk.boneInverses[i].clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.655, 0.004)); M.decompose(m.position, m.quaternion, m.scale); }
+  else m.position.set(0, 0.1, 0.004);
+  human.b.head.add(m); return m;
+}
+// the knock-off (Ernie's): plastic, spray-painted, one horn bent
+export function knockoffMask() {
+  const m = maskMesh(), plastic = new THREE.MeshStandardMaterial({ color: 0xf0cf3a, roughness: 0.35, metalness: 0.05 }), horn = new THREE.MeshStandardMaterial({ color: 0xe8e2d0, roughness: 0.5 });
+  let k = 0; m.traverse(o => { if (o.isMesh && o.material.metalness === 1) { o.material = o.geometry.type === 'TubeGeometry' ? horn : plastic; if (o.geometry.type === 'TubeGeometry' && k++ === 0) { o.rotation.z = 0.5; o.position.x -= 0.04; } } });
+  return m;
+}
+
 export class Mask {
   constructor(g) { this.g = g; this.owned = false; this.on = false; this.mesh = null; this.seenT = 0; this.dealT = new Map(); this.wrenSaw = false; this.respect = false; }
   get worn() { return this.owned && this.on && !this.g.player.dead; }
@@ -43,14 +57,11 @@ export class Mask {
     g.hud.toast(this.on ? 'The mask is on. Cops who see you will open fire.' : 'The mask is off.', this.on ? '#ffd23f' : '#c8ced6');
     g.sfx?.thunk?.(pl.pos);
   }
-  attach(human) {
+  attach(human) { this._attach(human); }
+  _attach(human) {
     if (this.mesh) { this.mesh.removeFromParent(); this.mesh = null; }
     if (!this.on || !human) return;
-    const m = this.mesh = maskMesh(), sk = human.body?.skeleton, i = sk ? sk.bones.indexOf(human.b.head) : -1;
-    // (into the head bone's own frame: its bind pose, undone; the face's centre is 1.655 up in the body's space)
-    if (i >= 0) { const M = sk.boneInverses[i].clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.655, 0.004)); M.decompose(m.position, m.quaternion, m.scale); }
-    else m.position.set(0, 0.1, 0.004);
-    human.b.head.add(m);
+    this.mesh = wearMask(human, maskMesh());
   }
   update(dt) {
     const g = this.g, pl = g.player;

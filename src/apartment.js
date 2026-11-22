@@ -248,13 +248,14 @@ export function buildApartment(g) {
   bed(6.65, -61.4, 0.95, 2.0, fabric2);
   boxM(0.45, 0.5, 0.4, 6.75, F + 0.25, -62.75, lightWood);
   boxM(0.6, 0.05, 1.2, 3.9, F + 0.75, -62.0, lightWood); for (const dz of [-0.55, 0.55]) boxM(0.56, 0.73, 0.04, 3.9, F + 0.365, -62.0 + dz, lightWood, { collide: false }); col(0.3, 0.38, 0.6, 3.9, F + 0.38, -62.0);
+  let tvScreen = null;
   const tvC = document.createElement('canvas'); tvC.width = 256; tvC.height = 160;
   const tvTex = new THREE.CanvasTexture(tvC); tvTex.colorSpace = THREE.SRGBColorSpace;
   const tvDraw = (news) => { const c = tvC.getContext('2d'), w = tvC.width, h = tvC.height; const gr = c.createLinearGradient(0, 0, w, h); gr.addColorStop(0, news ? '#3a1d1d' : '#1d3b5a'); gr.addColorStop(1, '#0b1520'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
     if (news) { c.fillStyle = '#29b6ff'; c.beginPath(); c.arc(70, 66, 30, 0, 7); c.fill(); c.fillStyle = '#fff'; c.font = 'bold 18px Arial'; c.fillText('BREAKING', 120, 50); c.font = '13px Arial'; c.fillText('Blue substance:', 120, 72); c.fillText('second overdose', 120, 90); }
     c.fillStyle = '#d8312b'; c.fillRect(0, h - 28, w, 28); c.fillStyle = '#fff'; c.font = 'bold 15px Arial'; c.fillText(news ? 'CHANNEL 6 · POLICE APPEAL FOR INFORMATION' : 'CHANNEL 6 · HALYARD', 6, h - 9); tvTex.needsUpdate = true; };
   tvDraw(false);
-  boxM(0.04, 0.4, 0.62, 3.65, F + 1.0, -62.0, black); { const t = tvTex; const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.36), new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.9 })); sc.position.set(3.675, F + 1.0, -62.0); sc.rotation.y = Math.PI / 2; scene.add(sc); }
+  boxM(0.04, 0.4, 0.62, 3.65, F + 1.0, -62.0, black); { const t = tvTex; const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.36), new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.9 })); sc.position.set(3.675, F + 1.0, -62.0); sc.rotation.y = Math.PI / 2; sc.userData.dynamic = true; scene.add(sc); tvScreen = sc; }
   boxM(0.6, 2.0, 1.0, 3.85, F + 1.0, -64.4, darkWood);
   boxM(0.55, 0.85, 0.55, 3.85, F + 0.425, -65.6, steel);
   rugAt(1.6, 2.2, 5.3, -64.2, '#7a3b2e', '#d9c39a');
@@ -316,7 +317,7 @@ export function buildApartment(g) {
     door: V(DX, 0, ZF + 1.2 + DZ),
     // the story's places: the bath (where you wake up), the clothes on your bed, the TV, a step on the stair
     bath: { pos: V(X0 + T + 0.75 + DX, F + 0.06, ZC1 + WT / 2 + 0.41 + DZ), yaw: Math.PI / 2, out: V(-9.2 + DX, F + 0.05, -68.4 + DZ) },
-    clothes: V(6.4 + DX, F + 0.05, -62.0 + DZ), clothesMesh: clothes, wrenBed, wrenSpot: V(5.0 + DX, F + 0.05, -63.6 + DZ), wrenYaw: 0, mess, tvDraw, room1E: V(5.3 + DX, F + 0.05, -64 + DZ),
+    clothes: V(6.4 + DX, F + 0.05, -62.0 + DZ), clothesMesh: clothes, wrenBed, wrenSpot: V(5.0 + DX, F + 0.05, -63.6 + DZ), wrenYaw: 0, mess, tvDraw, tvC, tvTex, get tvScreen() { return tvScreen; }, room1E: V(5.3 + DX, F + 0.05, -64 + DZ),
     stairStep: (i) => V((SX0 + SX1) / 2 + DX, (i + 1) * Y1 / 24, SZ0 - (i + 0.5) * (SZ0 - SZ1) / 24 + DZ),
     // the neighbours: where each of them stands in their flat, and which way they face
     tenants: [

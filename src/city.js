@@ -420,18 +420,10 @@ export function buildCity(g) {
         const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 8, 6), std(0x9a1c3a, 0.8)); rope.rotation.z = Math.PI / 2; if (along.z) rope.rotation.set(Math.PI / 2, 0, 0); rope.position.copy(door).addScaledVector(along, 4).setY(0.85); scene.add(rope);
         placeAt('the Nightclub', front(r, face)); break;
       }
-      case 'lawfirm': {
-        { const lw = w - 9, ld = d - 9, avail = (face === '+z' || face === '-z' ? ld : lw); const room = { face, depth: Math.min(12, avail - 2), floors: 1, width: 18 }; city.building({ x: cx, z: cz, w: lw, d: ld, floors: 3, style: 'brick', wallIndex: 2, entrance: face, entranceSign: 'PAUL BADFELLA · ATTORNEY AT LAW', room }); g.workers.push(...buildInterior(g, room, 'lobby', { variant: 'law', floor: 'carpet', floorColor: '#2a3a2e', name }).workers); }
-        // the fence (you have to jump it)
-        const fm = std(0x1f2124, 0.5, { metalness: 0.7 }), H = 1.25;
-        for (const [a, b, c2, e] of [[x0, z0, x1, z0], [x0, z1, x1, z1], [x0, z0, x0, z1], [x1, z0, x1, z1]]) {
-          const len = Math.hypot(c2 - a, e - b), alongX = b === e;
-          for (let t = 0; t <= len; t += 0.18) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.03, H, 0.03), fm); bar.position.set(alongX ? a + t : a, H / 2, alongX ? b : b + t); scene.add(bar); }
-          for (const yy of [0.15, H - 0.08]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(alongX ? len : 0.05, 0.05, alongX ? 0.05 : len), fm); rail.position.set((a + c2) / 2, yy, (b + e) / 2); add(rail); }
-          col(alongX ? len / 2 : 0.05, H / 2, alongX ? 0.05 : len / 2, (a + c2) / 2, H / 2, (b + e) / 2);
-        }
-        const p = onFace(r, face, 4, 1.1, 0.12); signBoard('PRIVATE PROPERTY · NO ENTRY', p.x, p.y, p.z, faceYaw[face], 2.4, { bg: '#f2f0ea', fg: '#9a1c1c' });
-        blockRect(x0, z0, x1, z1); placeAt('Paul Badfella, the law firm', front(r, face)); break;
+      case 'lawfirm': { // (Paul's moved to Town Square: this is an empty office block now)
+        bld({ floors: 3, style: 'brick' });
+        { const p = onFace(r, face, 0, 3.4, 0.3); signBoard('TO LET · OFFICE SPACE · 3 FLOORS', p.x, p.y, p.z, faceYaw[face], 6, { bg: '#f2f0ea', fg: '#9a1c1c' }); }
+        break;
       }
       case 'tower':
         bld({ floors: ex.floors, style: 'glass' });
@@ -473,7 +465,7 @@ export function buildCity(g) {
       }
       case 'square': { // Town Square: a paved plaza with trees, benches, lamps and a statue
         const stoneT = texPair(256, (c, w2, h2, bump) => { c.fillStyle = bump ? '#888' : '#c9c2b4'; c.fillRect(0, 0, w2, h2); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const v = Math.random() * 20; c.fillStyle = bump ? `rgb(${180 + v},${180 + v},${180 + v})` : `rgb(${190 + v},${183 + v},${170 + v})`; c.fillRect(i * 64 + 2, j * 64 + 2, 60, 60); } }, [w / 4, d / 4]);
-        const sq = new THREE.Mesh(new THREE.BoxGeometry(w, KERB, d), new THREE.MeshStandardMaterial({ ...stoneT, bumpScale: 0.8, roughness: 0.85 })); sq.position.set(cx, KERB / 2, cz); add(sq, false); col(w / 2, KERB / 2, d / 2, cx, KERB / 2, cz);
+        const sq = new THREE.Mesh(new THREE.BoxGeometry(w - 15, KERB, d), new THREE.MeshStandardMaterial({ ...stoneT, bumpScale: 0.8, roughness: 0.85 })); sq.position.set(cx - 7.5, KERB / 2, cz); add(sq, false); col((w - 15) / 2, KERB / 2, d / 2, cx - 7.5, KERB / 2, cz); // (the east 15 m: Paul's office)
         // the statue: a figure on a plinth
         box(3, 1.6, 3, cx, KERB + 0.8, cz, stone);
         const bronze = std(0x6a5a3a, 0.35, { metalness: 0.8 });
@@ -486,7 +478,14 @@ export function buildCity(g) {
         for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4, rr = Math.min(w, d) * 0.36; const tx = cx + Math.cos(a) * rr, tz = cz + Math.sin(a) * rr; box(3, 0.6, 3, tx, KERB + 0.3, tz, stone); tree(tx, tz, 1, KERB + 0.6); }
         for (const [bx, bz, ry] of [[cx - 8, cz, Math.PI / 2], [cx + 8, cz, -Math.PI / 2], [cx, cz - 8, 0], [cx, cz + 8, Math.PI], [cx - 18, cz - 12, Math.PI / 4], [cx + 18, cz + 12, -Math.PI * 0.75]]) bench(bx, bz, ry, KERB);
         for (const [lx, lz] of [[x0 + 2, z0 + 2], [x1 - 2, z0 + 2], [x0 + 2, z1 - 2], [x1 - 2, z1 - 2], [cx, z0 + 2], [cx, z1 - 2]]) lamp(lx, lz);
-        blockRect(x0, z0, x1, z1); placeAt('Town Square', V(cx, 0, z1 + 1)); g.townSquare = V(cx, KERB, cz); g.squareRect = [x0, z0, x1, z1]; break;
+        blockRect(x0, z0, x1, z1); placeAt('Town Square', V(cx, 0, z1 + 1)); g.townSquare = V(cx, KERB, cz); g.squareRect = [x0, z0, x1, z1];
+        // Paul Badfella's office: on the square's east edge, facing the road
+        { const ox0 = x1 - 15, ox1 = x1 - 0.5, oz0 = cz - 9, oz1 = cz + 9, room = { face: '+x', depth: 12, floors: 1, width: 16 };
+          city.building({ x: (ox0 + ox1) / 2, z: (oz0 + oz1) / 2, w: ox1 - ox0, d: oz1 - oz0, floors: 1, style: 'stucco', wallIndex: 1, entrance: '+x', entranceSign: 'PAUL BADFELLA · ATTORNEY AT LAW', room });
+          g.workers.push(...buildInterior(g, room, 'paul', { floor: 'carpet', floorColor: '#5a1a1e', wallColor: 0xf2e6c8, name: 'Paul Badfella, the law firm', windows: true, bigWindows: true }).workers);
+          footprints.push(close([[ox0, oz0], [ox1, oz0], [ox1, oz1], [ox0, oz1]]));
+          g.paulLot = [ox0, oz0, ox1, oz1]; placeAt('Paul Badfella, the law firm', V(ox1 + 3, 0, (oz0 + oz1) / 2)); }
+        break;
       }
       case 'lot':
         lotPaint(x0, z0, x1, z1, d > w ? 'z' : 'x'); blockRect(x0, z0, x1, z1); placeAt(name === 'ABT Parking Lot' ? 'the ABT Parking Lot' : name === "Rusty's Parking" ? "Rusty's Parking" : 'the parking lot', V(cx, 0, cz));

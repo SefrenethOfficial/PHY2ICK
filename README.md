@@ -96,6 +96,15 @@ A day after you get the mask, Wren texts: come to his, **no mask**, there are pe
 - The job: **three clean days**, days you never get a star (the mask, seen by a cop, will do it). The phone tracks it, and each new morning tells you whether yesterday counted.
 - Hurt one of them and Wren will know. They're back on their corners the next morning.
 
+### Never Call Paul
+A while after Low Profile (or the next morning), your phone rings: **E** to answer. It cuts to you on the phone in 1E: Dice got arrested outside the club last night. Behind you, the TV's playing Paul Badfella's advert (a spinning starburst, Paul bouncing, "NEVER CALL PAUL!*", a jingle). Then what happened: Dice asking the buyer if he's a cop ("you have to tell me, that's the law"), the buyer saying no, and arresting him ("…is this about the jet skis?"). Dice is off his corner until it's sorted.
+- **Paul's office** is on the east side of **Town Square** now: fake columns, a marquee with chasing bulbs, OPEN 24/7 in red neon, FREE CONSULTATION* (*not free), bunting, two flailing inflatable tube men and his billboard on the roof. Inside: fake marble columns, a giant flag, a gold statue, diplomas from the University of Online, and Cheryl, who is not his secretary. He's there round the clock.
+- You go in as Dice's **dad** ("You're like five years older than him." "I moisturise."). He won't take the money for the officer: he has principles, several. His advice: Dice gives them Glass.
+- So that night you (in the mask) and Wren grab him outside his office, sack over his head, and drive him out to **the Dry**. There's a hole (Wren says it's for a cactus). Nobody touches him; he talks himself in circles until he recognises the mask, and switches sides: they want Glass, so give them a Glass. His guy, **Ernie**, will do eighteen months for a dental plan.
+- Pay Paul's fee ($2,500) at his office, and buy a cheap knock-off mask from Lou ($40: plastic, spray-painted, the horns off a viking hat).
+- **Noon, the Pier:** from Kit's van you and Wren watch Ernie, in the knock-off, sit down on Dice's bench and eat a sandwich, very slowly, while the cops wait for him to finish. "Glass! That's me! I'm Glass!" Dice walks; Paul's your lawyer now.
+- His billboards are up round the island: on his roof, on the way into the Dry, across the avenue from the Police Station, and at the west end of Willow Bank.
+
 ### Home: Fairview Heights
 Your room is **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
 
@@ -310,6 +319,8 @@ src/
   citizens.js   people: walking the sidewalks, crossing roads, shopping, benches, moods, memory, what they say
   wheel.js      the interaction wheel
   suburb.js     Willow Bank: the land, the streets, the houses, Wren's house
+  never.js      Never Call Paul: the call, the TV ad, the flashback, Dad, the Dry, Ernie and the bench
+  paul.js       Paul Badfella: his look, his office front, his billboards, the tube men, his TV advert
   crew.js       Low Profile: Twig, Gopher and Dice, their corners, their sales, the clean days
   mask.js       the gold mask (Glass): the model, K, the cops and the dealers
   bigmap.js     the full map (M): zoom, pan, places of interest, click for a waypoint

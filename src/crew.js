@@ -122,11 +122,12 @@ export class Crew {
   corner(k) { const c = CREW[k], P = this.g.places[c.corner]; return P ? P.pos.clone().add(V(...c.off)).setY(0.05) : this.g.player.pos.clone(); }
   post(k) {
     const g = this.g, m = this.members[k], at = this.corner(k);
+    if (m?.jailed) return; // (in a cell, for now)
     let n = m?.n; if (!n || !g.citizens.list.includes(n) || n.state === 'dead') n = this.spawn(k, at, Math.random() * 6.28);
     n.human.resetPose(); n.script = null; n.state = 'post'; n.home = at.clone(); n.homeYaw = Math.random() * 6.28;
     n.body.setTranslation({ x: at.x, y: at.y + 1.0, z: at.z }, true); n.body.setNextKinematicTranslation({ x: at.x, y: at.y + 1.0, z: at.z });
   }
-  alive(k) { const n = this.members[k]?.n; return n && this.g.citizens.list.includes(n) && n.state !== 'dead' && !n.downed; }
+  alive(k) { if (this.members[k]?.jailed) return false; const n = this.members[k]?.n; return n && this.g.citizens.list.includes(n) && n.state !== 'dead' && !n.downed; }
 
   options(n) {
     const g = this.g, k = n.crewKey, m = this.members[k], have = g.drugs.count;
@@ -198,21 +199,24 @@ export class Crew {
     }
     // one of them got hurt: Wren hears about it
     for (const k of Object.keys(CREW)) {
-      const m = this.members[k]; if (!m?.n) continue;
+      const m = this.members[k]; if (!m?.n || m.jailed) continue;
       const bad = !this.alive(k);
       if (bad && !m.hurt) { m.hurt = true; setTimeout(() => g.wren?.text('Wren', pick([`what happened to ${CREW[k].name.toLowerCase()}?? he's my FRIEND. if that was you`, `${CREW[k].name.toLowerCase()} is hurt. who did this. tell me it wasn't you`])), 4000); g.wren?.add?.(-4); }
       if (!bad) { m.hurt = false; if (m.n.state === 'wander' || m.n.state === 'idle') { m.n.state = 'post'; m.n.home = this.corner(k); } } // (back to the corner once the fuss dies down)
     }
   }
 
+  // locked up (Dice, in Never Call Paul) and let go again
+  jail(k) { const m = this.members[k]; if (!m) return; m.jailed = true; if (m.n && this.g.citizens.list.includes(m.n)) this.g.citizens.remove(m.n); }
+  free(k) { const m = this.members[k]; if (!m) return; m.jailed = false; this.post(k); }
   // the map: where they are
   pois() { if (this.stage !== 'running' && this.stage !== 'done') return []; return Object.keys(CREW).filter(k => this.alive(k)).map(k => ({ name: `${CREW[k].name} · crew (${this.members[k].stock.length})`, pos: this.g.citizens.pos(this.members[k].n) })); }
 
-  state() { return { stage: this.stage === 'meeting' ? 'meet' : this.stage, clean: this.clean, hot: this.hot, sold: this.sold, cash: this.cash, maskDay: this.maskDay, stock: Object.fromEntries(Object.entries(this.members).map(([k, m]) => [k, m.stock])) }; }
+  state() { return { stage: this.stage === 'meeting' ? 'meet' : this.stage, clean: this.clean, hot: this.hot, sold: this.sold, cash: this.cash, maskDay: this.maskDay, stock: Object.fromEntries(Object.entries(this.members).map(([k, m]) => [k, m.stock])), jailed: Object.keys(this.members).filter(k => this.members[k].jailed) }; }
   restore(s) {
     if (!s) return;
     Object.assign(this, { stage: s.stage || 'none', clean: s.clean || 0, hot: !!s.hot, sold: s.sold || 0, cash: s.cash || 0, maskDay: s.maskDay ?? null });
     if (this.stage === 'waiting') this.callT = 30;
-    if (this.stage === 'running' || this.stage === 'done') for (const k of Object.keys(CREW)) { this.members[k] = { stock: s.stock?.[k] || [], sellT: 40 + Math.random() * 30 }; this.post(k); }
+    if (this.stage === 'running' || this.stage === 'done') for (const k of Object.keys(CREW)) { this.members[k] = { stock: s.stock?.[k] || [], sellT: 40 + Math.random() * 30, jailed: (s.jailed || []).includes(k) }; this.post(k); }
   }
 }
