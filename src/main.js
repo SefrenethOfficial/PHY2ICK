@@ -476,6 +476,7 @@ class Game {
             if (n.robT >= 4) { const amt = 150 + Math.floor(Math.random() * 300); this.money += amt; this.sfx.cash(pl.pos); this.hud.toast(`You emptied the till: $${amt}`, '#7be08a'); this.citizens.say(n, 'Take it! Just go!', 3); n.robbedAt = now; n.emptySaid = false; n.robbing = false; this.police.crime('robbery', pl.pos, true); }
           }
         } else if (!n.home) this.citizens.threaten(n, dt);
+        else if (n.companion) this.citizens.threaten(n, dt); // (Wren: he has his own words for it)
         else if (n.home) { n.state !== 'handsUp' && this.citizens.say(n, 'Whoa! Easy!', 2); n.state = 'handsUp'; n.stateT = 2; }
       }
     }

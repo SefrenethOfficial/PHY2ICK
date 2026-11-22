@@ -233,6 +233,8 @@ export class Citizens {
         if (n.stateT <= 0 && n.human.ragdoll.speed < 0.6) { n.downed = false; this.getUp(n); }
         continue;
       }
+      // Wren never acts like a stranger: no running off, no hands up, no squaring up to you, no wandering away
+      if (n.companion && ['flee', 'handsUp', 'angry', 'wander'].includes(n.state)) { n.state = n.following ? 'follow' : n.home ? 'post' : 'idle'; n.stateT = 99; n.witness = null; }
       if (n.witness) { // on the phone to the police
         n.witness.t -= h;
         if (n.witness.t <= 0) { const w = n.witness; n.witness = null; g.police.reported(w.level, w.at, 'witness', n, w.kind); }
@@ -693,6 +695,7 @@ export class Citizens {
       n.hp -= W.dmg; n.mood -= 45; n.mem.hitBy++; this.crimeAt(n, false); g.sfx?.thunk?.(chest);
       n.human.express('surprised', 2); this.say(n, pick(['Did you just hit me with a traffic cone?!', '*BONK*', 'Ow! A CONE?!', 'Is that a cone? Are you serious?']), 2.8);
       if (n.cop || n.gunman) return;
+      if (n.companion) { g.wren?.hurtBy('struck'); return; }
       if (n.brave > 0.5) { n.state = 'angry'; n.stateT = 8; } else { n.state = 'flee'; n.stateT = 6; }
       return;
     }
