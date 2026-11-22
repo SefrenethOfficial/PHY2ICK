@@ -33,7 +33,7 @@ export class Drugs {
     if (this.cook) return;
     const big = this.big && this.solvent >= 2 && this.salts >= 2;
     if (g.missions && !g.missions.canCook()) return;
-    if (this.solvent < 1 || this.salts < 1) { g.hud.toast(`You need Industrial Solvent (Home Improvements) and Blue Salts (the Pawn Shop) · you have ${this.solvent} and ${this.salts}`, '#ffd23f'); return; }
+    if (this.solvent < 1 || this.salts < 1) { g.hud.toast(`You need Industrial Solvent (Home Improvements) and Blue Salts (the Pawn Shop, a mini mart, the Grocery or the Convenience Store) · you have ${this.solvent} and ${this.salts}`, '#ffd23f'); return; }
     this.solvent -= big ? 2 : 1; this.salts -= big ? 2 : 1;
     const L = big ? { ...LAB[kind], batch: LAB[kind].batch * 2, time: LAB[kind].time + 6 } : LAB[kind];
     this.cook = { kind, L, where, start: true, t: 0, heat: 0.2, zone: 0.45, zoneV: 0.05, good: 0, total: 0, stirAt: 3 + Math.random() * 2, stirWin: 0, stirMiss: 0, stirs: 0, fumes: 0, boil: 0, done: false, color: 0 };

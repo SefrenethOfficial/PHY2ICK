@@ -186,7 +186,7 @@ Move the mouse toward an option and let go of `E`, or click, or press `1`–`6`.
 
 ### Physick (code name: Meridian)
 The drug the game is named after. It's made up, and the cook is a game, not chemistry.
-- **Supplies**: *Industrial Solvent* from the Home Improvements clerk ($30) and *Blue Salts* from the Pawn Shop ($45). One of each makes a batch.
+- **Supplies**: *Industrial Solvent* from the Home Improvements clerk ($30) and *Blue Salts* ($45) from the Pawn Shop, either mini mart, the Grocery or the Convenience Store. One of each makes a batch.
 - **The cook**: hold `Space` to raise the heat and keep the needle in the green zone (which drifts about). When it flashes **STIR!**, hit `E`. Too hot for too long and it **boils over and blows up**. `Q` gives up (the supplies are wasted). The better you keep it in the green, the bluer it gets: **purity** is your score, and it sets the price.
 - **Where to cook**: **Kit's camper**, parked up on the beach (you get the keys in the story). Go in the back door and there's a whole room in there: a little stove, a sink, a bench bed, the notebook, the curtains drawn. Cook at the stove: 8 bags a batch, a little smoke out of the vent. Drive it anywhere you like. Boil over in there and the van goes up. If Wren's with you, she waits outside, leaning on the van.
 - **Selling**: buyers hang about the **skatepark**, **the park**, the **beach washrooms** and outside the **nightclub** (the best price, but the bouncer takes 20%). Talk to them (`E`) and sell one or five. Or dump the lot on the **Pawn Shop** for a low price. Some buyers are **undercover cops** (June can tell you which). Dealing in one spot too often gets you reported. Your bags show under your weapon.

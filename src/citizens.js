@@ -534,6 +534,10 @@ export class Citizens {
       pay || { id: 'talk', label: 'Talk' }, { id: 'buy:solvent', label: 'Solvent $30' }, { id: 'buy:sack', label: 'Sack $5' },
       { id: 'directions', label: 'Directions' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' },
     ];
+    if (n.home && n.role === 'clerk' && /mini mart|grocery|convenience/i.test(n.shop || '')) return [ // (the corner shops sell the salts too)
+      pay || { id: 'talk', label: 'Talk' }, { id: 'buy:snack', label: 'Snack $3' }, { id: 'buy:salts', label: 'Blue Salts $45' }, { id: 'buy:sack', label: 'Sack $5' },
+      { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' },
+    ];
     if (n.home && n.role === 'clerk') return [
       pay || { id: 'talk', label: 'Talk' }, { id: 'buy:snack', label: 'Snack $3' }, { id: 'buy:sack', label: 'Sack $5' },
       { id: 'directions', label: 'Directions' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' },
