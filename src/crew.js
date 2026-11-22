@@ -98,13 +98,16 @@ export class Crew {
       S.line('GOPHER', 'The Pier! Tourists! I love tourists.', 2.4),
       S.line('WREN', 'Bring them bags. Three clean days and I start believing this works.', 3.6),
     ]);
-    S.onDone = () => {
-      this.stage = 'running'; this.clean = 0; this.hot = !!g.police.stars;
-      if (W) { W.script = null; S.wrenHome(true); }
-      for (const k of Object.keys(CREW)) this.post(k);
-      g.hud.toast('Low Profile: keep the crew stocked (hold E on them) and stay clean: three days without a star. They\'re on the map (M).', '#ffd23f');
-      g.saver?.save();
-    };
+    S.onDone = () => this.afterMeet();
+  }
+  // (also if the scene got cut short by anything: the crew still go to work)
+  afterMeet() {
+    const g = this.g, S = g.story, W = S.wren; if (this.stage !== 'meeting') return;
+    this.stage = 'running'; this.clean = 0; this.hot = !!g.police.stars;
+    try { if (W && W.state === 'scripted') { W.script = null; S.wrenHome(true); } } catch (e) { console.warn(e); }
+    for (const k of Object.keys(CREW)) this.post(k);
+    g.hud.toast('Low Profile: keep the crew stocked (hold E on them) and stay clean: three days without a star. They\'re on the map (M).', '#ffd23f');
+    g.saver?.save();
   }
 
   // ---- the crew themselves
@@ -127,7 +130,8 @@ export class Crew {
 
   options(n) {
     const g = this.g, k = n.crewKey, m = this.members[k], have = g.drugs.count;
-    if (this.stage !== 'running') return [{ id: 'crew:hi', label: 'Hey' }];
+    if (this.stage === 'meeting' && !g.story?.cine) this.afterMeet();
+    if (this.stage !== 'running' && this.stage !== 'done') return [{ id: 'crew:hi', label: 'Hey' }];
     return [
       { id: 'crew:give', label: have ? `Here, take ${Math.min(3, have)}` : 'Here, take some (you have none)' },
       { id: 'crew:biz', label: `How's business? (${m.stock.length} on him)` },
@@ -180,6 +184,7 @@ export class Crew {
       }
       return;
     }
+    if (this.stage === 'meeting') { if (!g.story?.cine) this.afterMeet(); return; }
     if (this.stage !== 'running' && this.stage !== 'done') return;
     if (g.police.stars && this.stage === 'running') this.hot = true;
     // selling: a bag each, now and then (not while the island's crawling with cops looking for you)
