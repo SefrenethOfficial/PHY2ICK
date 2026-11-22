@@ -34,6 +34,7 @@ import { Missions } from './missions.js';
 import { Bikes } from './bikes.js';
 import { Inventory } from './inventory.js';
 import { BigMap } from './bigmap.js';
+import { Mask } from './mask.js';
 import { Food } from './food.js';
 import { Icons } from './icons.js';
 import { Dealers } from './dealers.js';
@@ -63,6 +64,7 @@ class Game {
     this.weapons = new Weapons(this);
     this.inv = new Inventory(this);
     this.bigmap = new BigMap(this);
+    this.mask = new Mask(this);
     this.icons = new Icons(); this.food = new Food(this);
     this.blood = new Blood(this);
     this.fx = new Fx(this); this.sfx = new Sfx(this); this.pickups = new Pickups(this);
@@ -200,6 +202,7 @@ class Game {
         if (slot) this.weapons.take(slot);
         else { const n = this.wheel.candidate(); if (n) this.wheel.show(n); }
       }
+      if (e.code === 'KeyK') this.mask.toggle();
       if (e.code === 'KeyV' && !pl.car) this.inv.store();
       if ((e.code === 'Tab' || e.code === 'KeyI') && !pl.car && !pl.bike) { this.inv.show(); return; }
       if (e.code === 'KeyE' && pl.car && this.chop.canUse()) { this.chop.show(); return; }
@@ -565,6 +568,7 @@ class Game {
     this.inv?.update();
     this.bigmap?.update(rdt);
     this.vanWatch?.(rdt);
+    this.mask?.update(dt > 0 ? rdt : 0);
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);

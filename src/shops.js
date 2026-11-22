@@ -123,7 +123,7 @@ export class Shops {
     ];
     if (n.shop === 'Pawn Shop') { const v = this.lootValue(); return [
       { id: 'sellloot', label: v ? `Sell your stuff ($${v})` : 'Sell your stuff' }, { id: 'buy:sack', label: 'Sack $5' }, { id: 'buy:salts', label: 'Blue Salts $45' },
-      { id: 'sellall', label: D.count ? `Sell ${D.count} Physick` : 'Sell Physick' }, { id: 'talk', label: 'Talk' }, { id: 'insult', label: 'Insult' },
+      { id: 'sellall', label: D.count ? `Sell ${D.count} Physick` : 'Sell Physick' }, g.missions?.id === 'mask' ? { id: 'glassmask', label: 'The gold mask $250' } : { id: 'talk', label: 'Talk' }, { id: 'insult', label: 'Insult' },
     ]; }
     return null;
   }

@@ -42,7 +42,7 @@ export class Save {
       wren: wl,
       tenants: (g.tenants?.list || []).map(n => ({ id: n.tenant.id, mood: n.mood, met: n.mem.met, talks: n.mem.talks })),
       camper: g.camper && !g.camper.wrecked ? { pos: arr(g.camper.pos), yaw: g.camper.yaw, kitchen: !!g.camper.kitchen, plate: g.camper.plate, owned: !!g.camper.owned } : null,
-      cars, loot: g.shopping?.loot || [], missions: g.missions?.state(), inv: g.inv?.state(),
+      cars, loot: g.shopping?.loot || [], missions: g.missions?.state(), inv: g.inv?.state(), mask: g.mask?.state(),
     };
   }
   save() {
@@ -89,6 +89,7 @@ export class Save {
       for (const t of s.tenants || []) { const n = g.tenants?.list.find(n => n.tenant.id === t.id); if (n) { n.mood = t.mood; n.mem.met = t.met; n.mem.talks = t.talks || 0; } }
       // the story
       S.checkpoint = s.story?.checkpoint; S.stairMe = vec(s.story?.stairMe); S.afterVic = vec(s.story?.afterVic); S.afterVicYaw = s.story?.afterVicYaw;
+      g.mask?.restore(s.mask);
       if (s.cp === 'free') { this.loadFree(s); g.missions?.restore(s.missions); }
       else S.resume(s.cp);
       pl.hp = Math.max(30, s.hp ?? 100);

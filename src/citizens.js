@@ -489,6 +489,7 @@ export class Citizens {
       if (n.state === 'crossLook') face = n.crossYaw;
       if (n.state === 'handsUp') face = Math.atan2(pl.pos.x - p.x, pl.pos.z - p.z);
       if ((n.cop || n.gunman) && n.faceAt) face = Math.atan2(n.faceAt.x - p.x, n.faceAt.z - p.z);
+      if (n.noticedT > 0 && n.faceAt) { n.noticedT -= dt; face = Math.atan2(n.faceAt.x - p.x, n.faceAt.z - p.z); } // (a dealer staring at the mask)
       if (n.hostage) face = n.yaw;
       if (n.state === 'shop' && n.waitT > 0 && n.faceYaw != null) face = n.faceYaw;
       if (face !== null) { let d = face - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 8); }
@@ -567,6 +568,7 @@ export class Citizens {
     if (id === 'sellall') { g.drugs.sell(n, n, 999); return; }
     if (id === 'pay') { g.shopping.pay(n); return; }
     if (id === 'sellloot') { g.shopping.sellLoot(n); return; }
+    if (id === 'glassmask') { g.missions?.maskScene(n); return; }
     if (id === 'pickpocket') { g.shopping.pickpocket(n); return; }
     if (id === 'rusty') { this.say(n, "Drive it in, stop in the bay, press E. Register it, respray it, new plates. Cash.", 4); return; }
     if (n.storyNpc && g.story?.act(n, id)) return;

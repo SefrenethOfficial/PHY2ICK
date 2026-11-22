@@ -54,6 +54,7 @@ export class Missions {
   }
   // what shows at the top of your phone as RECOMMENDED (a suggestion, not an order)
   recommended() {
+    if (this.id === 'mask') return { title: 'The Face', text: 'Lou at the <b>Pawn Shop</b> has something for you. $250.' };
     if (this.id !== 'cooks') return null;
     return { title: 'Three More', text: `Cook three batches (${this.count}/3). One a day${this.cookedToday ? ': <i>done for today, sleep in 1E</i>' : ''}. Out in <b>the Dry</b>, or the police smell it.` };
   }
@@ -104,21 +105,52 @@ export class Missions {
       { id: 'r:cut', label: "Fine. A quarter of what Wren makes" },
       { id: 'r:buy', label: g.money >= 1500 ? 'Buy them off: $1,500' : 'Buy them off: $1,500 (you\'re short)' },
       { id: 'r:fight', label: 'Tell them where to go' },
+      { id: 'r:glass', label: "You don't know who you're talking to." },
     ];
   }
   act(n, id) {
     const g = this.g, C = g.citizens;
     if (!id.startsWith('r:')) return false;
-    if (id === 'r:talk') { C.say(n, pick(["Pier, beach, the club. Kit worked them because I let him. Kit's dead. Now they're mine again.", "Your blue's good. Too good. My people are losing customers. So: you pay, or you stop.", "A quarter. Every bag she sells. Or one big number, and we forget your names."]), 5); return true; }
+    if (id === 'r:talk') { C.say(n, pick(["Pier, beach, the club. Kit worked them because I let him. Kit's dead. Now they're mine again.", "Your blue's good. Too good. My people are losing customers. So: you pay, or you stop.", "A quarter. Every bag he sells. Or one big number, and we forget your names."]), 5); return true; }
     if (id === 'r:cut') { this.cut = 0.25; C.say(n, "Smart. A quarter, every week. Don't make me count it twice.", 4); this.settle('cut'); return true; }
     if (id === 'r:buy') { if (g.money < 1500) { C.say(n, "Come back when you've got it. All of it.", 3); return true; } g.money -= 1500; g.sfx?.cash?.(g.player.pos); C.say(n, "…Huh. Okay. Pleasure doing business. Stay off my steps.", 4); this.settle('buy'); return true; }
+    if (id === 'r:glass') { this.glass(n); return true; }
     if (id === 'r:fight') { C.say(n, "Wrong answer.", 2); setTimeout(() => this.startFight(), 900); return true; }
     return false;
+  }
+  // Glass: the first time he comes out. A bluff: it usually works; sometimes Royce calls it
+  glass(n) {
+    const g = this.g, S = g.story, C = g.citizens, pl = g.player;
+    const q = C.pos(n), me = pl.pos, mid = q.clone().lerp(me, 0.5), side = V(me.z - q.z, 0, q.x - me.x).normalize();
+    const cam = mid.clone().addScaledVector(side, 3.2).setY(me.y + 1.7), look = mid.clone().setY(me.y + 1.5);
+    const toR = V(q.x - me.x, 0, q.z - me.z).normalize(), toMe = toR.clone().negate();
+    const works = Math.random() < 0.75;
+    S.play([
+      S.shotS(cam, cam.clone().addScaledVector(side, -0.8), look, look, 9, 42),
+      S.line('YOU', "<i>You don't know who you're talking to.</i>", 2.4),
+      S.line('ROYCE', 'Enlighten me.', 1.8),
+      S.shotS(me.clone().addScaledVector(toR, 1.6).addScaledVector(side, 0.5).setY(me.y + 1.65), null, me.clone().setY(me.y + 1.6), null, 8, 36),
+      S.line('YOU', "<i>Every bag of glass on this island came out of my hands. Ask around who makes it. Then come back and tell me what you're taking.</i>", 5),
+      S.shotS(q.clone().addScaledVector(toMe, 1.8).setY(q.y + 1.6), null, q.clone().setY(q.y + 1.55), null, 4, 36),
+      S.line('ROYCE', "…And who's that supposed to be?", 2.4),
+      S.shotS(me.clone().addScaledVector(toR, 1.1).setY(me.y + 1.62), null, me.clone().setY(me.y + 1.6), null, 3, 30),
+      S.line('YOU', '<i>Glass.</i>', 2.2),
+      S.wait(0.8),
+      S.line('ROYCE', works ? "…Okay. Okay, Glass. The island's big. Keep your people off my steps and we're square." : "Glass. GLASS? Ha! Light him up.", works ? 4 : 2.4),
+    ]);
+    S.onDone = () => {
+      g.wren?.add?.(-6);
+      if (!works) { this.startFight(); setTimeout(() => g.wren?.text('Wren', "who's GLASS?? what did you SAY to them"), 6000); return; }
+      g.hud.toast('Royce backs down. No cut, no fee. They know the name now: Glass.', '#7be08a');
+      for (const r of this.crew) { r.lines = ["Glass. Right.", "Royce says leave you be.", "Don't look at him."]; r.mood = 0; }
+      setTimeout(() => g.wren?.text('Wren', 'royce called me. said "tell glass we\'re square". who is glass. what did you do'), 5000);
+      this.finish('glass');
+    };
   }
   settle(how) {
     const g = this.g;
     g.hud.toast(how === 'cut' ? "Deal: the Saltline crew take a quarter of what Wren makes." : "Deal: paid off. The Saltline crew leave Wren alone.", '#7be08a');
-    setTimeout(() => g.wren?.text('Wren', how === 'cut' ? "a QUARTER? ok. ok. it's fine. we're fine. i'll sell more" : "you just PAID them? with what. ok. ok. i love you. not like that. thank you"), 5000);
+    setTimeout(() => g.wren?.text('Wren', how === 'cut' ? "a QUARTER? ok. ok. it's fine. we're fine. i'll sell more" : "you just PAID them? with what. ok. ok. fine. good. don't expect me to say thanks"), 5000);
     for (const n of this.crew) { n.lines = ["We're good. Don't make it weird.", "Royce says you're alright.", "Stay off our steps."]; n.mood = 20; }
     this.finish(how);
   }
@@ -154,8 +186,41 @@ export class Missions {
   finish(how) {
     const g = this.g;
     this.id = 'done'; this.fight = false; this.outcome = how; g.story.objective(null); g.story.waypoint(null);
-    setTimeout(() => g.hud.toast('Job done: Saltline. The story continues soon.', '#ffb27a'), 2500);
+    setTimeout(() => g.hud.toast('Job done: Saltline.', '#ffb27a'), 2500);
+    setTimeout(() => this.maskCall(), 20000);
     g.saver?.save();
+  }
+
+  // the pawnbroker texts: he's got something for the guy everyone's talking about
+  maskCall() {
+    const g = this.g; if (g.mask?.owned || this.id === 'mask') return;
+    if (g.story?.cine || g.police.stars) { setTimeout(() => this.maskCall(), 8000); return; }
+    this.id = 'mask';
+    g.wren?.text('Unknown', "this is lou. pawn shop. word is you're the guy everyone's talking about. come see me. i've got something for you. something you'll want");
+    g.hud.toast('📱 Something new on your phone (P): RECOMMENDED · The Face', '#ffd23f');
+    g.saver?.save();
+  }
+  // at the counter: he brings it out from the back, and you put it on
+  maskScene(n) {
+    const g = this.g, S = g.story, C = g.citizens, pl = g.player;
+    if (g.money < 250) { C.say(n, "Two-fifty. Come back when you've got it.", 3); return; }
+    g.money -= 250; g.sfx?.cash?.(pl.pos);
+    const q = C.pos(n), me = pl.pos, f = V(q.x - me.x, 0, q.z - me.z).normalize(), side = V(f.z, 0, -f.x);
+    S.play([
+      S.shotS(me.clone().addScaledVector(side, 1.6).addScaledVector(f, 0.4).setY(me.y + 1.6), null, q.clone().setY(q.y + 1.3), null, 6, 40),
+      S.line('LOU', "Came in a year ago. Guy never came back for it. I don't ask.", 3.2),
+      S.line('LOU', "Gold on the face. Plated. The horns, too. Nobody wanted it. Too much.", 3.4),
+      S.line('LOU', "Then I heard about you. Figured: that's who it's for.", 3),
+      S.call(() => { g.mask.owned = true; g.mask.on = true; g.mask.attach(pl.human); }),
+      S.shotS(me.clone().addScaledVector(f, 1.5).setY(me.y + 1.62), me.clone().addScaledVector(f, 1.05).setY(me.y + 1.64), me.clone().setY(me.y + 1.62), null, 4.5, 34),
+      S.wait(1.4),
+      S.line('LOU', "…Yeah. Yeah, that's Glass.", 2.4),
+      S.line('LOU', "Do me a favour. Don't wear it in here again.", 2.6),
+    ]);
+    S.onDone = () => {
+      this.id = 'done'; g.hud.toast("The gold mask: K to put it on or take it off. Cops who see it will open fire. The dealers will know who you are.", '#ffd23f');
+      g.saver?.save();
+    };
   }
 
   update(dt) {
@@ -190,5 +255,6 @@ export class Missions {
     else if (this.id === 'rivals') this.start('rivals');
     else if (this.id === 'cooks') this.objective();
     if (this.id === 'done' && this.outcome !== 'fight') this.spawnCrew();
+    if (this.id === 'mask' || (this.id === 'done' && this.outcome && !this.g.mask?.owned)) { this.id = 'done'; setTimeout(() => this.maskCall(), 8000); }
   }
 }

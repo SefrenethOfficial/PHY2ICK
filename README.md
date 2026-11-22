@@ -82,6 +82,13 @@ Still not a mission list: one thing at a time on the line in the corner.
 
 (Kit left debts. Pratt wants them paid. Vic is too busy with his midlife crisis to help. That's all still to come.) If the car blows up with Wren in it (or he dies) before he's moved in, that part starts again from the last checkpoint: the stairs, the hospital, or the van. (Once he's living with you, he's patched up at the hospital and back home a minute later.) People who follow you follow the way you went: through doors, down stairs, round corners, and they catch up if they get stuck. `Enter`, `Space` or `Escape` skips a scene.
 
+### Glass, and the mask
+At Royce's there's a fifth choice: *"You don't know who you're talking to."* It's a bluff, and it usually works: you tell him every bag of glass on the island came out of your hands, he asks who that's supposed to be, and you tell him: **Glass**. His crew back off (no cut, no fee). Sometimes he laughs and it's a shootout. Either way Wren hears about it, and he doesn't like it.
+After Saltline (however it went), Lou at the **Pawn Shop** texts: he's got something for "the guy everyone's talking about". It's on your phone as **RECOMMENDED · The Face**. Hold `E` on him for *The gold mask ($250)*: a gold face with black eye slits and two curved demon horns, that a man left a year ago and never came back for. **`K`** puts it on and takes it off.
+- **Cops**: any cop who sees you in it goes straight to two stars and opens fire.
+- **The street dealers** know who that is: they turn and stare (*"…That's him. Glass."*). For now that's all; later they'll respect it.
+- **Wren**, the first time he sees it: *"Is that Glass? Is that what you are now?"*
+
 ### Home: Fairview Heights
 Your room is **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
 
@@ -211,6 +218,7 @@ The drug the game is named after. It's made up, and the cook is a game, not chem
 | `Shift` | run |
 | `V` | put what you're holding in your pocket |
 | `P` | your phone (after the first cook) |
+| `K` | the gold mask on / off (once you've bought it) |
 | `M` | the full map: scroll/`+` `−` zoom, drag/`WASD` move, `Space` back to you, click a place for a waypoint |
 | `E` (in a car, in Rusty's bay) | register, respray, new plates |
 | `C` / `Ctrl` | crouch (on foot): sneak, harder to see |
@@ -295,6 +303,7 @@ src/
   citizens.js   people: walking the sidewalks, crossing roads, shopping, benches, moods, memory, what they say
   wheel.js      the interaction wheel
   suburb.js     Willow Bank: the land, the streets, the houses, Wren's house
+  mask.js       the gold mask (Glass): the model, K, the cops and the dealers
   bigmap.js     the full map (M): zoom, pan, places of interest, click for a waypoint
   hud.js        money, health, the minimap, prompts, messages, speech bubbles, the waypoint, the speedo
   style.css     the HUD and the title screen
