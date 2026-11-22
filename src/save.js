@@ -110,7 +110,7 @@ export class Save {
     if (w.ideas) { W.ideas.done = new Set(w.ideas.done || []); W.ideas.price = !!w.ideas.price; if (W.ideas.done.has('site')) W.siteBuyer(); }
     W.where = 'home';
     g.parkVanAtWren?.(); // (Kit's van: always back on Wren's drive)
-    const at = vec(s.at) || g.apt.spawn;
-    pl.respawn(at, s.yaw ?? 0); g.cam.pitch = 0.15;
+    const at = g.apt.room1E || vec(s.at) || g.apt.spawn; // (a reload: you wake up in your room, 1E)
+    pl.respawn(at, Math.PI); g.cam.pitch = 0.15; g.cam.yaw = 0;
   }
 }
