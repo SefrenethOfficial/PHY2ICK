@@ -76,7 +76,7 @@ export class Player {
       if (k.has('KeyA')) want.x -= 1; if (k.has('KeyD')) want.x += 1;
     }
     const run = (k.has('ShiftLeft') || k.has('ShiftRight')) && !this.hostage && !g.weapons.aiming;
-    const t0 = this.body.translation(), feet = t0.y - CENTRE, wl = g.waterAt?.(t0.x, t0.z) ?? -99; this.wl = wl;
+    const t0 = this.body.translation(), feet = t0.y - CENTRE, wl = g.van?.contains(t0) ? -99 : g.waterAt?.(t0.x, t0.z) ?? -99; // (the van's room sits under the beach: it's dry in there) this.wl = wl;
     this.swimming = feet < wl - 1.05;
     if (want.lengthSq() > 0) want.normalize().multiplyScalar(this.swimming ? (run ? 3.4 : 2.2) : this.crouch ? (run ? 2.8 : 1.25) : run ? 6.2 : this.hostage ? 1.5 : 1.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.cam.yaw);
     // ease toward the wanted velocity (a little weight to it)

@@ -78,7 +78,7 @@ export class Hud {
   drawMini() {
     if (!this.mapC) this.buildMap();
     const g = this.g, ctx = this.miniX, S = this.mini.width, k = this.mapK, zoom = 1.6; // (screen px per map px)
-    const p = g.player.car ? g.player.car.pos : g.player.pos;
+    const p = g.player.car ? g.player.car.pos : g.van?.inside && g.camper ? g.camper.pos : g.player.pos; // (in the van: where the van is)
     const yaw = g.cam.yaw; // (the map turns with the camera)
     ctx.save(); ctx.clearRect(0, 0, S, S);
     ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2, 0, 7); ctx.clip();

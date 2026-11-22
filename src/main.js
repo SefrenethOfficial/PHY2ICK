@@ -583,7 +583,7 @@ class Game {
     this.scene.environmentIntensity += (envT - this.scene.environmentIntensity) * Math.min(1, rdt * 3);
     if (this.water) this.water.update(rdt, this.camera);
     // under the water: everything goes murky green-blue, close in
-    { const c = this.camera.position, wl = this.waterAt(c.x, c.z), under = wl != null && c.y < wl - 0.05, f = this.scene.fog;
+    { const c = this.camera.position, wl = this.waterAt(c.x, c.z), under = wl != null && c.y < wl - 0.05 && !this.van?.contains(c), f = this.scene.fog;
       if (under !== !!this.underwater) {
         this.underwater = under;
         if (under) { this._fog = [f.color.getHex(), f.near, f.far]; f.color.set(0x1d5866); f.near = 0.5; f.far = 24; }
