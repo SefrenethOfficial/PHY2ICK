@@ -1,3 +1,4 @@
+import { drawIcon } from './bigmap.js';
 // The HUD: money, health, prompts, toasts, speech bubbles, a waypoint marker, the speedo.
 import * as THREE from 'three';
 import { FOOD } from './food.js';
@@ -91,6 +92,12 @@ export class Hud {
     if (Pz) for (const n of Pz.cops()) { if (n.state === 'seated') continue; const q = n.body.translation(); ctx.fillStyle = '#7aa0ff'; ctx.beginPath(); ctx.arc((q.x - p.x) * k, (q.z - p.z) * k, 2.2 / zoom * 1.6, 0, 7); ctx.fill(); }
     if (g.waypoint) { const w = g.waypoint.pos; ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc((w.x - p.x) * k, (w.z - p.z) * k, 4 / zoom * 1.6, 0, 7); ctx.fill(); }
     ctx.restore();
+    // places of interest round you (the same icons as the big map, small, kept upright)
+    const B = g.bigmap; if (B) {
+      if (!this.poiT || performance.now() > this.poiT) { this.poiT = performance.now() + 500; this.poiList = B.pois().filter(q => !q.wp); }
+      const cs = Math.cos(yaw), sn = Math.sin(yaw), R = S / 2 - 7;
+      for (const q of this.poiList) { if (B.hide.has(q.kind)) continue; const dx = (q.x - p.x) * k * zoom, dz = (q.z - p.z) * k * zoom, X = dx * cs - dz * sn, Y = dx * sn + dz * cs; if (X * X + Y * Y > R * R) continue; drawIcon(ctx, q.kind, q.glyph, S / 2 + X, S / 2 + Y, 5.5); }
+    }
     // you: an arrow pointing the way you face (relative to the camera)
     const face = (g.player.car ? g.player.car.yaw : g.player.yaw) - yaw - Math.PI;
     ctx.save(); ctx.translate(S / 2, S / 2); ctx.rotate(-face);

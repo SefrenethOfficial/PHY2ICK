@@ -8,6 +8,9 @@ Play it at **https://sefrenethofficial.github.io/PHY2ICK/**
 
 The map is the island from `PHY2ICK_Map.svg` (1 px of the drawing = 1 m): the same coastline, every road (with sidewalks, kerbs, lane markings and zebra crossings), and every building and place, each with its own look and sign. A **minimap** (top right) turns with the camera.
 
+### The full map (`M`)
+The whole of it, north up: the island, the causeway and the Dry out to North Quay. Scroll (or `+`/`−`) to zoom, drag (or `WASD`) to move, `Space` to jump back to you. Everything holds still while it's open. **Places of interest** are little icons by kind: **food & drink** (MARCOS, the Diner, the Coffee Store, the woks, ABT), **shops**, **services** (the Hospital, the Police Station, Rusty's, the Spa…), **places** (the beach, the pier, the skatepark, the nightclub, North Quay, the Saltline Apartments…), **yours** (home in 1E, Kit's van, wherever it is), **people** (Wren when he's out, the street dealers) and **the job** (your waypoint, Saltline when it's on). Zoom in for the names, or hover one; click one to put a waypoint on it (click it again to clear it). The legend turns a kind on and off, and the minimap shows the same icons round you.
+
 It's a **dense** city, not an open one: every gap between the places on the map is packed with buildings (around 150 of them, shops at street level, alleys between), the empty north of the map is a **grid of streets lined with blocks**, and cars are parked along the kerbs and in the car parks. Any parked car is yours: walk up and press `F`.
 
 - **The sea all round**, a sea wall where land meets water, and **the inlet** cutting in from the south-west, with a **bridge** where the road crosses it. **Palm Tree Beach** slopes into the water along the south, with palms, umbrellas, towels and a lifeguard tower. **The Pier**: a timber boardwalk all the way up the east coast, with lamps and benches.
@@ -203,6 +206,7 @@ The drug the game is named after. It's made up, and the cook is a game, not chem
 | `Shift` | run |
 | `V` | put what you're holding in your pocket |
 | `P` | your phone (after the first cook) |
+| `M` | the full map: scroll/`+` `−` zoom, drag/`WASD` move, `Space` back to you, click a place for a waypoint |
 | `E` (in a car, in Rusty's bay) | register, respray, new plates |
 | `C` / `Ctrl` | crouch (on foot): sneak, harder to see |
 | `Space` | jump; vault something low; climb out of the water (in a car: handbrake) |
@@ -285,6 +289,7 @@ src/
   car.js        the car: raycast-vehicle physics, the body and cabin, gauges, the mirror
   citizens.js   people: walking the sidewalks, crossing roads, shopping, benches, moods, memory, what they say
   wheel.js      the interaction wheel
+  bigmap.js     the full map (M): zoom, pan, places of interest, click for a waypoint
   hud.js        money, health, the minimap, prompts, messages, speech bubbles, the waypoint, the speedo
   style.css     the HUD and the title screen
 ```

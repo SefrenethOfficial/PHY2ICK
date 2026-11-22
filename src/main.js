@@ -33,6 +33,7 @@ import { Marcos } from './marcos.js';
 import { Missions } from './missions.js';
 import { Bikes } from './bikes.js';
 import { Inventory } from './inventory.js';
+import { BigMap } from './bigmap.js';
 import { Food } from './food.js';
 import { Icons } from './icons.js';
 import { Dealers } from './dealers.js';
@@ -61,6 +62,7 @@ class Game {
     this.props = new Props(this);
     this.weapons = new Weapons(this);
     this.inv = new Inventory(this);
+    this.bigmap = new BigMap(this);
     this.icons = new Icons(); this.food = new Food(this);
     this.blood = new Blood(this);
     this.fx = new Fx(this); this.sfx = new Sfx(this); this.pickups = new Pickups(this);
@@ -142,7 +144,7 @@ class Game {
     canvas.addEventListener('click', () => { if (!document.pointerLockElement && this.started && this.story?.phase !== 'creator') lock(); });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
-      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open || this.inv?.open || this.food?.open || this.dealers?.open ? 'none' : 'flex';
+      splash.style.display = this.locked || this.story?.phase === 'creator' || this.wren?.phoneOpen || this.chop?.open || this.marcos?.open || this.inv?.open || this.food?.open || this.dealers?.open || this.bigmap?.open ? 'none' : 'flex';
       if (!this.locked) { this.keys.clear(); if (this.wheel.open) this.wheel.close(); }
     });
     addEventListener('contextmenu', (e) => e.preventDefault());
@@ -173,12 +175,14 @@ class Game {
       if (['Space', 'Tab'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
       this.keys.add(e.code);
+      if (this.bigmap?.open) { this.bigmap.key(e.code); this.keys.delete(e.code); return; }
       if (this.chop?.open) { this.chop.key(e.code); this.keys.delete(e.code); return; }
       if (this.marcos?.open) { this.marcos.key(e.code); this.keys.delete(e.code); return; }
       if (this.inv?.open) { this.inv.key(e.code); this.keys.delete(e.code); return; }
       if (this.food?.open) { this.food.key(e.code); this.keys.delete(e.code); return; }
       if (this.dealers?.open) { this.dealers.key(e.code); this.keys.delete(e.code); return; }
       if (this.wren?.phoneOpen) { this.wren.phoneKey(e.code); this.keys.delete(e.code); return; }
+      if (e.code === 'KeyM' && this.started && !this.story?.cine && this.story?.phase !== 'creator' && !this.drugs?.cook) { this.bigmap.show(); this.keys.delete(e.code); return; }
       if (e.code === 'KeyP' && this.started && !this.story?.cine && this.story?.phase !== 'creator') { this.wren.openPhone(); this.keys.delete(e.code); return; }
       if (this.story?.key(e.code)) { if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) this.keys.delete(e.code); return; } // (a key held through a scene still counts once it's over)
       if (!this.locked) return;
@@ -499,7 +503,7 @@ class Game {
 
   tick() {
     const rdt = Math.min(this.clock.getDelta(), 0.1);
-    const dt = rdt * this.timeScale;
+    const dt = this.bigmap?.open ? 0 : rdt * this.timeScale; // (the map's open: everything holds still)
     const steps = Math.max(1, Math.ceil(dt / (1 / 60) - 0.01)), h = dt / steps;
     if (dt > 0) this.citizens.physics(dt); // (people think once a frame, not every physics step)
     if (dt > 0) for (let i = 0; i < steps; i++) {
@@ -532,6 +536,7 @@ class Game {
     this.missions?.update(rdt);
     this.dealers?.update(rdt);
     this.inv?.update();
+    this.bigmap?.update(rdt);
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);
