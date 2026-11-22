@@ -97,12 +97,24 @@ export class Human {
     add('spine', box((f ? 0.265 : 0.3) * w, 0.25, 0.19 * lw, 0.04), sh, 0, 1.15, 0.002);
     add('chest', box((f ? 0.32 : 0.385) * w, 0.24, 0.21 * lw, 0.045), sh, 0, 1.37, 0.004);
     add('hips', box((f ? 0.335 : 0.315) * w, 0.03, 0.205 * lw, 0.01), L.shorts ? new THREE.Color(pa).multiplyScalar(0.8).getHex() : 0x1d1a18, 0, 1.03, 0); // (a belt; on boxers, the waistband)
+    // a suit (Paul): the jacket's the shirt colour; over the chest, the shirt in a V, a tie, lapels, a pocket square
+    if (L.suit) {
+      const U = L.suit, fz = 0.105 * lw + 0.003, sz = 0.095 * lw + 0.003, lap = new THREE.Color(L.shirt).multiplyScalar(0.8).getHex();
+      add('chest', box(0.1, 0.17, 0.008, 0.003), U.shirt, 0, 1.41, fz);
+      add('chest', box(0.036, 0.034, 0.02, 0.008), U.tie, 0, 1.475, fz + 0.006); // (the knot)
+      add('chest', box(0.034, 0.17, 0.01, 0.004), U.tie, 0, 1.385, fz + 0.005);
+      add('spine', box(0.04, 0.16, 0.01, 0.004), U.tie, 0, 1.235, sz + 0.012, { rx: -0.05 });
+      add('spine', box(0.03, 0.04, 0.01, 0.004), U.tie, 0, 1.15, sz + 0.016, { rz: Math.PI / 4 });
+      for (const k of [-1, 1]) add('chest', box(0.055, 0.2, 0.012, 0.004), lap, k * 0.06, 1.39, fz + 0.006, { rz: k * 0.38 });
+      add('chest', box(0.06, 0.03, 0.012, 0.004), U.square || 0xffffff, -0.115, 1.43, fz + 0.004, { rz: 0.15 });
+      for (const y of [1.2, 1.12]) add('spine', ball(0.008, 6, 5), 0x1a1a1a, 0, y, sz + 0.004);
+    }
     // neck and head
     add('neck', new THREE.CylinderGeometry(0.046, 0.05, 0.11, 10), sk, 0, 1.51, 0.004);
     add('head', ball(HR, 22, 16), sk, 0, HY + HC, 0, { sx: 0.96, sy: 1.08, sz: 1 });
     // arms: a round shoulder, upper arm, a round elbow, forearm, hand with a thumb
     for (const s of [-1, 1]) {
-      const k = s < 0 ? 'R' : 'L', x = s * shX;
+      const k = s < 0 ? 'R' : 'L', x = s * shX; this.shX = shX;
       add('shoulder' + k, ball(0.066 * lw), sh, x, 1.43, 0);
       add('shoulder' + k, box(0.104 * lw, 0.28, 0.112 * lw, 0.03), L.longSleeves ? sh : sk, x, 1.285, 0);
       if (!L.longSleeves) add('shoulder' + k, box(0.12 * lw, 0.14, 0.128 * lw, 0.03), sh, x, 1.37, 0);
@@ -217,6 +229,18 @@ export class Human {
 
   // a face for a while (then back to their usual one): neutral, happy, angry, annoyed, sad, surprised, scared, hurt, ko
   express(name, secs = 2.5) { this.expr = name; this.exprT = secs; }
+  // a pointing finger on the right hand (it hangs from the wrist bone, in its bind frame)
+  pointer(on) {
+    if (this.finger) { this.finger.removeFromParent(); this.finger = null; }
+    if (!on) return;
+    const sk = this.body?.skeleton, i = sk ? sk.bones.indexOf(this.b.wristR) : -1, x = -this.shX;
+    const mat = new THREE.MeshStandardMaterial({ color: this.look.skin, roughness: 0.7 }), g = new THREE.Group();
+    const f = new THREE.Mesh(new RoundedBoxGeometry(0.022, 0.085, 0.023, 1, 0.01), mat); f.position.set(0, -0.04, 0); g.add(f);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.0115, 8, 6), mat); tip.position.set(0, -0.083, 0); g.add(tip);
+    const bindAt = new THREE.Matrix4().makeTranslation(x, 0.775, 0.03);
+    if (i >= 0) sk.boneInverses[i].clone().multiply(bindAt).decompose(g.position, g.quaternion, g.scale);
+    g.traverse(o => { o.castShadow = true; }); this.b.wristR.add(g); this.finger = g;
+  }
   setMood(name) { this.base = name; }
 
   setHeadVisible(v) { this.headHidden = !v; }
@@ -480,6 +504,9 @@ export class Human {
         else if (sg === 'melee') { set('shoulderR', -1.25 - e, 0, 0.1); set('elbowR', -0.5, 0, 0); set('wristR', 0.5, 0, 0); set('shoulderL', -0.5, 0, -0.2); set('elbowL', -0.8, 0, 0); }
         else { const r = s.aim.recoil || 0; set('shoulderR', -(Math.PI / 2 + e) - r * 0.25, 0, 0.02); set('elbowR', -0.05 - r * 0.2, 0, 0); set('wristR', -r * 0.3, 0, 0); set('shoulderL', -(Math.PI / 2 + e) + 0.12, 0, -0.38); set('elbowL', -0.45, 0, 0); set('wristL', 0, 0, 0.4); set('chest', 0, 0.06, 0); }
       }
+      // pointing straight at you (Paul, on his posters): the right arm out, the other hand on his hip
+      if (s.point && typeof s.point === 'object') { const u = s.point.up || 0; set('shoulderR', -(Math.PI / 2 + u), s.point.yaw || 0, 0.05); set('elbowR', -0.05, 0, 0); set('wristR', 0.08, 0, 0); set('shoulderL', -0.22, 0, -0.3); set('elbowL', -1.65, 0, 0); set('wristL', 0.2, 0, -0.45); set('chest', 0, -0.08, 0); set('head', 0.04, 0.06, -0.06); } // (the other hand holds his lapel)
+      if (s.pitch) { set('shoulderR', -0.55, 0, -0.8); set('elbowR', -0.6, 0, 0); set('wristR', 0, 0, -0.3); set('shoulderL', -0.55, 0, 0.8); set('elbowL', -0.6, 0, 0); set('wristL', 0, 0, 0.3); set('head', -0.05, 0, 0.05); } // (arms open: 'let me tell you')
       // a stamp (finishing someone off with your feet)
       if (s.stomp != null) { const a = s.stomp, up = a < 0.55 ? a / 0.55 : Math.max(0, 1 - (a - 0.55) / 0.15); set('hipR', -1.05 * up, 0, 0); set('kneeR', 1.6 * up, 0, 0); set('ankleR', -0.2 * up + 0.3, 0, 0); set('spine', 0.1 + up * 0.15, 0, 0); set('shoulderL', -0.4, 0, 0.3); set('shoulderR', -0.4, 0, -0.3); }
       // a downward stab (kneeling over someone)
