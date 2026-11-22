@@ -115,8 +115,9 @@ export class Missions {
     const g = this.g, C = g.citizens;
     if (!id.startsWith('r:')) return false;
     if (id === 'r:talk') { C.say(n, pick(["Pier, beach, the club. Kit worked them because I let him. Kit's dead. Now they're mine again.", "Your blue's good. Too good. My people are losing customers. So: you pay, or you stop.", "A quarter. Every bag he sells. Or one big number, and we forget your names."]), 5); return true; }
-    if (id === 'r:cut') { this.cut = 0.25; C.say(n, "Smart. A quarter, every week. Don't make me count it twice.", 4); this.settle('cut'); return true; }
-    if (id === 'r:buy') { if (g.money < 1500) { C.say(n, "Come back when you've got it. All of it.", 3); return true; } g.money -= 1500; g.sfx?.cash?.(g.player.pos); C.say(n, "…Huh. Okay. Pleasure doing business. Stay off my steps.", 4); this.settle('buy'); return true; }
+    // (whatever you offer, Royce wants more: it always ends in the shootout, and it always ends with him going down)
+    if (id === 'r:cut') { C.say(n, "A quarter? Of what that kid makes? …No. I've changed my mind. I want all of it. And you.", 4); setTimeout(() => this.startFight(), 2600); return true; }
+    if (id === 'r:buy') { C.say(n, g.money < 1500 ? "You can't even afford the insult." : "Fifteen hundred. Cute. Keep it. You'll need it for the funeral.", 3.6); setTimeout(() => this.startFight(), 2400); return true; }
     if (id === 'r:glass') { this.glass(n); return true; }
     if (id === 'r:fight') { C.say(n, "Wrong answer.", 2); setTimeout(() => this.startFight(), 900); return true; }
     return false;
@@ -127,7 +128,7 @@ export class Missions {
     const q = C.pos(n), me = pl.pos, mid = q.clone().lerp(me, 0.5), side = V(me.z - q.z, 0, q.x - me.x).normalize();
     const cam = mid.clone().addScaledVector(side, 3.2).setY(me.y + 1.7), look = mid.clone().setY(me.y + 1.5);
     const toR = V(q.x - me.x, 0, q.z - me.z).normalize(), toMe = toR.clone().negate();
-    const works = Math.random() < 0.75;
+    const works = false; // (Royce never buys it)
     S.play([
       S.shotS(cam, cam.clone().addScaledVector(side, -0.8), look, look, 9, 42),
       S.line('YOU', "<i>You don't know who you're talking to.</i>", 2.4),
@@ -144,6 +145,7 @@ export class Missions {
     S.onDone = () => {
       g.wren?.add?.(-6);
       if (!works) { this.startFight(); setTimeout(() => g.wren?.text('Wren', "who's GLASS?? what did you SAY to them"), 6000); return; }
+      // (never happens now: kept so old saves that got the bluff still make sense)
       g.hud.toast('Royce backs down. No cut, no fee. They know the name now: Glass.', '#7be08a');
       for (const r of this.crew) { r.lines = ["Glass. Right.", "Royce says leave you be.", "Don't look at him."]; r.mood = 0; }
       setTimeout(() => g.wren?.text('Wren', 'royce called me. said "tell glass we\'re square". who is glass. what did you do'), 5000);
@@ -164,6 +166,28 @@ export class Missions {
     for (const n of this.crew) { if (n.state === 'dead') continue; n.gunman = true; n.home = null; n.state = 'gunman'; n.shootT = 0.6 + Math.random() * 1.2; this.g.citizens.say(n, pick(['Light him up!', "Don't let him walk!", 'GET HIM!']), 2); }
     g.citizens.panic(this.home, null, 40);
     g.hud.toast('The Saltline crew are coming for you', '#ff5a5a');
+  }
+  isDown(n) { return !n || !this.g.citizens.list.includes(n) || n.state === 'dead' || n.state === 'down' || n.downed || n.hp <= 0; }
+  // Royce goes down. He doesn't get up. His crew run. (Everyone thinks he's dead. He isn't: later, a wheelchair, a bell.)
+  royceDown(boss) {
+    const g = this.g, S = g.story, C = g.citizens; this.royceGone = true;
+    const rest = this.crew.filter(n => n !== boss && !this.isDown(n));
+    for (const n of rest) { n.gunman = false; n.rival = false; n.state = 'flee'; n.stateT = 12; n.target = null; C.say(n, pick(['ROYCE! …He\'s not moving. GO, GO!', "He killed Royce! RUN!", "Royce? ROYCE?"]), 2.6); }
+    setTimeout(() => { for (const n of rest) if (C.list.includes(n)) C.remove(n); }, 14000);
+    const at = boss ? (boss.human.ragdoll ? V(boss.human.ragdoll.pelvis.x, 0, boss.human.ragdoll.pelvis.z) : C.pos(boss)) : this.home, cam = at.clone().add(V(2.6, 1.8, 2.6));
+    if (!S.cine) {
+      S.play([
+        S.call(() => { g.timeScale = 0.35; }),
+        S.shotS(cam, cam.clone().add(V(-0.6, -0.3, -0.4)), at.clone().setY(at.y + 0.4), null, 3.2, 40),
+        S.call(() => { g.timeScale = 1; }),
+        S.line('…', '<i>Royce doesn\'t get up.</i>', 2.4),
+      ]);
+      S.onDone = () => { g.timeScale = 1; };
+    }
+    g.hud.toast('Royce is down. The Saltline crew scatter.', '#ff9f43');
+    setTimeout(() => g.wren?.text('Wren', "you killed royce. the whole island knows. who ARE you"), 5000);
+    setTimeout(() => g.wren?.text('Wren', "come home. please. just come home"), 11000);
+    this.finish('fight');
   }
   // hit one, aim at one, shoot near them: it's a fight
   provoked(n) { if (this.id === 'rivals' && !this.fight && n?.rival) this.startFight(); }
@@ -231,13 +255,11 @@ export class Missions {
     if (this.id === 'rivals') {
       if (!this.crew.length && g.story?.phase === 'free') this.spawnCrew();
       if (this.fight) {
-        const up = this.crew.filter(n => n.state !== 'dead' && g.citizens.list.includes(n) && !n.downed && n.hp > 0);
+        const up = this.crew.filter(n => !this.isDown(n));
         for (const n of up) if (!n.human.ragdoll && n.state !== 'gunman' && n.state !== 'blind' && !(n.stunT > 0)) { n.state = 'gunman'; n.home = null; }
-        if (!up.length) {
-          g.hud.toast('The Saltline crew are done.', '#7be08a');
-          setTimeout(() => g.wren?.text('Wren', "chef. CHEF. the whole island heard that. are you ok?? come home"), 4000);
-          this.finish('fight');
-        }
+        const boss = this.crew.find(n => n.boss);
+        if (boss && this.isDown(boss) && !this.royceGone) this.royceDown(boss);
+        else if (!up.length && !this.royceGone) this.royceDown(boss);
       } else if (!this.fight) {
         // pull a gun on them (or come at them) and it starts anyway
         const W = g.weapons, pp = g.player.pos;
