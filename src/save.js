@@ -102,12 +102,12 @@ export class Save {
     const g = this.g, S = g.story, pl = g.player, W = g.wren;
     S.phase = 'free'; S.locked = false; S.cine = false; document.body.classList.remove('cine');
     S.spawnWren(); S.wren.script = null; S.wrenHome(true);
-    g.apt.wrenBed.visible = true;
     const w = s.wren || {};
     W.unlock();
     for (const k of Object.keys(w)) if (k !== 'ideas') W[k] = w[k];
     if (w.ideas) { W.ideas.done = new Set(w.ideas.done || []); W.ideas.price = !!w.ideas.price; if (W.ideas.done.has('site')) W.siteBuyer(); }
     W.where = 'home';
+    g.parkVanAtWren?.(); // (Kit's van: always back on Wren's drive)
     const at = vec(s.at) || g.apt.spawn;
     pl.respawn(at, s.yaw ?? 0); g.cam.pitch = 0.15;
   }

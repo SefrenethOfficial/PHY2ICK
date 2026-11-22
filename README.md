@@ -19,6 +19,9 @@ It's a **dense** city, not an open one: every gap between the places on the map 
 - **Downtown**: A Rival Mini Mart, the Indoor Pool, a row of shops, Mini Mart, Visitor Info, **Town Square** (a stone plaza with a statue, trees, benches and lamps), the Pawn Shop and the Grocery (with an alley between them), the **Diner** (long, red, chrome, a neon sign) and its car park.
 - **The south**: the Spa, **Fairview Heights** (where you live), the Convenience Store, the **construction site** (a half-built multi-storey car park you can drive or climb up, a crane, scaffolding, site hoarding), the **abandoned car park** (broken, graffitied, a burnt-out car), **Albuquerque Boiled Turkey** (with a drive-thru window and menu board on the loop road round it), its car park, the hedge, and the beach's washrooms, reception and car park.
 
+### Willow Bank (the suburb)
+Out west, past the west block: carry on along the north avenue (it becomes Willow Road), or take any of the west block's cross streets. Six quiet streets (Willow Road, Larkspur Avenue, Bay Street, Fern Street, Hollis Street) with lawns instead of paving, lined with family homes: lap siding in soft colours, pitched shingle roofs, porches, shuttered windows, garages and driveways, mailboxes, hedges, front-yard trees and back-yard fences. Traffic drives through and people walk about. A green sign welcomes you in. Wren's house is the one on Larkspur Avenue with the sage siding and the red door; it's on the map (`M`).
+
 ### The Dry (the desert)
 North of the island, over a causeway at the top of the main north–south road: a desert about 2 km long with the sea on three sides. Red and tan flats with low dunes, sagebrush, saguaro cacti and boulders; flat-topped **mesas** in bands of red, orange and cream, a few out in the middle and a long line of them down each side and along the top, with the sea behind; a two-lane **highway** up the middle with telegraph poles and sagging wires beside it, two side roads (east towards the big mesas, west into the flats) and a few dirt tracks. A sign at the end of the causeway: *THE DRY · NO SERVICES NEXT 60 MILES · CARRY WATER*.
 
@@ -63,7 +66,9 @@ At the hospital he goes in alone. An hour later he comes out, and you put a hand
 In the van: Kit's hoodie, a burnt pan, a notebook that says **MERIDIAN**. Kit was making it. He made what you two took. His phone won't stop buzzing with people who want more, the funeral needs paying for, and a man called **Pratt** has left four voicemails about what Kit owed him. The deal: **you cook, Wren sells**, and Vic never finds out. There's enough under the sink for one batch, but not here: people walk their dogs on this beach. Drive the van out to **the Dry** with Wren (cook in town and someone smells it and calls the police), and cook there while Wren leans on the van and talks to you through the wall. Give her the bags and she moves in with you (a mattress on your floor in 1E) and sells them to Kit's buyers, a bag at a time, while you're out. Bring her more at home, or take her along (hold `E` on her).
 
 ### Wren
-Once he's moved in, Wren is your partner, not a passer-by: he never calls the police on you, doesn't run off or put his hands up, and can't be mugged, grabbed or put in a boot. He reacts in his own words instead: to fights, guns, stolen cars, chases, frisks, your driving, your cooking.
+After the first cook Wren goes back to **his mum's old house in Willow Bank** (Larkspur Avenue, out west): that's "home" for him now, not your flat. He's out the front of it when he's not out selling. From then on, **Kit's van always ends up on his drive**: when you reload the page, and, a little while after it's been wrecked (once you're not looking), a fresh one with the same plate and paint.
+
+Wren is your partner, not a passer-by: he never calls the police on you, doesn't run off or put his hands up, and can't be mugged, grabbed or put in a boot. He reacts in his own words instead: to fights, guns, stolen cars, chases, frisks, your driving, your cooking.
 - **For now it's business.** Wren needs you to cook, and he doesn't have to like you: he's short with you, keeps his distance and doesn't do favours. (It changes later.)
 - **Trust** (Cold, Wary, Working, Solid, Partners) goes up when you talk to him, take the bags to him yourself, answer his texts and cook clean batches; it drops when you commit crimes in front of him, get his chased, hurt him, ignore him or snap at him. Closer, he says more (Kit, Vic, Pratt), texts you first, and gets better prices from his buyers.
 - **Hold `E` on him**: *Talk* (is he good, Kit, Vic, the business, Pratt, anything else), *Give him the bags*, *Share your food*, *Come with me* / *Head home*, *Thank him* / *Say sorry*, *Snap at him*.
@@ -289,6 +294,7 @@ src/
   car.js        the car: raycast-vehicle physics, the body and cabin, gauges, the mirror
   citizens.js   people: walking the sidewalks, crossing roads, shopping, benches, moods, memory, what they say
   wheel.js      the interaction wheel
+  suburb.js     Willow Bank: the land, the streets, the houses, Wren's house
   bigmap.js     the full map (M): zoom, pan, places of interest, click for a waypoint
   hud.js        money, health, the minimap, prompts, messages, speech bubbles, the waypoint, the speedo
   style.css     the HUD and the title screen

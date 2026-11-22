@@ -129,7 +129,7 @@ export const TEXTS = {
   come: [["omw. 10 mins. don't move", 'give me a minute, getting a taxi'], ["omw chef. don't move", 'taxi. 5 mins. hide the blue']],
   comeClose: [["on my way. have them ready. i'm not waiting around"], ['coming chef. have them bagged. i\'m not hanging about']],
   busy: [["can't rn. bring them to me? i'm at "], ["can't rn chef. bring em? i'm at "]],
-  where: { home: ["i'm at home. door's open", 'home. the door\'s open'], pier: ['pier. by the railings. wear something normal'], club: ["outside the nightclub. the bouncer's fine, he knew kit"], beach: ['beach, by the van. be quick'] },
+  where: { home: ["at mum's. willow bank. larkspur ave", 'home. willow bank. knock'], pier: ['pier. by the railings. wear something normal'], club: ["outside the nightclub. the bouncer's fine, he knew kit"], beach: ['beach, by the van. be quick'] },
   sold: [['sold out. $', 'cleared the lot. $'], ['sold out chef!!! blue magic. $', 'cleared the lot. $']],
   some: [['sold ', 'another '], ['sold ', 'moved ']],
   out: [['out. need more when you can', 'they keep asking. cook?'], ['CHEF. the people are hungry. cook', "we're out. this is a crisis"]],

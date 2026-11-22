@@ -1,6 +1,7 @@
 // The island: land, sea, beach, pier, roads, sidewalks, bridges, and every place on the map.
 import * as THREE from 'three';
 import polygonClipping from 'polygon-clipping';
+import { SUBURB_RING, SUBURB_ROADS, SUBURB_X, buildSuburb } from './suburb.js';
 import { S, toX, toZ, LAND, LAND_BULGE, SAND, PIER, ROADS, PLACES, NORTH_X, NORTH_Y, NORTH_LINKS } from './map.js';
 import { canvasTex, noise, rng, texPair, drawAsphalt, drawPave } from './world.js';
 import { CityBuilder, worldUV } from './buildings.js';
@@ -58,7 +59,7 @@ export function buildCity(g) {
   g.workers = []; // (shopkeepers, from the interiors) // footprints: what's built on (rings), so lamps and people keep off it
 
   // ================= land, sea wall, beach, sea =================
-  const landMP = polygonClipping.union(...LAND.map(p => [close(p.map(P))]), [ellipseRing(LAND_BULGE)]);
+  const landMP = polygonClipping.union(...LAND.map(p => [close(p.map(P))]), [ellipseRing(LAND_BULGE)], [SUBURB_RING]); // (and Willow Bank, out west)
   const inLand = (x, z) => inMP(x, z, landMP);
   {
     const grassT = canvasTex(512, 512, (c, w, h) => {
@@ -115,10 +116,11 @@ export function buildCity(g) {
     for (const px of NORTH_X) addLine(P([px, 0]), P([px, 280]));
     for (const [px, y0, y1] of NORTH_LINKS) addLine(P([px, y0]), P([px, y1]));
   }
+  for (const [x0, z0, x1, z1] of SUBURB_ROADS) segs.push({ a: [x0, z0], b: [x1, z1] }); // (Willow Bank's streets)
   for (const s of segs) { s.L = Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]); s.u = [(s.b[0] - s.a[0]) / s.L, (s.b[1] - s.a[1]) / s.L]; s.n = [-s.u[1], s.u[0]]; s.axis = Math.abs(s.u[0]) > 0.99 ? 'x' : Math.abs(s.u[1]) > 0.99 ? 'z' : null; }
   const roadMP = polygonClipping.union(...segs.map(s => [rect(s.a, s.b, RW / 2, RW / 2)]));
   const walkMP = polygonClipping.intersection(polygonClipping.difference(polygonClipping.union(...segs.map(s => [rect(s.a, s.b, RW / 2 + SW, RW / 2 + SW)])), roadMP), landMP);
-  const paveMP = polygonClipping.intersection(polygonClipping.union(...segs.map(s => [rect(s.a, s.b, RW / 2 + 34, RW / 2 + 20)])), landMP);
+  const paveMP = polygonClipping.difference(polygonClipping.intersection(polygonClipping.union(...segs.map(s => [rect(s.a, s.b, RW / 2 + 34, RW / 2 + 20)])), landMP), [[[SUBURB_X, -300], [-900, -300], [-900, 300], [SUBURB_X, 300], [SUBURB_X, -300]]]); // (Willow Bank: lawns, not paving)
   const inRoad = (x, z) => inMP(x, z, roadMP);
   g.inRoad = inRoad;
   {
@@ -581,6 +583,9 @@ export function buildCity(g) {
     { const x = toX(SAND.cx), z = toZ(SAND.cy + SAND.ry * 0.55); const tw = std(0xe8e2d4, 0.8); for (const [dx, dz] of [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]]) box(0.12, 2.6, 0.12, x + dx, 1.1, z + dz, tw, { collide: false }); box(2.2, 0.15, 2.2, x, 2.45, z, tw); box(2.4, 1.2, 0.08, x, 3.1, z - 1.1, std(0xd8344a, 0.7), { collide: false }); places.beach = { name: 'Palm Tree Beach', pos: V(x, 0, z - 4) }; }
   }
 
+  // ================= Willow Bank: the suburb out west, Wren's house in it =================
+  g.wrenHouse = buildSuburb(g, { inLand, blockRect, footprints, places, RW, SW }).wren;
+
   // ================= infill: pack every gap with buildings =================
   {
     const segDist = (x, z) => { let best = Infinity; for (const s of segs) { const dx = x - s.a[0], dz = z - s.a[1]; let t = dx * s.u[0] + dz * s.u[1]; t = Math.max(0, Math.min(s.L, t)); const px = s.a[0] + s.u[0] * t - x, pz = s.a[1] + s.u[1] * t - z; best = Math.min(best, Math.hypot(px, pz)); } return best; };
@@ -595,6 +600,7 @@ export function buildCity(g) {
       const d = segDist(x, z); near[i * NZ + j] = d;
       if (d < need) continue;
       if (z > toZ(578) && x > toX(140) && x < toX(660)) continue; // (keep the beach front open)
+      if (x < SUBURB_X) continue; // (Willow Bank has its own houses)
       free[i * NZ + j] = 1;
     }
     const cell = (x, z) => [Math.floor((x - minX) / C), Math.floor((z - minZ) / C)];

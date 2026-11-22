@@ -224,6 +224,32 @@ class Game {
     });
   }
 
+  // Kit's van, back on Wren's drive (after a reload, or a while after it's been wrecked): the same plate, the same paint
+  parkVanAtWren() {
+    const h = this.wrenHouse; if (!h) return;
+    let c = this.camper; const old = c && c.wrecked ? c : null;
+    const q = new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), h.driveYaw);
+    if (!c || old) {
+      c = new Car(this, h.drive.clone().setY(0.75), h.driveYaw, 0xe6dcc0, 'Camper', { camper: true }); this.cars.push(c); this.camper = c;
+      if (old) { if (old.plate) c.setPlate?.(old.plate); c.owned = old.owned; this.scene.remove(old.group); this.world.removeVehicleController(old.vc); this.world.removeRigidBody(old.body); this.cars.splice(this.cars.indexOf(old), 1); if (old.kitchen) this.wren?.paintVan(); }
+    } else {
+      if (this.player.car === c) return;
+      const p = h.drive; c.body.setTranslation({ x: p.x, y: 0.75, z: p.z }, true); c.body.setRotation(q, true); c.body.setLinvel({ x: 0, y: 0, z: 0 }, true); c.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      c.group.position.set(p.x, 0.75, p.z); c.group.quaternion.copy(q); c.group.updateMatrixWorld(true);
+    }
+    c.locked = !this.drugs.vanKeys;
+  }
+  // a wrecked van comes back on Wren's drive (once the story's let it go, and you're not looking)
+  vanWatch(dt) {
+    const c = this.camper; if (!c || !c.wrecked || this.story?.phase !== 'free' || !this.wrenHouse) { this.vanBackT = 0; return; }
+    if (!this.vanBackT) this.vanBackT = 25;
+    if ((this.vanBackT -= dt) > 0) return;
+    const d = this.wrenHouse.drive, cam = this.camera.position;
+    const seen = (p) => cam.distanceTo(p) < 90 && this.citizens._fr?.containsPoint(p.clone().setY(1));
+    if (seen(c.pos) || seen(d)) { this.vanBackT = 3; return; }
+    this.vanBackT = 0; this.parkVanAtWren(); this.hud.toast("Kit's van is back on Wren's drive, in Willow Bank", '#5fd0ff');
+  }
+
   // a point pulled in to the kerb of the nearest road (so a parked car's out of the traffic)
   kerbSnap(p) {
     let best = null, bd = 12;
@@ -537,6 +563,7 @@ class Game {
     this.dealers?.update(rdt);
     this.inv?.update();
     this.bigmap?.update(rdt);
+    this.vanWatch?.(rdt);
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);

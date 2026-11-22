@@ -24,7 +24,7 @@ const PLACE_KIND = {
   'paul badfella, the law firm': 'service', "putin's ritz": 'service',
   'the skatepark': 'place', 'the park': 'place', 'the playground': 'place', 'the fountain': 'place', 'the nightclub': 'place', 'the bourke office high rise': 'place',
   'the little park': 'place', 'town square': 'place', 'the construction site': 'place', 'the abandoned car park': 'place', 'the beach washrooms': 'place',
-  'beach': 'place', 'pier': 'place', 'the sewer entrance': 'place', 'the vegetable plot': 'place', 'cheap house': 'place',
+  'beach': 'place', 'pier': 'place', 'willow bank': 'place', 'the sewer entrance': 'place', 'the vegetable plot': 'place', 'cheap house': 'place',
 };
 const title = (s) => s.replace(/(^|\s)([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/^The /, 'The ');
 
@@ -75,6 +75,7 @@ export class BigMap {
     add('place', 'place', 'North Quay', { x: (DOCK.x0 + DOCK.x1) / 2 - 80, z: (DOCK.z0 + DOCK.z1) / 2 });
     if (g.missions) add('place', 'place', 'Saltline Apartments', g.missions.home);
     const home = g.places?.['fairview heights']; if (home) add('you', 'home', 'Home · Fairview Heights 1E', home.pos, { always: true });
+    if (g.wrenHouse) add('people', 'home', "Wren's house", g.wrenHouse.door, { always: true });
     if (g.camper && !g.camper.wrecked) add('you', 'van', "Kit's van", g.camper.pos, { always: true });
     const W = g.wren; if (W?.alive && W.n && !W.n.following && W.n.state !== 'seated') add('people', 'W', 'Wren', g.citizens.pos(W.n), { always: true });
     for (const n of g.dealers?.list || []) if (g.citizens.list.includes(n) && n.state !== 'dead') add('people', '$', `${n.name} · dealer`, g.citizens.pos(n));
@@ -135,7 +136,7 @@ export class BigMap {
     x.drawImage(hud.mapC, sx(X0), sz(Z0), hud.mapC.width / k * s, hud.mapC.height / k * s);
     // area names
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    for (const [t, X, Z] of [['THE DRY', 160, -1300], ['HALYARD', 150, 60]]) { x.font = `800 ${Math.round(14 + s * 14)}px system-ui, sans-serif`; x.fillStyle = 'rgba(255,255,255,.22)'; x.fillText(t, sx(X), sz(Z)); }
+    for (const [t, X, Z] of [['THE DRY', 160, -1300], ['HALYARD', 150, 60], ['WILLOW BANK', -540, 0]]) { x.font = `800 ${Math.round(14 + s * 14)}px system-ui, sans-serif`; x.fillStyle = 'rgba(255,255,255,.22)'; x.fillText(t, sx(X), sz(Z)); }
     // the police: the search area, their cars
     const Pz = g.police;
     if (Pz?.stars && !Pz.seen && Pz.lastKnown) { const lk = Pz.lastKnown; x.fillStyle = Math.floor(performance.now() / 400) % 2 ? 'rgba(220,40,40,.28)' : 'rgba(40,80,230,.28)'; x.beginPath(); x.arc(sx(lk.x), sz(lk.z), (70 + Pz.stars * 25) * s, 0, 7); x.fill(); }

@@ -132,13 +132,13 @@ export class WrenLife {
     if (w === 'pier' && P.pier) return P.pier.pos.clone().add(V(3, 0, -2)).setY(0.05);
     if (w === 'club' && P['the nightclub']) return P['the nightclub'].pos.clone().add(V(2.5, 0, 1.5)).setY(0.05);
     if (w === 'beach' && g.camper && !g.camper.wrecked) return g.camper.trunkPoint(3.2).setY(0.05);
-    return g.apt.wrenSpot.clone();
+    return (g.wrenHouse?.door || g.apt.wrenSpot).clone(); // (home: out the front of his mum's old house, in Willow Bank)
   }
   placeAt(w) {
     const n = this.n, p = this.spot(w); this.where = w;
     n.human.resetPose(); n.script = null; n.following = false;
     n.body.setTranslation({ x: p.x, y: p.y + 1.0, z: p.z }, true); n.body.setNextKinematicTranslation({ x: p.x, y: p.y + 1.0, z: p.z });
-    n.state = 'post'; n.home = p.clone(); n.homeYaw = w === 'home' ? this.g.apt.wrenYaw : Math.random() * 6.28;
+    n.state = 'post'; n.home = p.clone(); n.homeYaw = w === 'home' ? (this.g.wrenHouse ? this.g.wrenHouse.doorYaw : this.g.apt.wrenYaw) : Math.random() * 6.28;
   }
   seen() { const n = this.n, g = this.g, q = g.citizens.pos(n); return g.camera.position.distanceTo(q) < 50 && g.citizens._fr?.containsPoint(q.clone().add(V(0, 1, 0))); }
   away() { // off to wherever he's working (or home): out of sight, he's just there

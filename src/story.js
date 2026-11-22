@@ -524,29 +524,29 @@ export class Story {
     if (id === 'wrenhome') { this.wrenHome(); C.say(n, "I'll see you at home.", 2.4); return true; }
     return true;
   }
-  // after the first batch: he takes it, and he's staying at yours
+  // after the first batch: he takes it, and goes back to his mum's old house in Willow Bank
   moveIn() {
     const g = this.g, W = this.wren;
-    this.phase = 'movingIn'; this.objective(null);
+    this.phase = 'movingIn'; this.objective(null); this.waypoint(null);
     if (g.van.leaning === W) g.van.leaning = null;
     this.play([
       this.call(() => { this.shot = null; }),
       this.line('WREN', "I'll text his people tonight. Same spots he used. Same prices. No, better prices.", 3.8),
-      this.line('WREN', "And I'm crashing at yours. Not because I like you. I just can't go back to his flat.", 3.6),
+      this.line('WREN', "I'm going back to Mum's old place. Willow Bank. I can't stay at his flat, and I'm not staying at yours.", 3.8),
       this.line('WREN', "You get your share when it sells. Come find me when you've got more. Don't make me chase you.", 3.4),
     ]);
     this.onDone = () => {
       this.phase = 'free'; W.storyLean = false;
-      g.apt.wrenBed.visible = true; this.wrenHome(true); g.wren.unlock();
-      g.hud.toast("Wren's selling for you. Bring him more bags at home (1E), or take him along.", '#5fd0ff');
+      this.wrenHome(true); g.wren.unlock();
+      g.hud.toast("Wren's selling for you. Bring him more bags at his house in Willow Bank (out west: M for the map), or take him along.", '#5fd0ff');
       setTimeout(() => g.missions?.start('cooks'), 4500);
     };
   }
-  // Wren goes back to 1E (out of sight, he's just there)
+  // Wren goes home to Willow Bank (out of sight, he's just there)
   wrenHome(now) {
-    const g = this.g, W = this.wren, h = g.apt.wrenSpot;
+    const g = this.g, W = this.wren, h = g.wrenHouse?.door || g.apt.wrenSpot, hy = g.wrenHouse ? g.wrenHouse.doorYaw : g.apt.wrenYaw;
     W.following = false; W.script = null;
-    const put = () => { W.human.resetPose(); W.body.setTranslation({ x: h.x, y: h.y + 1.0, z: h.z }, true); W.body.setNextKinematicTranslation({ x: h.x, y: h.y + 1.0, z: h.z }); W.state = 'post'; W.home = h.clone(); W.homeYaw = g.apt.wrenYaw; };
+    const put = () => { W.human.resetPose(); W.body.setTranslation({ x: h.x, y: h.y + 1.0, z: h.z }, true); W.body.setNextKinematicTranslation({ x: h.x, y: h.y + 1.0, z: h.z }); W.state = 'post'; W.home = h.clone(); W.homeYaw = hy; };
     if (now) { put(); return; }
     W.state = 'idle'; W.stateT = 99; // (he heads off; a few seconds later he's home)
     setTimeout(() => { if (!W.following && W.state !== 'dead') put(); }, 4000);
@@ -591,9 +591,9 @@ export class Story {
       else if (!D.cook && D.solvent < 1 && D.salts < 1 && D.count === 0) { D.solvent = 1; D.salts = 1; g.hud.toast("There's one more lot under the sink. Try again.", '#5fd0ff'); }
     }
     if (this.phase === 'free' && W) {
-      // (for now, if Wren dies he's patched up at the hospital and back at yours a minute later)
+      // (for now, if Wren dies he's patched up at the hospital and back home a minute later)
       if ((W.state === 'dead' || !g.citizens.list.includes(W)) && !this.wrenBackT) this.wrenBackT = 60;
-      if (this.wrenBackT && (this.wrenBackT -= dt) <= 0) { this.wrenBackT = 0; if (g.citizens.list.includes(W)) g.citizens.remove(W); this.spawnWren(); this.wren.script = null; this.wrenHome(true); g.hud.toast("Wren's out of hospital. He's back at yours.", '#ffb27a'); }
+      if (this.wrenBackT && (this.wrenBackT -= dt) <= 0) { this.wrenBackT = 0; if (g.citizens.list.includes(W)) g.citizens.remove(W); this.spawnWren(); this.wren.script = null; this.wrenHome(true); g.hud.toast("Wren's out of hospital. He's back home in Willow Bank.", '#ffb27a'); }
     }
   }
 }
