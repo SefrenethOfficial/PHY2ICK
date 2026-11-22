@@ -525,6 +525,7 @@ export class Citizens {
     if (n.home && g.food?.venue(n) && !n.rival) return g.food.options(n);
     const so = n.home && g.shopping?.options(n); if (so) return so;
     if (n.home && n.shop === "Rusty's") return [{ id: 'talk', label: 'Talk' }, { id: 'rusty', label: 'What do you do?' }, { id: 'compliment', label: 'Compliment' }, { id: 'insult', label: 'Insult' }];
+    if (n.crewKey && g.crew) return g.crew.options(n);
     if (n.dealer && g.dealers) return g.dealers.options(n);
     if (n.rival && g.missions) return g.missions.options(n);
     if (n.tenant && g.tenants) return g.tenants.options(n);
@@ -573,6 +574,7 @@ export class Citizens {
     if (id === 'rusty') { this.say(n, "Drive it in, stop in the bay, press E. Register it, respray it, new plates. Cash.", 4); return; }
     if (n.storyNpc && g.story?.act(n, id)) return;
     if (n.rival && g.missions?.act(n, id)) return;
+    if (n.crewKey && g.crew?.act(n, id)) return;
     if (n.dealer && g.dealers?.act(n, id)) return;
     const mood0 = n.mood;
     if (n.tenant && g.tenants?.act(n, id)) { n.mood = THREE.MathUtils.clamp(n.mood, -100, 100); g.tenants.levelCheck(n, mood0); return; }

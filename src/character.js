@@ -138,6 +138,8 @@ export class Human {
       add('head', box(0.1, 0.085, 0.07, 0.025), mk, 0, HY + HC - 0.06, 0.112);
       for (const sx of [-1, 1]) add('head', new THREE.CylinderGeometry(0.038, 0.038, 0.045, 14), 0x3a3e40, sx * 0.07, HY + HC - 0.075, 0.12, { rz: Math.PI / 2, ry: sx * 0.5 });
     }
+    // a beard (Gopher): round the jaw and the chin, in the hair colour
+    if (L.beard) { const bc = new THREE.Color(L.hair).multiplyScalar(0.85).getHex(); add('head', box(0.17, 0.085, 0.08, 0.035), bc, 0, HY + HC - 0.078, 0.06); for (const sx of [-1, 1]) add('head', box(0.035, 0.1, 0.1, 0.015), bc, sx * 0.1, HY + HC - 0.04, 0.03); add('head', box(0.07, 0.016, 0.02, 0.006), bc, 0, HY + HC - 0.028, 0.114); }
     // sunglasses (Vic)
     if (L.shades) { const dark = 0x0b0c0e; for (const sx of [-1, 1]) add('head', box(0.07, 0.042, 0.02, 0.008), dark, sx * 0.044, HY + HC + 0.006, 0.113); add('head', box(0.03, 0.012, 0.012, 0.004), dark, 0, HY + HC + 0.016, 0.118); for (const sx of [-1, 1]) add('head', box(0.008, 0.012, 0.11, 0.003), dark, sx * 0.083, HY + HC + 0.014, 0.06); }
     // hair

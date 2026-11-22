@@ -36,6 +36,7 @@ export class Missions {
       const ch = document.getElementById('chapter'); ch.innerHTML = `<span>Day ${this.day}</span><small>The next morning.</small>`; ch.classList.add('on');
       setTimeout(() => ch.classList.remove('on'), 2200);
       if (g.wren?.unlocked && Math.random() < 0.6) setTimeout(() => g.wren.text('Wren', pick(['you up? buyers are waiting', 'new day. new bags?', "we're running low. cook today", 'you cooking or what'])), 3500);
+      g.crew?.onNewDay();
       g.saver?.save();
     });
   }
@@ -54,6 +55,7 @@ export class Missions {
   }
   // what shows at the top of your phone as RECOMMENDED (a suggestion, not an order)
   recommended() {
+    const cr = this.g.crew?.recommended(); if (cr) return cr;
     if (this.id === 'mask') return { title: 'The Face', text: 'Lou at the <b>Pawn Shop</b> has something for you. $250.' };
     if (this.id !== 'cooks') return null;
     return { title: 'Three More', text: `Cook three batches (${this.count}/3). One a day${this.cookedToday ? ': <i>done for today, sleep in 1E</i>' : ''}. Out in <b>the Dry</b>, or the police smell it.` };
@@ -218,7 +220,7 @@ export class Missions {
       S.line('LOU', "Do me a favour. Don't wear it in here again.", 2.6),
     ]);
     S.onDone = () => {
-      this.id = 'done'; g.hud.toast("The gold mask: K to put it on or take it off. Cops who see it will open fire. The dealers will know who you are.", '#ffd23f');
+      this.id = 'done'; g.crew?.arm(); g.hud.toast("The gold mask: K to put it on or take it off. Cops who see it will open fire. The dealers will know who you are.", '#ffd23f');
       g.saver?.save();
     };
   }

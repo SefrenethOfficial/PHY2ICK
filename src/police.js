@@ -86,7 +86,7 @@ export class Police {
   witnessesOf(at, loud) {
     const g = this.g, C = g.citizens, crouch = g.player.crouch, R = loud ? 40 : crouch ? 13 : 30, to = at.clone().add(V(0, 1.1, 0)), out = [];
     for (const n of C.list) {
-      if (n.cop || n.rival || n.dealer || n.companion || n.storyNpc || n.state === 'dead' || n.state === 'seated' || n.state === 'cycling' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
+      if (n.cop || n.rival || n.dealer || n.crewKey || n.companion || n.storyNpc || n.state === 'dead' || n.state === 'seated' || n.state === 'cycling' || n.state === 'trunk' || n.human.ragdoll || n.hostage || n.undercover) continue;
       const q = C.pos(n), d = q.distanceTo(at); if (d > R || d < 0.3) continue;
       const f = V(Math.sin(n.yaw), 0, Math.cos(n.yaw)), dir = at.clone().sub(q).setY(0).normalize();
       if (!loud && d > 5 && f.dot(dir) < -0.25) continue; // (behind them, and quiet)

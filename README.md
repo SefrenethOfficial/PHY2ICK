@@ -89,6 +89,13 @@ After Saltline (however it went), Lou at the **Pawn Shop** texts: he's got somet
 - **The street dealers** know who that is: they turn and stare (*"…That's him. Glass."*). For now that's all; later they'll respect it.
 - **Wren**, the first time he sees it: *"Is that Glass? Is that what you are now?"*
 
+### Low Profile (Wren's crew)
+A day after you get the mask, Wren texts: come to his, **no mask**, there are people you need to meet (RECOMMENDED · Low Profile). In his front yard he introduces his friends from school, his idiots: **Twig** (very tall, a beanie, barely talks; secretly plays classical piano), **Gopher** (big, bearded, never stops talking about *Star Voyage*, the sci-fi show he's writing in his head) and **Dice** (the youngest, curly hair, a loud orange shirt, far too excited). The rules: they sell, Wren runs them, you cook, you stay off the street.
+- They take corners: Twig at the **Skatepark**, Gopher at the **Pier**, Dice outside the **Nightclub** (on the map, `M`). Hold `E` on one to hand him up to 3 bags, ask how business is, tell him to keep it quiet, or just chat.
+- Each sells a bag every minute or so while he has stock: you get about half (Wren and the crew take theirs).
+- The job: **three clean days**, days you never get a star (the mask, seen by a cop, will do it). The phone tracks it, and each new morning tells you whether yesterday counted.
+- Hurt one of them and Wren will know. They're back on their corners the next morning.
+
 ### Home: Fairview Heights
 Your room is **1E**, on the first floor of your building at **Fairview Heights**, on the south avenue. It's not big: a single bed under the window (which looks out over the street), a desk with a little TV showing Channel 6, a wardrobe, a mini fridge, a couple of boxes you haven't unpacked. Out the door is a corridor with four more flats, and a stair down to the lobby and out the front door. Your car's parked outside.
 
@@ -303,6 +310,7 @@ src/
   citizens.js   people: walking the sidewalks, crossing roads, shopping, benches, moods, memory, what they say
   wheel.js      the interaction wheel
   suburb.js     Willow Bank: the land, the streets, the houses, Wren's house
+  crew.js       Low Profile: Twig, Gopher and Dice, their corners, their sales, the clean days
   mask.js       the gold mask (Glass): the model, K, the cops and the dealers
   bigmap.js     the full map (M): zoom, pan, places of interest, click for a waypoint
   hud.js        money, health, the minimap, prompts, messages, speech bubbles, the waypoint, the speedo

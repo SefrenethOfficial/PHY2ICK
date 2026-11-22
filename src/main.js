@@ -35,6 +35,7 @@ import { Bikes } from './bikes.js';
 import { Inventory } from './inventory.js';
 import { BigMap } from './bigmap.js';
 import { Mask } from './mask.js';
+import { Crew } from './crew.js';
 import { Food } from './food.js';
 import { Icons } from './icons.js';
 import { Dealers } from './dealers.js';
@@ -65,6 +66,7 @@ class Game {
     this.inv = new Inventory(this);
     this.bigmap = new BigMap(this);
     this.mask = new Mask(this);
+    this.crew = new Crew(this);
     this.icons = new Icons(); this.food = new Food(this);
     this.blood = new Blood(this);
     this.fx = new Fx(this); this.sfx = new Sfx(this); this.pickups = new Pickups(this);
@@ -569,6 +571,7 @@ class Game {
     this.bigmap?.update(rdt);
     this.vanWatch?.(rdt);
     this.mask?.update(dt > 0 ? rdt : 0);
+    if (dt > 0) this.crew?.update(rdt);
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);
