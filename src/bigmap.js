@@ -80,6 +80,7 @@ export class BigMap {
     const W = g.wren; if (W?.alive && W.n && !W.n.following && W.n.state !== 'seated') add('people', 'W', 'Wren', g.citizens.pos(W.n), { always: true });
     for (const c of g.crew?.pois() || []) add('people', 'C', c.name, c.pos);
     for (const n of g.dealers?.list || []) if (g.citizens.list.includes(n) && n.state !== 'dead') add('people', '$', `${n.name} · dealer`, g.citizens.pos(n));
+    if (g.lucky?.stage === 'meet') add('job', '!', 'Lucky Royce (Rusty\'s lot)', g.lucky.lot(), { always: true });
     if (g.missions?.id === 'rivals') add('job', '!', 'Saltline: see Royce', g.missions.home, { always: true });
     if (g.waypoint) add('job', '!', 'Waypoint: ' + g.waypoint.name, g.waypoint.pos, { always: true, wp: true });
     return out;

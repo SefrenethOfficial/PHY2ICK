@@ -16,7 +16,7 @@ const el = (id) => document.getElementById(id);
 const SKINS = [0xf2d0b4, 0xe4b894, 0xd2a07a, 0xb98258, 0x96643e, 0x744a2c, 0x4e301e];
 const HAIRS = [0x16100c, 0x2a1d14, 0x5a3a22, 0x8a5a30, 0xc8a060, 0x8a2e1a, 0x9a9a9a];
 const STYLES = [['short', 'Short'], ['buzz', 'Buzzed'], ['curly', 'Curly'], ['afro', 'Afro'], ['long', 'Long'], ['ponytail', 'Ponytail'], ['bob', 'Bob'], ['bald', 'Bald']];
-const WHO = { WREN: '#ffb27a', YOU: '#9ad0ff', 'CHANNEL 6': '#ff6a5a', KIT: '#7be08a', VIC: '#ff8a9a', PAUL: '#4fd8c8', 'PAUL (TV)': '#ffe14a', DICE: '#ff9f43', TWIG: '#b8c4d8', GOPHER: '#c8a86a', ROYCE: '#ff6a5a', LOU: '#d8c878', ERNIE: '#c8e86a', CHERYL: '#e8a0c8' };
+const WHO = { WREN: '#ffb27a', YOU: '#9ad0ff', 'CHANNEL 6': '#ff6a5a', KIT: '#7be08a', VIC: '#ff8a9a', PAUL: '#4fd8c8', LUCKY: '#ff4a6a', SPUD: '#a8b8c8', 'PAUL (TV)': '#ffe14a', DICE: '#ff9f43', TWIG: '#b8c4d8', GOPHER: '#c8a86a', ROYCE: '#ff6a5a', LOU: '#d8c878', ERNIE: '#c8e86a', CHERYL: '#e8a0c8' };
 
 export class Story {
   constructor(g) {

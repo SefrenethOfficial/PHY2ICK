@@ -55,6 +55,7 @@ export class Missions {
   }
   // what shows at the top of your phone as RECOMMENDED (a suggestion, not an order)
   recommended() {
+    const lk = this.g.lucky?.recommended(); if (lk) return lk;
     const nv = this.g.never?.recommended(); if (nv) return nv;
     const cr = this.g.crew?.recommended(); if (cr) return cr;
     if (this.id === 'mask') return { title: 'The Face', text: 'Lou at the <b>Pawn Shop</b> has something for you. $250.' };

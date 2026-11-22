@@ -152,6 +152,8 @@ export class Human {
     }
     // a beard (Gopher): round the jaw and the chin, in the hair colour
     if (L.beard) { const bc = new THREE.Color(L.hair).multiplyScalar(0.85).getHex(); add('head', box(0.17, 0.085, 0.08, 0.035), bc, 0, HY + HC - 0.078, 0.06); for (const sx of [-1, 1]) add('head', box(0.035, 0.1, 0.1, 0.015), bc, sx * 0.1, HY + HC - 0.04, 0.03); add('head', box(0.07, 0.016, 0.02, 0.006), bc, 0, HY + HC - 0.028, 0.114); }
+    // a gold chain (Lucky): a loop round the neck, hanging onto the chest, and a pendant
+    if (L.chain) { const gc = 0xd8a92e; for (const k of [-1, 1]) for (let i = 0; i < 7; i++) { const t = i / 6; add('chest', box(0.018, 0.014, 0.016, 0.005), gc, k * (0.075 - t * 0.07), 1.48 - t * 0.08, 0.108 * lw + 0.009); } add('chest', box(0.035, 0.045, 0.012, 0.006), gc, 0, 1.375, 0.105 * lw + 0.006); }
     // sunglasses (Vic)
     if (L.shades) { const dark = 0x0b0c0e; for (const sx of [-1, 1]) add('head', box(0.07, 0.042, 0.02, 0.008), dark, sx * 0.044, HY + HC + 0.006, 0.113); add('head', box(0.03, 0.012, 0.012, 0.004), dark, 0, HY + HC + 0.016, 0.118); for (const sx of [-1, 1]) add('head', box(0.008, 0.012, 0.11, 0.003), dark, sx * 0.083, HY + HC + 0.014, 0.06); }
     // hair
@@ -229,6 +231,14 @@ export class Human {
 
   // a face for a while (then back to their usual one): neutral, happy, angry, annoyed, sad, surprised, scared, hurt, ko
   express(name, secs = 2.5) { this.expr = name; this.exprT = secs; }
+  // something held in the right hand (a can, a sandwich): hung from the wrist bone, in its bind frame
+  hold(m) {
+    if (this.held) { this.held.removeFromParent(); this.held = null; }
+    if (!m) return;
+    const sk = this.body?.skeleton, i = sk ? sk.bones.indexOf(this.b.wristR) : -1, holder = new THREE.Group(); holder.add(m);
+    if (i >= 0) sk.boneInverses[i].clone().multiply(new THREE.Matrix4().makeTranslation(-this.shX, 0.79, 0.02)).decompose(holder.position, holder.quaternion, holder.scale);
+    holder.traverse(o => { if (o.isMesh) o.castShadow = true; }); this.b.wristR.add(holder); this.held = holder;
+  }
   // a pointing finger on the right hand (it hangs from the wrist bone, in its bind frame)
   pointer(on) {
     if (this.finger) { this.finger.removeFromParent(); this.finger = null; }
