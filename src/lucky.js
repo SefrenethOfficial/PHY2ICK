@@ -21,6 +21,7 @@ export class Lucky {
     if (this.stage === 'ears') return { title: 'Ears Open', text: `Lucky won't leave you alone. (${this.pops.length}/3)` };
     if (this.stage === 'planWait') return { title: 'Ears Open', text: 'Wren wants a plan. Go to <b>his house</b>.' };
     if (this.stage === 'plan') return { title: 'Ears Open', text: { gun: 'The gun: buy a <b>revolver</b> from a street dealer.', parole: 'The parole: pay <b>Paul</b> $1,000 to make a call.', vanish: 'Disappear: drive <b>Kit\'s van</b> out into the Dry.' }[this.plan] || 'Pick a plan with Wren (hold E on him).' };
+    if (this.stage === 'blown') return { title: 'Scrapyard', text: "Lucky's not your friend right now. <b>Sleep it off</b> (your bed, 1E): Paul will smooth it over by morning." };
     if (this.stage === 'meet') return { title: 'Scrapyard', text: `Meet <b>Lucky Royce</b> at <b>Rusty's lot</b>. Bring at least ${MIN} bags. (Paul says please. Paul says it twice.)` };
     return null;
   }
@@ -247,7 +248,8 @@ export class Lucky {
     }
   }
   // (his guys shoot like the Saltline crew)
-  state() { return { stage: { scene: 'meet', planning: 'planWait', pick: 'planWait' }[this.stage] || this.stage, pops: this.pops, plan: this.plan }; }
+  state() { return { stage: { scene: 'meet', planning: 'planWait', pick: 'planWait' }[this.stage] || this.stage, pops: this.pops, plan: this.plan, blownDay: this.blownDay }; }
   restore(s) { if (!s) return; this.stage = s.stage || 'none'; this.pops = s.pops || []; this.plan = s.plan || null; this.popT = 40; this.textT = 30;
+    if (this.stage === 'blown') this.blownDay = s.blownDay ?? (this.g.missions?.day ?? 1); // (he comes round the morning after, reload or not)
     if (this.stage === 'planWait') this.g.story.waypoint(this.g.wrenHouse?.door); if (this.stage === 'waiting') { this.waitT = 60; this.day0 = this.g.missions?.day ?? 1; } if (this.stage === 'meet') { this.spawn(); this.g.story.waypoint(this.lot()); } }
 }
