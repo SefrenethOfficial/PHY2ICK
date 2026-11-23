@@ -36,7 +36,7 @@ export class Never {
     if (this.paul && g.citizens.list.includes(this.paul) && this.paul.state !== 'dead') return this.paul;
     const n = this.paul = g.citizens.addWorker({ pos: o.desk.clone(), yaw: o.deskYaw, name: 'Paul Badfella', role: 'lawyer', look: { ...PAUL_LOOK },
       lines: ["Paul Badfella! Attorney at law. Sit, sit.", "You look like a man with a legal problem. Or a man about to have one.", "Never call Paul! But do. Call Paul.", "I'm on the phone. Nobody's on the other end. It's a power move."] });
-    n.paul = true; n.mood = 50; return n;
+    n.paul = true; n.mood = 50; n.mem.met = true; return n;
   }
   options(n) {
     const g = this.g, s = this.stage, o = [];
@@ -45,10 +45,11 @@ export class Never {
     if (s === 'pay' && !this.paid) o.push({ id: 'pl:pay', label: g.money >= FEE ? `Here's your fee ($${FEE.toLocaleString()})` : `Your fee: $${FEE.toLocaleString()} (you're short)` });
     if (s === 'done') o.push({ id: 'pl:ernie', label: "How's Ernie?" }, { id: 'pl:clean', label: 'About that money of mine…' });
     o.push(...(g.lucky?.paulOptions() || []));
-    o.push({ id: 'pl:chat', label: 'What do you do?' }, { id: 'pl:bye', label: 'Never mind' });
-    return o;
+    if (s === 'office' || s === 'officeTalk') return [...o, { id: 'pl:bye', label: 'Never mind' }]; // (in the middle of it: just the case)
+    return g.paultalk ? g.paultalk.options(n, o) : [...o, { id: 'pl:chat', label: 'What do you do?' }, { id: 'pl:bye', label: 'Never mind' }];
   }
   act(n, id) {
+    if (this.g.paultalk?.act(n, id)) return true;
     if (!id.startsWith('pl:')) return false;
     const g = this.g, C = g.citizens;
     if (g.lucky?.paulAct(n, id)) return true;

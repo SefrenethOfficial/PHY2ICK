@@ -692,6 +692,7 @@ export class Citizens {
   // hit with a weapon
   struck(n, W, dir) {
     const g = this.g;
+    if (n.paul) g.paultalk?.hit();
     const chest = n.human.ragdoll ? n.human.ragdoll.pelvis.add(new THREE.Vector3(0, 0.35, 0)) : this.pos(n).add(new THREE.Vector3(0, 1.3, 0));
     if (W.dmg === 0) { // the plastic kiddie knife
       g.hud.toast('The plastic knife bends. Nothing happens.');
@@ -729,6 +730,7 @@ export class Citizens {
   // a punch from you
   punched(n, dmg, dir, heavy) {
     const g = this.g;
+    if (n.paul) g.paultalk?.hit();
     if (n.state === 'dead' || n.state === 'seated') return;
     n.mem.hitBy++; n.mood -= 30; n.hp -= dmg;
     if (n.companion) g.wren?.hurtBy('punch');
@@ -747,6 +749,7 @@ export class Citizens {
 
   // a bullet
   shot(n, dmg, dir, at, head) {
+    if (n.paul) this.g.paultalk?.hit();
     const g = this.g;
     if (n.state === 'dead') return;
     if (n.state === 'seated' && n.car) { // (in a car: they tumble out)

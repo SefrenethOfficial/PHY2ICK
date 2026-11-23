@@ -292,28 +292,41 @@ export function buildInterior(g, room, kind, opts = {}) {
       for (const sx of [-1, 1]) sofa(sx * (W / 2 - 1.2), -D / 2 + 3, 3, sx * -Math.PI / 2, 0x3a1a3a);
       break;
     }
-    case 'paul': { // Paul Badfella, attorney at law: fake marble, fake columns, a giant flag, a gold statue, a big desk
-      const marble = 0xeeeae2, gold = 0xd8a92e;
-      // Cheryl's desk, by the door; Paul's, at the back, with two client chairs
-      counter(-W / 2 + 2.4, -2.2, 2.4, 0.8, marble, 0xd8d2c4); worker(-W / 2 + 2.4, -3.0, 0, ["Do you have an appointment? He doesn't do appointments. Go on in.", "He's on the phone. He's always on the phone. Nobody's ever on the other end.", "I'm a paralegal. Allegedly.", "The columns are fibreglass. Don't lean on them."], 'receptionist');
-      cbox(2.8, 0.08, 1.1, 0, 0.8, -D + 2.2, 0x3a2216, { collide: false }); cbox(2.7, 0.76, 1.0, 0, 0.38, -D + 2.2, 0x5a3422, { collide: true }); // (the desk)
-      cbox(0.5, 0.09, 0.08, 0.6, 0.88, -D + 2.75, gold); // (the nameplate)
-      sign('PAUL BADFELLA, ESQ.', 0.5, 0.6, 0.88, -D + 2.8, 0, '#d8a92e', '#2a1a0a');
+    case 'paul': { // Paul Badfella, attorney at law: a waiting room out front; his own office at the back, round, behind a curved wall
+      const marble = 0xeeeae2, gold = 0xd8a92e, R = 4.6, cz = -D + 0.2;
+      // ---- the waiting room: Cheryl, chairs, magazines, a water cooler, a ticket machine that only says 0
+      counter(-W / 2 + 2.4, -2.2, 2.4, 0.8, marble, 0xd8d2c4); worker(-W / 2 + 2.4, -3.0, 0, ["Do you have an appointment? He doesn't do appointments. Take a number.", "The machine only does zero. Everyone's zero.", "I'm a paralegal. Allegedly.", "The columns are fibreglass. Don't lean on them.", "He'll see you. He sees everyone. That's the problem."], 'receptionist');
+      for (let i = 0; i < 4; i++) chair(W / 2 - 0.7, -1.6 - i * 0.9, -Math.PI / 2, 0x7a1a1e);
+      cbox(0.9, 0.42, 1.6, W / 2 - 2.0, 0.21, -2.95, 0x5a3422, { collide: true });
+      for (let i = 0; i < 5; i++) cbox(0.28, 0.02, 0.36, W / 2 - 2.0 + (Math.random() - 0.5) * 0.4, 0.43 + i * 0.012, -2.95 + (Math.random() - 0.5) * 1.0, [0xd84a3a, 0x3a7ad8, 0xe8d84a, 0x6ac86a, 0xe8e2d4][i], { ry: Math.random() });
+      cbox(0.4, 1.0, 0.4, -W / 2 + 0.45, 0.5, -5.4, 0xe8e8ec, { collide: true }); ccyl(0.16, 0.42, -W / 2 + 0.45, 1.22, -5.4, 0x7ab8e8, 14);
+      cbox(0.34, 1.2, 0.3, 2.2, 0.6, -0.55, 0xb8202a, { collide: true }); sign('TAKE A NUMBER · NOW SERVING: 0', 0.9, 2.2, 1.45, -0.39, 0, '#111', '#ff5a3a');
+      plant(-W / 2 + 1.0, -1.0); plant(W / 2 - 0.8, -6.2, 1.3);
+      sign('NO WIN, NO FEE*', 2.6, W / 2 - 0.07, 2.6, -4.2, -Math.PI / 2, '#d8a92e', '#7a1a1e');
+      sign('*FEE', 0.8, W / 2 - 0.07, 2.1, -4.2, -Math.PI / 2, '#d8a92e', '#7a1a1e');
+      // ---- the curved wall round his office, a doorway in the middle (with a brass sign over it)
+      for (let k = 0; k <= 28; k++) {
+        const th = -Math.PI / 2 + (k / 28) * Math.PI; if (Math.abs(th) < 0.19) continue;
+        const x = Math.sin(th) * R, z = cz + Math.cos(th) * R;
+        cbox(R * (Math.PI / 28) * 1.12, H, 0.22, x, H / 2, z, 0xf2e6c8, { ry: th, collide: true });
+        if (k % 2 === 0) cbox(0.06, H, 0.06, Math.sin(th) * (R + 0.12), H / 2, cz + Math.cos(th) * (R + 0.12), gold); // (gold pinstripes, outside)
+      }
+      { const lx = Math.sin(0.19) * R; cbox(lx * 2 + 0.2, H - 2.3, 0.24, 0, 2.3 + (H - 2.3) / 2, cz + R * Math.cos(0.19), 0xf2e6c8); }
+      sign('PRIVATE · PAUL BADFELLA, ESQ.', 1.8, 0, 2.55, cz + R + 0.13, 0, '#2a1a0a', '#e8c46a');
+      // ---- inside: the desk, chairs, the flag, the gold scales, diplomas, columns round the curve, a rug
+      cbox(2.8, 0.08, 1.1, 0, 0.8, -D + 2.2, 0x3a2216, { collide: false }); cbox(2.7, 0.76, 1.0, 0, 0.38, -D + 2.2, 0x5a3422, { collide: true });
+      cbox(0.5, 0.09, 0.08, 0.6, 0.88, -D + 2.75, gold); sign('PAUL BADFELLA, ESQ.', 0.5, 0.6, 0.88, -D + 2.8, 0, '#d8a92e', '#2a1a0a');
       chair(0, -D + 0.8, 0, 0x2a1a12); chair(-0.7, -D + 3.6, Math.PI, 0x7a1a1e); chair(0.7, -D + 3.6, Math.PI, 0x7a1a1e);
-      // the flag behind him: huge
       { const t = canvasTex(256, 160, (c) => { for (let i = 0; i < 9; i++) { c.fillStyle = i % 2 ? '#f2efe6' : '#b8202a'; c.fillRect(0, i * 160 / 9, 256, 160 / 9 + 1); } c.fillStyle = '#1d2f6a'; c.fillRect(0, 0, 110, 88); c.fillStyle = '#e8c46a'; c.font = 'bold 54px Georgia'; c.textAlign = 'center'; c.fillText('⚖', 55, 64); });
-        mesh(new THREE.PlaneGeometry(3.6, 2.2), std(0xffffff, 0.8, { map: t }), 0, 2.2, -D + 0.06, { shadow: false }); }
-      // the columns (fibreglass), the statue (gold), diplomas, plants, a rug
-      for (const sx of [-1, 1]) for (const z of [-D + 0.6, -D / 2]) { ccyl(0.28, H - 0.2, sx * (W / 2 - 0.7), (H - 0.2) / 2, z, marble, 16); cbox(0.7, 0.18, 0.7, sx * (W / 2 - 0.7), 0.09, z, 0xd8d2c4); cbox(0.7, 0.18, 0.7, sx * (W / 2 - 0.7), H - 0.29, z, 0xd8d2c4); }
-      cbox(0.5, 1.0, 0.5, W / 2 - 1.9, 0.5, -D + 1.5, marble, { collide: true }); ccyl(0.04, 0.9, W / 2 - 1.9, 1.45, -D + 1.5, gold, 8); cbox(0.9, 0.04, 0.04, W / 2 - 1.9, 1.88, -D + 1.5, gold);
-      for (const sx of [-1, 1]) { ccyl(0.2, 0.03, W / 2 - 1.9 + sx * 0.42, 1.55, -D + 1.5, gold, 14); }
+        mesh(new THREE.PlaneGeometry(3.4, 2.1), std(0xffffff, 0.8, { map: t }), 0, 2.2, -D + 0.06, { shadow: false }); }
+      for (const th of [-1.25, -0.7, 0.7, 1.25]) { const x = Math.sin(th) * (R - 0.45), z = cz + Math.cos(th) * (R - 0.45); ccyl(0.22, H - 0.2, x, (H - 0.2) / 2, z, marble, 16); cbox(0.55, 0.16, 0.55, x, 0.08, z, 0xd8d2c4); }
+      cbox(0.5, 1.0, 0.5, 3.1, 0.5, -D + 1.3, marble, { collide: true }); ccyl(0.04, 0.9, 3.1, 1.45, -D + 1.3, gold, 8); cbox(0.9, 0.04, 0.04, 3.1, 1.88, -D + 1.3, gold);
+      for (const sx of [-1, 1]) ccyl(0.2, 0.03, 3.1 + sx * 0.42, 1.55, -D + 1.3, gold, 14);
       { const t = canvasTex(256, 192, (c) => { c.fillStyle = '#f4ecd2'; c.fillRect(0, 0, 256, 192); c.strokeStyle = '#b8902e'; c.lineWidth = 10; c.strokeRect(5, 5, 246, 182); c.fillStyle = '#2a1a0a'; c.textAlign = 'center'; c.font = 'bold 22px Georgia'; c.fillText('DIPLOMA', 128, 50); c.font = 'italic 15px Georgia'; c.fillText('Paul Badfella', 128, 86); c.fillText('is hereby a lawyer', 128, 108); c.font = '11px Georgia'; c.fillText('University of Online', 128, 150); });
-        for (let k = 0; k < 4; k++) mesh(new THREE.PlaneGeometry(0.6, 0.45), std(0xffffff, 0.7, { map: t }), -W / 2 + 0.06, 1.5 + (k % 2) * 0.6, -D + 2 + Math.floor(k / 2) * 0.8, { ry: Math.PI / 2, shadow: false }); }
-      cbox(3.2, 0.02, 4, 0, 0.02, -D + 3.4, 0x7a1a1e);
-      plant(-W / 2 + 1.0, -1.0); plant(W / 2 - 1.0, -1.0, 1.3);
-      sign('NO WIN, NO FEE*', 2.6, W / 2 - 0.07 - 0.0, 2.6, -D / 2 - 1.2, -Math.PI / 2, '#d8a92e', '#7a1a1e');
-      sign('*FEE', 0.8, W / 2 - 0.07, 2.1, -D / 2 - 1.2, -Math.PI / 2, '#d8a92e', '#7a1a1e');
-      g.paulOffice = { desk: toW(0, 0.04, -D + 1.3), deskYaw: yaw, client: toW(0, 0.04, -D + 4.3), clientYaw: yaw + Math.PI, door: toW(doorU, 0.04, 1.8), doorYaw: yaw, inside: toW(doorU, 0.04, -1.5) };
+        for (const x of [-2.4, -3.2, 2.2]) for (const y of [1.4, 2.0]) if (!(x > 0 && y < 1.6)) mesh(new THREE.PlaneGeometry(0.55, 0.42), std(0xffffff, 0.7, { map: t }), x, y, -D + 0.06, { shadow: false }); }
+      ccyl(3.0, 0.02, 0, 0.02, -D + 2.6, 0x7a1a1e, 28);
+      plant(-3.4, -D + 0.9, 1.1);
+      g.paulOffice = { desk: toW(0, 0.04, -D + 1.3), deskYaw: yaw, client: toW(0, 0.04, -D + 4.3), clientYaw: yaw + Math.PI, guest: toW(-0.7, 0.04, -D + 3.9), guestYaw: yaw + Math.PI, wait: toW(W / 2 - 1.6, 0.04, -3.0), centre: toW(0, 0.04, cz), R, door: toW(doorU, 0.04, 1.8), doorYaw: yaw, inside: toW(doorU, 0.04, -1.5) };
       break;
     }
     case 'lobby': { // hospital, police, hotel, law firm, spa: a desk, seats, plants and the right signs

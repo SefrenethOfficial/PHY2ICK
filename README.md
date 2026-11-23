@@ -105,6 +105,14 @@ A while after Low Profile (or the next morning), your phone rings: **E** to answ
 - **Noon, the Pier:** from Kit's van you and Wren watch Ernie, in the knock-off, sit down on Dice's bench and eat a sandwich, very slowly, while the cops wait for him to finish. "Glass! That's me! I'm Glass!" Dice walks; Paul's your lawyer now.
 - His billboards are up round the island: on his roof, on the way into the Dry, across the avenue from the Police Station, and at the west end of Willow Bank.
 
+### Paul, day to day
+Paul's at his desk round the clock, in his own **round office** at the back of the building, behind a curved wall with gold pinstripes and a PRIVATE sign: out front is the waiting room (Cheryl, red chairs, a table of old magazines, a water cooler, and a TAKE A NUMBER machine that's always on 0). Hold `E` on him:
+- **Talk**: him, law school, the billboards, Glass, Wren, Lucky (once you've met him), Kit, Cheryl.
+- **Any quick money?** A real tip each time, and they all work: Rusty's, the Pawn Shop, pickpocketing, keeping the crew stocked, purity, Lucky's prices, Wren's trust, tills, cooking in the Dry, sleeping.
+- **Make it go away** ($400 a star, while you're wanted): he makes a call, you lose a star.
+- Compliment him, insult him (it's billable).
+He never reports you. **Hit him** and he hits the panic button: two security guards with batons walk you out onto the pavement, and he won't talk to you for a few minutes. About a third of the time you walk in, he's **with a client**, on something deeply strange (suing a reflection, a parrot witness, custody of a ventriloquist dummy, a timeshare on the moon, a goose's signature, a hedge war, evicting a ghost); he'll be with you in two minutes.
+
 ### Scrapyard (Lucky)
 A while after Never Call Paul, Paul texts in a panic: a client of his just got out of prison. **Lucky Royce**, Royce's little brother (buzz cut, sunglasses at all hours, a tank top, a gold chain, an energy drink, two guys behind him), wants to meet "the blue guy" at **Rusty's lot**. Bring at least four bags. He greets you like family, tells you his brother "got sloppy, took a bullet off some nobody" (you're the nobody), holds a bag up to the light like a jeweller, and when his guy calls it "pretty good", slams a scrap car door into him. Then he buys the lot at well over street price: you're FAMILY now. Start something with his crew before the deal and it's a fight (he forgives you the next day; he says that a lot).
 
@@ -327,6 +335,7 @@ src/
   suburb.js     Willow Bank: the land, the streets, the houses, Wren's house
   lucky.js      Lucky Royce: Scrapyard, Ears Open (more to come)
   never.js      Never Call Paul: the call, the TV ad, the flashback, Dad, the Dry, Ernie and the bench
+  paultalk.js   Paul day to day: talk, money tips, the star call, security, his clients
   paul.js       Paul Badfella: his look, his office front, his billboards, the tube men, his TV advert
   crew.js       Low Profile: Twig, Gopher and Dice, their corners, their sales, the clean days
   mask.js       the gold mask (Glass): the model, K, the cops and the dealers

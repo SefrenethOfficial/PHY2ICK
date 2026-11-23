@@ -39,6 +39,7 @@ import { Crew } from './crew.js';
 import { dressPaul, paulTick } from './paul.js';
 import { Never } from './never.js';
 import { Lucky } from './lucky.js';
+import { PaulTalk } from './paultalk.js';
 import { Food } from './food.js';
 import { Icons } from './icons.js';
 import { Dealers } from './dealers.js';
@@ -72,6 +73,7 @@ class Game {
     this.crew = new Crew(this);
     this.never = new Never(this);
     this.lucky = new Lucky(this);
+    this.paultalk = new PaulTalk(this);
     this.icons = new Icons(); this.food = new Food(this);
     this.blood = new Blood(this);
     this.fx = new Fx(this); this.sfx = new Sfx(this); this.pickups = new Pickups(this);
@@ -581,6 +583,7 @@ class Game {
     paulTick(this, rdt);
     if (dt > 0) this.never?.update(rdt);
     if (dt > 0) this.lucky?.update(rdt);
+    if (dt > 0) this.paultalk?.update(rdt);
     this.title?.update(rdt);
     this.sfx.horn(this.player.car?.pos, !!(this.player.car && this.player.dead));
     this.player.frame(dt);
