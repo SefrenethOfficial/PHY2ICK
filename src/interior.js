@@ -295,7 +295,7 @@ export function buildInterior(g, room, kind, opts = {}) {
     case 'paul': { // Paul Badfella, attorney at law: a waiting room out front; his own office at the back, round, behind a curved wall
       const marble = 0xeeeae2, gold = 0xd8a92e, R = 4.6, cz = -D + 0.2;
       // ---- the waiting room: Cheryl, chairs, magazines, a water cooler, a ticket machine that only says 0
-      counter(-W / 2 + 2.4, -2.2, 2.4, 0.8, marble, 0xd8d2c4); worker(-W / 2 + 2.4, -3.0, 0, ["Do you have an appointment? He doesn't do appointments. Take a number.", "The machine only does zero. Everyone's zero.", "I'm a paralegal. Allegedly.", "The columns are fibreglass. Don't lean on them.", "He'll see you. He sees everyone. That's the problem."], 'receptionist');
+      counter(-W / 2 + 2.4, -2.2, 2.4, 0.8, marble, 0xd8d2c4); worker(-W / 2 + 2.4, -3.0, 0, ["Do you have an appointment? He doesn't do appointments. Take a number.", "The machine only does zero. Everyone's zero.", "I'm a paralegal. Allegedly.", "The columns are fibreglass. Don't lean on them.", "He'll see you. He sees everyone. That's the problem.", "We're only here till the Royce thing wraps. Then it's back to Albuquerque, thank God.", "This isn't the real office. The real office has a fountain. A small one. It leaks."], 'receptionist');
       for (let i = 0; i < 4; i++) chair(W / 2 - 0.7, -1.6 - i * 0.9, -Math.PI / 2, 0x7a1a1e);
       cbox(0.9, 0.42, 1.6, W / 2 - 2.0, 0.21, -2.95, 0x5a3422, { collide: true });
       for (let i = 0; i < 5; i++) cbox(0.28, 0.02, 0.36, W / 2 - 2.0 + (Math.random() - 0.5) * 0.4, 0.43 + i * 0.012, -2.95 + (Math.random() - 0.5) * 1.0, [0xd84a3a, 0x3a7ad8, 0xe8d84a, 0x6ac86a, 0xe8e2d4][i], { ry: Math.random() });

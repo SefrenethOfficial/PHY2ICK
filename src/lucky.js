@@ -37,7 +37,7 @@ export class Lucky {
   spawn() {
     const g = this.g, C = g.citizens; this.despawn();
     const c = this.lot(), at = (dx, dz) => c.clone().add(V(dx, 0, dz));
-    const L = this.lucky = C.addWorker({ pos: at(0, 0), yaw: 0, name: 'Lucky', role: 'lucky', look: { ...LUCKY_LOOK }, lines: ["Blue guy! Where's the blue guy?", "You see my chain? Real. Probably.", "I been inside two years. Two YEARS. Everything's so loud out here. I love it."] });
+    const L = this.lucky = C.addWorker({ pos: at(0, 0), yaw: 0, name: 'Lucky', role: 'lucky', look: { ...LUCKY_LOOK }, lines: ["Blue guy! Where's the blue guy?", "You see my chain? Real. Probably.", "I been inside two years. Two YEARS. Everything's so loud out here. I love it.", "Paul? Paul's the family lawyer. Back home in Albuquerque everybody's got Paul. Paul's like a cold. Everybody's got one."] });
     L.human.hold(foodMesh('can', 0x3ad86a));
     const guy = (dx, dz, name, shirt) => { const n = C.addWorker({ pos: at(dx, dz), yaw: 0, name, role: 'lucky', look: { ...randomLook(), female: false, shirt, longSleeves: true, pants: 0x22262a, hairStyle: pick(['short', 'cap', 'buzz']) }, lines: ["Lucky's busy.", "Don't touch the chain.", "…"] }); g.weapons.giveModel(n.human, 'pistol'); return n; };
     this.spud = guy(-2.2, -1.2, 'Spud', 0x3a4a5a); this.wes = guy(2.4, -1.0, 'Wes', 0x4a3a3a);

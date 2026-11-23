@@ -35,7 +35,7 @@ export class Never {
     const g = this.g, o = g.paulOffice; if (!o) return null;
     if (this.paul && g.citizens.list.includes(this.paul) && this.paul.state !== 'dead') return this.paul;
     const n = this.paul = g.citizens.addWorker({ pos: o.desk.clone(), yaw: o.deskYaw, name: 'Paul Badfella', role: 'lawyer', look: { ...PAUL_LOOK },
-      lines: ["Paul Badfella! Attorney at law. Sit, sit.", "You look like a man with a legal problem. Or a man about to have one.", "Never call Paul! But do. Call Paul.", "I'm on the phone. Nobody's on the other end. It's a power move."] });
+      lines: ["Paul Badfella! Attorney at law. Sit, sit.", "You look like a man with a legal problem. Or a man about to have one.", "Never call Paul! But do. Call Paul.", "I'm on the phone. Nobody's on the other end. It's a power move.", "Don't judge the office. It's temporary. My real one's in Albuquerque. It has a fountain."] });
     n.paul = true; n.mood = 50; n.mem.met = true; return n;
   }
   options(n) {
@@ -58,7 +58,7 @@ export class Never {
     if (id === 'pl:pay') { if (g.money < FEE) { C.say(n, "Love the enthusiasm. Hate the balance. Come back with the money.", 3.4); return true; } g.money -= FEE; g.sfx?.cash?.(g.player.pos); this.paid = true; C.say(n, pick(["Pleasure doing business! Ernie thanks you. Ernie's mother thanks you.", "Cash! The language of justice."]), 3.4); this.checkReady(); g.saver?.save(); }
     if (id === 'pl:ernie') C.say(n, pick(["Ernie's great. Three meals a day, a gym, a book club. Better life than mine.", "Ernie says hi. Ernie doesn't know your name, which is the beauty of Ernie."]), 4);
     if (id === 'pl:clean') C.say(n, "Your money, a little cleaner? Not today. Soon. I'll call you. Never call me.", 4);
-    if (id === 'pl:chat') C.say(n, pick(["Criminal law, civil law, family law, maritime law, a little bit of space law. Whatever pays.", "I make problems go away. Not like that. Mostly not like that.", "I went to law school. Online. It counts."]), 4);
+    if (id === 'pl:chat') C.say(n, pick(["Criminal law, civil law, family law, maritime law, a little bit of space law. Whatever pays.", "I make problems go away. Not like that. Mostly not like that.", "I went to law school. Online. It counts.", "Out here I'm just the guy with the tube men. In Albuquerque I'm an INSTITUTION."]), 4);
     if (id === 'pl:bye') C.say(n, "Never call Paul! But do.", 2.4);
     return true;
   }

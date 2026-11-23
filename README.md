@@ -107,7 +107,7 @@ A while after Low Profile (or the next morning), your phone rings: **E** to answ
 
 ### Paul, day to day
 Paul's at his desk round the clock, in his own **round office** at the back of the building, behind a curved wall with gold pinstripes and a PRIVATE sign: out front is the waiting room (Cheryl, red chairs, a table of old magazines, a water cooler, and a TAKE A NUMBER machine that's always on 0). Hold `E` on him:
-- **Talk**: him, law school, the billboards, Glass, Wren, Lucky (once you've met him), Kit, Cheryl.
+- **Talk**: him, **Albuquerque** (he's not from here: his real office is back home; this one's a rental for one big case), **the Royce case** (the Royce family's been his client for years), law school, the billboards, Glass, Wren, Lucky (once you've met him), Kit, Cheryl.
 - **Any quick money?** A real tip each time, and they all work: Rusty's, the Pawn Shop, pickpocketing, keeping the crew stocked, purity, Lucky's prices, Wren's trust, tills, cooking in the Dry, sleeping.
 - **Make it go away** ($400 a star, while you're wanted): he makes a call, you lose a star.
 - Compliment him, insult him (it's billable).

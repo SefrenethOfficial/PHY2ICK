@@ -23,10 +23,12 @@ const TIPS = [
   "Sleep. A new day's a new cook. People forget to sleep. Then they forget to cook. Then they forget to pay their lawyer.",
 ];
 const TOPICS = [
-  ['me', 'You'], ['school', 'Law school'], ['boards', 'The billboards'], ['glass', 'Glass'], ['wren', 'Wren'], ['lucky', 'Lucky', (g) => g.lucky && g.lucky.stage !== 'none'], ['kit', 'Kit'], ['cheryl', 'Cheryl'],
+  ['me', 'You'], ['home', 'Albuquerque'], ['royce', 'The Royce case'], ['school', 'Law school'], ['boards', 'The billboards'], ['glass', 'Glass'], ['wren', 'Wren'], ['lucky', 'Lucky', (g) => g.lucky && g.lucky.stage !== 'none'], ['kit', 'Kit'], ['cheryl', 'Cheryl'],
 ];
 const SAY = {
-  me: ["Born on this island. Raised on this island. Sued half this island. The other half's on retainer.", "I was going to be a magician. Same skills, honestly. Misdirection. A cape. Never explain the trick.", "People think I'm a bad lawyer. I'm a GREAT lawyer. I'm a bad person. Different departments."],
+  me: ["I'm not from here. Albuquerque, born and raised. I came out for one case. One. That was eight months ago.", "I was going to be a magician. Same skills, honestly. Misdirection. A cape. Never explain the trick.", "People think I'm a bad lawyer. I'm a GREAT lawyer. I'm a bad person. Different departments."],
+  home: ["Back home I've got a real office. Real marble. Some of it.", "Albuquerque. Sun, mountains, my face on every bus bench in the city. Here? One billboard and a tube man.", "This place? It's a pop-up. A rental. I got the columns from a party store. Back home they're at least fibreglass I OWN.", "Everybody in Albuquerque knows Paul. Cops, judges, crooks. Mostly the crooks. They tip better."],
+  royce: ["The Royce family's been my client for years. Back home they're… a lot. They're a whole side of town.", "I came out to the island for the Royce case. The Saltline stuff. Then Royce went and— well. The case got complicated.", "Royce was my client. Is. Was. Legally it's a grey area. Medically too, from what I hear. I hear nothing. Moving on."],
   school: ["University of Online. Four years, part-time, mostly at night, mostly in a bath.", "I passed the bar on the fourth try. The first three, the bar passed me. That's a lawyer joke. You can laugh. It's free. Everything else costs."],
   boards: ["Never call Paul. It's reverse psychology. It works on everybody. You're here, aren't you.", "I designed it myself. Do you see the poker chips? That's subtext.", "The one by the police station's my favourite. They have to look at me every day. Every. Day."],
   glass: ["Glass? Never heard of him. Gold mask, horns, very handsome? Never heard of him.", "Everybody's talking about Glass. You know what nobody's talking about? Glass's lawyer. Keep it that way.", "If anyone asks, Glass is a man of average height and medium build. That's everyone. That's the point."],
